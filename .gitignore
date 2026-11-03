@@ -1,0 +1,12 @@
+# Dados exportados da planilha e configurações privadas
+dados-privados/
+.env
+.env.*
+!.env.example
+__pycache__/
+.firebase/
+firebase-debug.log*
+ui-debug.log*
+.vercel/
+
+.vercel

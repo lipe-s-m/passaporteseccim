@@ -1,0 +1,3 @@
+[functions.passport]
+# JWT Firebase verificado dentro do handler via accounts:lookup do Google.
+verify_jwt = false

@@ -1,0 +1,22 @@
+{
+  "nome": "Nome",
+  "email": "Endereço de e-mail",
+  "identificador": "ID",
+  "selos": {
+    "Mesa-redonda": "mesa-redonda",
+    "Trabalhando com Dados nos dias atuais": "trabalhando-com-dados",
+    "Tecnologia, Inteligência Artificial e Oportunidades para o Futuro": "tecnologia-ia-oportunidades",
+    "Apresentações de Iniciação Científica": "iniciacao-cientifica",
+    "LinkedIn, currículo e entrevista: construindo sua jornada profissional": "linkedin-curriculo-entrevista",
+    "Da Rural ao Canadá": "da-rural-ao-canada",
+    "E se a AWS fosse um jogo?": "e-se-a-aws-fosse-um-jogo",
+    "Meninas na Robótica": "meninas-na-robotica",
+    "Equipe de Robótica SHIELD NIG": "equipe-robotica-shield-nig",
+    "Sua ideia vale uma startup?": "sua-ideia-vale-uma-startup",
+    "Uma visão sobre AI Gateway": "visao-sobre-ai-gateway",
+    "Ciência da Computação além das empresas de software": "ciencia-computacao-alem-software",
+    "Kafka além das filas": "kafka-alem-das-filas",
+    "Como iniciar em IA Security": "como-iniciar-em-ia-security",
+    "Como é desenvolver um jogo?": "como-e-desenvolver-um-jogo"
+  }
+}
