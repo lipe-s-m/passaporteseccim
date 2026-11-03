@@ -8,7 +8,7 @@ O dia vem de `activities.event_date`, data real da palestra no calendário de S�
 
 No [SQL Editor do projeto](https://supabase.com/dashboard/project/mqparqbuhstkdpcgbbsa/sql/new), com a conta proprietária do banco:
 
-1. Defina a data de cada palestra. As datas ficaram vazias porque o calendário não foi fornecido. Atividades sem data não geram chances até serem configuradas. Ao preencher a data, as presenças já registradas são incluídas automaticamente.
+1. Defina a data de cada palestra. As datas oficiais de 2026 já foram aplicadas pela migração `20261103190000_event_dates.sql`; use o SQL abaixo apenas para correções. Atividades sem data não geram chances até serem configuradas. Ao preencher a data, as presenças já registradas são incluídas automaticamente.
 2. Escolha a conta que terá acesso administrativo. Cadastre-a normalmente no passaporte, confirme seu e-mail e entre uma vez. Não compartilhe a senha entre organizadores: cada responsável pode ter sua própria conta.
 3. Conceda a permissão pelo UID verificado vinculado ao cadastro. A API e o usuário não conseguem conceder essa permissão.
 
@@ -31,14 +31,14 @@ select full_name, email, firebase_uid from public.participants
 where email = 'EMAIL_DA_CONTA_ADMINISTRATIVA';
 
 -- Substituir o e-mail; o comando só autoriza uma conta já vinculada.
-insert into private.raffle_admins(firebase_uid,note)
+insert into private.admins(firebase_uid,note)
 select firebase_uid, 'Organização SECCIM'
 from public.participants
 where email = 'EMAIL_DA_CONTA_ADMINISTRATIVA' and firebase_uid is not null
 on conflict(firebase_uid) do update set active = true;
 
 -- Revogar pelo UID exato: passa a valer no próximo GET, mesmo com token válido.
--- update private.raffle_admins set active = false where firebase_uid = 'UID_DA_CONTA';
+-- update private.admins set active = false where firebase_uid = 'UID_DA_CONTA';
 ```
 
 O campo `raffle_eligible` começa como `true` para os selos existentes. A organização pode excluir atividades que não façam parte dos brindes. As contas administrativas concedidas aqui podem **somente ler/exportar sorteios**: não recebem acesso para mudar presenças, datas ou outras contas pela API.
@@ -92,7 +92,11 @@ Exemplo ilustrativo de estrutura; os identificadores reais são UUIDs. `unconfig
 
 Erros: `401` sem identidade válida; `403` com e-mail não confirmado ou sem permissão administrativa; `400` para data/paginação inválidas; `503` para indisponibilidade. As respostas não incluem e-mails, senhas nem credenciais e usam `Cache-Control: no-store`. Identificadores de participante e de chance aparecem somente nesta exportação administrativa para distinguir homônimos e chances individuais.
 
-## Exportar sem programar uma interface
+## Exportar pelo painel
+
+Na aba **Organização**, escolha o dia em **Sorteio do dia** e use **Baixar lista do sorteio**. O navegador baixa `sorteio-AAAA-MM-DD.txt` (um nome por chance) e o JSON correspondente, com as mesmas verificações do exportador abaixo. Os arquivos ficam só no computador de quem baixou.
+
+## Exportar pelo terminal
 
 Na pasta do projeto, com Python instalado:
 
@@ -109,7 +113,7 @@ O JSON mantém identificadores para diferenciar pessoas com o mesmo nome. O TXT 
 
 ## Arquitetura e validação
 
-Migração: `20261103055811_daily_raffle.sql`. Tabelas: `public.raffle_entries` e `private.raffle_admins`, ambas com RLS. Usuários `anon` e `authenticated` não têm grants de leitura/escrita. O backend tem apenas SELECT nas duas tabelas, sem permissão para promover administradores ou inserir chances. Os triggers são `SECURITY INVOKER`, executados pelo papel administrativo que registra presenças no banco. O fluxo atual de baixa continua pelo SQL Editor/Table Editor como proprietário; não foi criada API de escrita de presenças.
+Migrações: `20261103055811_daily_raffle.sql` e `20261103180000_admin_attendance.sql` (renomeou `private.raffle_admins` para `private.admins`). Tabelas: `public.raffle_entries` e `private.admins`, ambas com RLS. Usuários `anon` e `authenticated` não têm grants de leitura/escrita. O backend tem apenas SELECT nas duas tabelas, sem permissão para promover administradores ou inserir chances. Os triggers são `SECURITY INVOKER`, executados pelo papel administrativo que registra presenças no banco. As baixas podem ser feitas pelo painel **Organização** do site (função `admin_attendance`, `SECURITY DEFINER`, que só age após conferir `private.admins`) ou, como antes, pelo SQL Editor/Table Editor como proprietário.
 
 A Edge Function valida o token e o estado atual da conta no Google, exige e-mail confirmado, e passa somente o UID confirmado à RPC `get_daily_raffle`. A RPC é `SECURITY INVOKER`, com `search_path` vazio e EXECUTE somente para `service_role`; consulta a tabela privada de permissões em cada chamada. Claims de papel, e-mail ou UID enviados pelo cliente não autorizam acesso.
 

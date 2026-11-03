@@ -309,3 +309,18 @@ Cada selo abre um modal com “Link para inscrição”, apontando para o Google
 
 Migração aplicada: `20261103053433_badge_ranking.sql`. Testes: `node --test tests/frontend.test.cjs tests/passport.test.mjs` (25 testes), mais `supabase/tests/ranking.sql` para empates, atividades inativas, participante sem selos, identidade inexistente e permissões da RPC. Os testes SQL usam uma transação revertida e preservam os dados reais.
 
+
+
+# Painel da organização — 03/11/2026
+
+Contas listadas em `private.admins` veem a aba **Organização** depois do login. As demais contas não veem a aba: o frontend pede a visão geral ao backend e só mostra o painel quando recebe 200.
+
+**Registro de presenças:** escolher a atividade em andamento, buscar a pessoa pelo nome ou e-mail (mínimo de 2 letras, até 20 resultados) e tocar em **Registrar presença**. A busca é limpa e volta o foco para o campo, para registrar a próxima pessoa. A lista **Presentes nesta atividade** mostra os registros mais recentes (até 1.000) e permite remover uma presença, com confirmação. Repetir um registro não duplica selo nem chance. Só aparece quem já criou a conta no passaporte; quem ainda não criou precisa se cadastrar antes.
+
+**Sorteio do dia:** baixa TXT e JSON do dia escolhido pelo endpoint `GET /passport/admin/raffle`. Recusa a geração se houver presenças em atividades sem data ou se os totais mudarem durante a paginação.
+
+**Backend:** rota `GET|POST|DELETE /functions/v1/passport/admin/attendance`. O GET aceita `action=overview|search|list`; o POST registra e o DELETE remove (corpo `{activity, participant}`). A Edge Function valida o token no Google e passa somente o UID verificado à RPC `admin_attendance`. A RPC é `SECURITY DEFINER` com `search_path` vazio e EXECUTE somente para `service_role`, e consulta `private.admins` em cada chamada, de modo que a revogação vale na requisição seguinte. Presenças registradas pelo painel guardam o UID do organizador em `attendances.recorded_by`. As respostas do painel incluem o e-mail dos participantes, porque a organização precisa distinguir homônimos; nunca incluem UIDs Firebase.
+
+**Conceder acesso:** a conta precisa ter se cadastrado no passaporte, confirmado o e-mail e entrado uma vez. Depois, no SQL Editor, executar o `insert into private.admins ...` descrito em `SORTEIOS.md`. Não registrar e-mails ou UIDs administrativos neste repositório, que é público.
+
+Testes: `node --test tests/frontend.test.cjs tests/passport.test.mjs` (34 testes) e `supabase/tests/admin_attendance.sql` (busca literal com `%`, registro idempotente, autor do registro, sincronização com o sorteio, lista, visão geral sem atividades inativas, remoção, validações, participante comum bloqueado, revogação imediata e permissões). Todas as migrações e os 5 testes SQL foram executados em um Postgres 17 local com papéis equivalentes aos do Supabase.

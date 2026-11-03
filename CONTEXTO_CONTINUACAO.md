@@ -1,6 +1,6 @@
-# Contexto para continuar a implementação dos sorteios
+# Contexto para continuar o projeto
 
-Atualizado em 3 de novembro de 2026. Leia este arquivo antes de continuar. Há documentação complementar em `DOCUMENTACAO.md` e `SORTEIOS.md`.
+Atualizado em 3 de novembro de 2026, após o painel da organização. Leia este arquivo antes de continuar. Há documentação complementar em `DOCUMENTACAO.md` e `SORTEIOS.md`.
 
 ## Objetivo
 
@@ -19,7 +19,7 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 - Migração aplicada: `20261103055811_daily_raffle`, no arquivo `supabase/migrations/20261103055811_daily_raffle.sql`.
 - Atividades têm `event_date` (dia real do evento no calendário de São Paulo) e `raffle_eligible`.
 - `public.raffle_entries` contém uma chance por presença elegível, com chave única por pessoa/atividade. Triggers sincronizam presenças novas, correções, remoções, data, atividade ativa e elegibilidade.
-- `private.raffle_admins` lista UIDs Firebase autorizados. A concessão/revogação cabe ao proprietário do banco. A RPC consulta a permissão atual em cada GET.
+- `private.admins` (antes `private.raffle_admins`) lista UIDs Firebase autorizados a registrar presenças e exportar sorteios. A concessão/revogação cabe ao proprietário do banco. A RPC consulta a permissão atual em cada GET.
 - RPC `public.get_daily_raffle`; rota implantada na Edge Function `GET /functions/v1/passport/admin/raffle?date=AAAA-MM-DD&offset=0`. Exige token Firebase válido, e-mail confirmado e conta administrativa ativa. Claims de papel/UID enviados pelo cliente não autorizam acesso.
 - Resposta paginada (até 1.000 entradas) contém nome, `participantId` e `ticketId` para distinguir homônimos, totais e atividades elegíveis sem data. Não contém e-mails.
 - `scripts/export_raffle.py AAAA-MM-DD` pede e-mail e senha no terminal (oculta a senha), pagina o endpoint e grava JSON e TXT em `dados-privados/`. O TXT repete cada nome conforme suas chances. Senhas/tokens não são salvos. A pasta é ignorada pelo Git e excluída do deploy Vercel.
@@ -27,14 +27,19 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 - Teste de integração com contas Firebase temporárias comprovou: sem login 401; conta comum/não confirmada 403; admin temporário 200; revogação da permissão bloqueia imediatamente o mesmo token com 403. Contas e autorização temporárias foram removidas.
 - Testes: `node --test tests/frontend.test.cjs tests/passport.test.mjs`; `python -m unittest discover -s tests -p test_export_raffle.py -v`; `supabase/tests/raffle.sql` (transação revertida). Confira o repositório para o estado atual antes de repetir qualquer alteração.
 
-## O que falta para operar com dados reais
+## Estado operacional (03/11/2026)
 
-1. O usuário precisa informar o e-mail da conta administrativa. A pergunta foi enviada, mas a resposta ainda não chegou. Usar uma conta existente, cadastrada no passaporte e com e-mail confirmado. Não promover automaticamente a conta do usuário e nunca pedir senha no chat.
-2. Consultar `public.participants` pelo e-mail informado e conferir o vínculo Firebase. Depois de confirmar o usuário-alvo com a organização, inserir somente o UID verificado em `private.raffle_admins` com a conta proprietária do Supabase. Confirmar GET 200 para essa conta e 403 para uma conta comum. A SQL ilustrativa e o procedimento estão em `SORTEIOS.md`. Não registrar UID/e-mail em documentação pública.
-3. O usuário precisa informar as datas oficiais das 15 atividades. Última consulta ao banco: zero presenças reais, zero chances, 15 atividades ativas elegíveis sem data. Nenhuma data foi inventada. Atualizar `activities.event_date` conforme o calendário oficial; para atividade que não conta para brinde, configurar `raffle_eligible=false`. Conferir atividades sem data/totais depois.
-4. Atualizar a documentação operacional após receber os dados. Entregar o comando de exportação. Arquivos de sorteio são privados; não publicar.
+1. Conta administrativa da organização cadastrada, confirmada e autorizada em `private.admins`. O e-mail fica fora deste repositório público.
+2. Datas oficiais aplicadas pela migração `20261103190000_event_dates.sql`, a partir do formulário de inscrição: 5 atividades em 03/11, 1 em 04/11, 4 em 05/11 e 5 em 06/11. Todas são elegíveis ao sorteio. "Meninas na Robótica" tem duas sessões no formulário, mas é um único selo.
+3. Pendente: a planilha real de inscrições não foi importada; o vencedor não é escolhido pelo sistema.
 
-As ações 1 e 3 dependem de dados da organização que ainda não foram informados. Banco, função, exportador e testes estão implementados; não existe interface de sorteio nem escolha automática do vencedor.
+## Painel da organização (implantado)
+
+- Migração `20261103180000_admin_attendance.sql` aplicada em produção com `supabase db push --remote`. Edge Function `passport` reimplantada com a rota `GET|POST|DELETE /passport/admin/attendance`. Site publicado na Vercel pela CLI, a partir da pasta vinculada (`.vercel/`, ignorada).
+- Aba **Organização** no `index.html`: escolher a atividade, buscar por nome/e-mail, registrar/remover presença e baixar a lista do sorteio do dia. Detalhes em `DOCUMENTACAO.md` (seção "Painel da organização").
+- Verificado em produção: rotas sem login respondem 401, método inválido 405, preflight 204; `check_api.py` OK; arquivos privados 404 na Vercel.
+- A conta administrativa escolhida pela organização ainda precisa se cadastrar, confirmar o e-mail e entrar uma vez antes de receber a permissão. O e-mail não deve ser registrado neste repositório, que é público.
+- A CLI do Supabase exige `--yes` para alterações em produção quando roda sem terminal; consultas usam `supabase db query --remote --read-only`.
 
 ## Regras importantes
 

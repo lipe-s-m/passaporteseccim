@@ -6,7 +6,7 @@ declare
   a uuid; b uuid; data jsonb; ticket uuid;
 begin
   perform set_config('test.raffle_prefix',prefix,true);
-  insert into private.raffle_admins(firebase_uid,note) values(prefix||'-admin','Fixture temporária');
+  insert into private.admins(firebase_uid,note) values(prefix||'-admin','Fixture temporária');
   insert into public.participants(full_name,email) values('Três chances',prefix||'a@example.invalid') returning id into a;
   insert into public.participants(full_name,email) values('Uma chance',prefix||'b@example.invalid') returning id into b;
   insert into public.activities(id,name,description,category,event_date,raffle_eligible) values
@@ -68,7 +68,7 @@ begin
 end;
 $$;
 reset role;
-update private.raffle_admins set active = false where firebase_uid = current_setting('test.raffle_prefix')||'-admin';
+update private.admins set active = false where firebase_uid = current_setting('test.raffle_prefix')||'-admin';
 set local role service_role;
 do $$
 begin
@@ -77,8 +77,8 @@ begin
     raise exception 'Revogação ignorada';
   exception when insufficient_privilege then null;
   end;
-  if has_table_privilege('service_role','private.raffle_admins','insert')
-    or has_table_privilege('service_role','private.raffle_admins','update')
+  if has_table_privilege('service_role','private.admins','insert')
+    or has_table_privilege('service_role','private.admins','update')
     or has_table_privilege('service_role','public.raffle_entries','insert') then raise exception 'Backend com escrita desnecessária'; end if;
 end;
 $$;
@@ -90,7 +90,7 @@ begin
     if has_function_privilege(client,'public.get_daily_raffle(text,date,integer)','execute')
       or has_table_privilege(client,'public.raffle_entries','select')
       or has_table_privilege(client,'public.raffle_entries','insert')
-      or has_table_privilege(client,'private.raffle_admins','insert') then raise exception 'Cliente com permissão indevida'; end if;
+      or has_table_privilege(client,'private.admins','insert') then raise exception 'Cliente com permissão indevida'; end if;
   end loop;
 end;
 $$;

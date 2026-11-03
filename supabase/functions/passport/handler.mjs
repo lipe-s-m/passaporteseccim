@@ -24,7 +24,10 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     const url = new URL(request.url);
     const faq = url.pathname.endsWith('/passport/questions');
-    if (!(faq ? ['GET','POST','PATCH','DELETE'] : ['GET']).includes(request.method)) return response(405, "METHOD_NOT_ALLOWED");
+    const attendance = url.pathname.endsWith('/passport/admin/attendance');
+    if (!(faq ? ['GET','POST','PATCH','DELETE'] : attendance ? ['GET','POST','DELETE'] : ['GET']).includes(request.method)) {
+      return response(405, "METHOD_NOT_ALLOWED");
+    }
     const match = /^Bearer ([A-Za-z0-9_.-]+)$/i.exec(request.headers.get("Authorization") ?? "");
     if (!match || match[1].length > 8192) return response(401, "UNAUTHORIZED");
     if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId) || !/^AIza[\w-]+$/.test(apiKey) || !supabaseUrl || !serviceKey) {
@@ -94,6 +97,57 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
           pendingAttendances:data.pendingAttendances
         });
       } catch { return response(503,'RAFFLE_UNAVAILABLE'); }
+    }
+
+    if (attendance) {
+      let input, action;
+      try {
+        if (request.method === 'GET') input = Object.fromEntries(url.searchParams);
+        else {
+          const raw = await request.text();
+          if (raw.length > 2000) throw Error();
+          input = JSON.parse(raw);
+        }
+        action = request.method === 'POST' ? 'add' : request.method === 'DELETE' ? 'remove' : input?.action;
+        if (!input || !(request.method === 'GET' ? ['overview','search','list'] : ['add','remove']).includes(action)) throw Error();
+        if (action !== 'overview' && (typeof input.activity !== 'string' || input.activity.length > 200 ||
+          !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(input.activity))) throw Error();
+        if (action === 'search' && (typeof input.q !== 'string' || input.q.trim().length < 2 || input.q.trim().length > 120)) throw Error();
+        if (['add','remove'].includes(action) && (typeof input.participant !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.participant))) throw Error();
+      } catch { return response(400, 'INVALID_ATTENDANCE'); }
+      try {
+        // A permissão é consultada no banco a cada chamada; papéis enviados pelo cliente são ignorados.
+        const result = await fetcher(`${supabaseUrl}/rest/v1/rpc/admin_attendance`, {
+          method:'POST', redirect:'error', signal:AbortSignal.timeout(8000),
+          headers:{'Content-Type':'application/json',apikey:serviceKey,Authorization:`Bearer ${serviceKey}`},
+          body:JSON.stringify({ p_uid:user.localId, p_action:action, p_activity:action === 'overview' ? null : input.activity,
+            p_participant:['add','remove'].includes(action) ? input.participant : null,
+            p_query:action === 'search' ? input.q.trim() : null })
+        });
+        if (!result.ok) {
+          const error = await result.json().catch(()=>({}));
+          return response(error.code === '42501' ? 403 : error.code === '22023' ? 400 : 503,
+            error.code === '42501' ? 'ADMIN_REQUIRED' : 'ATTENDANCE_UNAVAILABLE');
+        }
+        const data = await result.json();
+        const person = p => ({ id:p.id, name:p.name, email:p.email });
+        if (action === 'overview') {
+          if (!Array.isArray(data.activities) || !Number.isSafeInteger(data.participants)) return response(503,'ATTENDANCE_UNAVAILABLE');
+          return response(200,null,{ participants:data.participants, activities:data.activities.map(a=>({id:a.id,name:a.name,
+            eventDate:typeof a.eventDate === 'string' ? a.eventDate : null,raffleEligible:a.raffleEligible === true,
+            attendances:Number.isSafeInteger(a.attendances) ? a.attendances : 0})) });
+        }
+        if (action === 'search') {
+          if (!Array.isArray(data.participants)) return response(503,'ATTENDANCE_UNAVAILABLE');
+          return response(200,null,{ participants:data.participants.map(p=>({...person(p),present:p.present === true})) });
+        }
+        if (action === 'list') {
+          if (!Array.isArray(data.attendees) || !Number.isSafeInteger(data.total)) return response(503,'ATTENDANCE_UNAVAILABLE');
+          return response(200,null,{ total:data.total, attendees:data.attendees.map(p=>({...person(p),recordedAt:p.recordedAt})) });
+        }
+        return response(200,null,{ changed:data.changed === true });
+      } catch { return response(503,'ATTENDANCE_UNAVAILABLE'); }
     }
 
     if (url.pathname.endsWith('/passport/ranking')) {

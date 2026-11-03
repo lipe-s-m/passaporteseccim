@@ -234,7 +234,7 @@ h1{font-size:clamp(28px,5vw,40px);line-height:1.3;letter-spacing:0;font-weight:7
 .faq-card{padding:20px;border:1px solid rgba(165,140,255,.25);border-radius:16px;background:#1b2932;margin:16px 0}
 .faq-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:14px 0}
 .faq-field{display:flex;flex-direction:column;gap:8px;margin:16px 0;font-size:14px}
-.faq-field select,.faq-field textarea{width:100%;padding:12px;border:1px solid #687780;border-radius:10px;background:#111a20;color:var(--ink);font:inherit}
+.faq-field select,.faq-field textarea,.faq-field input{width:100%;padding:12px;border:1px solid #687780;border-radius:10px;background:#111a20;color:var(--ink);font:inherit}
 .faq-field textarea{min-height:120px;resize:vertical}
 .faq-field :focus-visible{outline:2px solid var(--green);outline-offset:3px}
 .faq-question{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
@@ -267,6 +267,15 @@ main{padding:32px 0 64px}
 .ranking-position{font-size:22px;font-weight:750;color:#b9aaff;min-width:42px;text-align:center}
 .ranking-name{flex:1;min-width:0;overflow-wrap:anywhere}.ranking-count{white-space:nowrap;font-weight:650}
 .ranking-summary{text-align:center;font-size:17px;line-height:1.6;color:var(--muted)}
+.admin-list{list-style:none;padding:0;display:grid;gap:10px;margin:12px 0 24px}
+.admin-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(31,46,55,.8)}
+.admin-row.present{border-color:rgba(34,227,154,.45)}
+.admin-person{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:17px}
+.admin-person small{display:block;color:var(--muted);font-size:14px}
+.admin-row .action-button{flex:0 0 auto}
+.admin-row .action-button.secondary{background:transparent;border-color:#687780}
+.admin-status{color:var(--green);font-size:14px;font-weight:650}
+.admin-panel h3{font-size:20px;margin:28px 0 8px}.admin-panel .faq-card h3{margin-top:0}
 </style>
 </head>
 <body>
@@ -309,6 +318,7 @@ main{padding:32px 0 64px}
     <button id="passportTab" class="action-button" type="button" aria-pressed="true" aria-controls="passportPanel">Meu passaporte</button>
     <button id="faqTab" class="action-button" type="button" aria-pressed="false" aria-controls="faqPanel">FAQ · Perguntas</button>
     <button id="rankingTab" class="action-button" type="button" aria-pressed="false" aria-controls="rankingPanel">Ranking</button>
+    <button id="adminTab" class="action-button" type="button" aria-pressed="false" aria-controls="adminPanel" hidden>Organização</button>
   </nav>
   <div id="passportPanel" hidden>
   <section class="hero-grid" aria-label="Resumo do passaporte">
@@ -357,6 +367,24 @@ main{padding:32px 0 64px}
     <p id="rankingMessage" class="page-message" role="status" aria-live="polite"></p>
     <ol id="rankingList" class="ranking-list" aria-label="Participantes com mais selos"></ol>
   </section>
+  <section id="adminPanel" class="admin-panel" aria-labelledby="adminTitle" hidden>
+    <div class="section-head"><div><div class="eyebrow">Organização</div><h2 id="adminTitle">Registro de presenças</h2><p>Escolha a atividade em andamento, busque a pessoa pelo nome ou e-mail e registre a presença.</p></div><span class="collection-meta" id="adminCount"></span></div>
+    <label class="faq-field" for="adminActivity">Atividade<select id="adminActivity"><option value="">Selecione uma atividade</option></select></label>
+    <label class="faq-field" for="adminSearch">Buscar participante<input id="adminSearch" type="search" autocomplete="off" maxlength="120" placeholder="Nome ou e-mail" disabled></label>
+    <p id="adminMessage" class="page-message" role="status" aria-live="polite"></p>
+    <ul id="adminResults" class="admin-list" aria-label="Resultado da busca"></ul>
+    <h3>Presentes nesta atividade</h3>
+    <div class="faq-controls"><button id="adminRefresh" class="action-button" type="button">Atualizar lista</button></div>
+    <p id="adminListMessage" class="faq-hint" role="status" aria-live="polite"></p>
+    <ul id="adminAttendees" class="admin-list" aria-label="Presenças registradas"></ul>
+    <div class="faq-card">
+      <h3>Sorteio do dia</h3>
+      <p class="faq-hint">Cada presença numa atividade do dia vale uma chance. Pause os registros enquanto gera a lista.</p>
+      <label class="faq-field" for="raffleDate">Dia<select id="raffleDate"></select></label>
+      <button id="raffleExport" class="action-button" type="button" disabled>Baixar lista do sorteio</button>
+      <p id="raffleMessage" class="faq-hint" role="status" aria-live="polite"></p>
+    </div>
+  </section>
   <noscript>Ative o JavaScript para acessar seu passaporte.</noscript>
 </main>
 </div>
@@ -383,6 +411,7 @@ const $ = id => document.getElementById(id);
 const state = { copy: Object.create(null), badges: [], session: null, generation: 0, focus: null, mode: "login", busy: false };
 const faqState = { ready:false, version:0, questions:[], editing:null, busy:false };
 const rankingState = { version:0 };
+const adminState = { version:0, listVersion:0, searchVersion:0, activities:[], busy:false, timer:null };
 const lockClosedSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 const lockOpenSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>';
 
@@ -530,6 +559,7 @@ function clearPassport() {
   $("rankingRefresh").disabled = false;
   message("rankingMessage", "");
   resetFaq();
+  resetAdmin();
   closeModal();
   $("pageTabs").hidden = true;
   $("passportPanel").hidden = true;
@@ -627,6 +657,8 @@ async function loadPassport() {
     $("retryButton").hidden = true;
     populateFaqActivities();
     if (!$("faqPanel").hidden) loadQuestions();
+    // Só contas autorizadas no banco recebem 200; as demais seguem sem a aba.
+    loadAdmin();
     message("pageMessage", "");
     message("authMessage", "");
   } catch (error) {
@@ -801,17 +833,19 @@ document.addEventListener("keydown", event => {
 });
 
 function switchSection(faq) {
-  const section = faq === "ranking" ? "ranking" : faq ? "faq" : "passport";
+  let section = faq === "ranking" || faq === "admin" ? faq : faq ? "faq" : "passport";
+  if (section === "admin" && $("adminTab").hidden) section = "passport";
   if (!faqState.ready) {
-    $("passportPanel").hidden = true; $("faqPanel").hidden = true; $("rankingPanel").hidden = true;
+    $("passportPanel").hidden = true; $("faqPanel").hidden = true; $("rankingPanel").hidden = true; $("adminPanel").hidden = true;
     return;
   }
-  for (const name of ["passport","faq","ranking"]) {
+  for (const name of ["passport","faq","ranking","admin"]) {
     $(name + "Panel").hidden = section !== name;
     $(name + "Tab").setAttribute("aria-pressed", String(section === name));
   }
   if (section === "faq" && !faqState.busy) loadQuestions();
   if (section === "ranking") loadRanking();
+  if (section === "admin") { loadAdmin(); loadAttendees(); }
 }
 
 async function loadRanking() {
@@ -844,6 +878,203 @@ async function loadRanking() {
 }
 
 $("rankingTab").addEventListener("click", () => switchSection("ranking"));
+
+const adminPath = "/functions/v1/passport/admin/attendance";
+const shortDate = date => date ? date.split("-").reverse().slice(0, 2).join("/") : "sem data";
+
+function resetAdmin() {
+  adminState.version++; adminState.listVersion++; adminState.searchVersion++;
+  adminState.activities = []; adminState.busy = false;
+  clearTimeout(adminState.timer);
+  $("adminTab").hidden = true; $("adminPanel").hidden = true;
+  $("adminSearch").value = ""; $("adminSearch").disabled = true;
+  for (const id of ["adminResults","adminAttendees"]) $(id).replaceChildren();
+  $("adminCount").textContent = "";
+  for (const id of ["adminMessage","adminListMessage","raffleMessage"]) message(id, "");
+  $("raffleExport").disabled = true;
+}
+
+async function loadAdmin() {
+  if (!faqState.ready || !state.session) return;
+  const version = ++adminState.version;
+  try {
+    const token = await accessToken();
+    if (version !== adminState.version) return;
+    const data = await request(`${adminPath}?action=overview`, { token });
+    if (version !== adminState.version) return;
+    if (!Array.isArray(data?.activities)) throw Error();
+    adminState.activities = data.activities;
+    $("adminTab").hidden = false;
+    renderAdminActivities();
+  } catch (error) {
+    if (version !== adminState.version) return;
+    // 403: conta sem permissão. Outras falhas mantêm a aba para nova tentativa.
+    if (error.status === 403 || $("adminTab").hidden) { $("adminTab").hidden = true; $("adminPanel").hidden = true; }
+    else message("adminMessage", "Não foi possível atualizar as atividades. Tente novamente.", true);
+  }
+}
+
+function renderAdminActivities() {
+  const selected = $("adminActivity").value;
+  const option = (value, label) => { const node = document.createElement("option"); node.value = value; node.textContent = label; return node; };
+  $("adminActivity").replaceChildren(option("", "Selecione uma atividade"),
+    ...adminState.activities.map(a => option(a.id, `${shortDate(a.eventDate)} · ${a.name} (${a.attendances})`)));
+  $("adminActivity").value = adminState.activities.some(a => a.id === selected) ? selected : "";
+  $("adminSearch").disabled = !$("adminActivity").value;
+  const dates = [...new Set(adminState.activities.filter(a => a.raffleEligible && a.eventDate).map(a => a.eventDate))].sort();
+  const day = $("raffleDate").value;
+  $("raffleDate").replaceChildren(...dates.map(date => option(date, new Date(`${date}T12:00:00Z`)
+    .toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }))));
+  $("raffleDate").value = dates.includes(day) ? day : dates.find(date => date >= new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })) ?? dates.at(-1) ?? "";
+  $("raffleExport").disabled = !dates.length;
+  const undated = adminState.activities.filter(a => a.raffleEligible && !a.eventDate).length;
+  message("raffleMessage", !dates.length ? "Nenhuma atividade tem data configurada ainda."
+    : undated ? `${undated} atividade(s) sem data ainda não geram chances.` : "");
+}
+
+function adminRow(person, detail, button) {
+  const row = document.createElement("li"); row.className = "admin-row" + (person.present ? " present" : "");
+  const info = document.createElement("div"); info.className = "admin-person";
+  const name = document.createElement("strong"); name.textContent = person.name;
+  const small = document.createElement("small"); small.textContent = detail;
+  info.append(name, small); row.append(info);
+  if (person.present && button.add) {
+    const status = document.createElement("span"); status.className = "admin-status"; status.textContent = "✓ Presente"; row.append(status);
+  }
+  const action = document.createElement("button"); action.type = "button";
+  action.className = "action-button" + (button.add ? "" : " secondary");
+  action.textContent = button.label; action.disabled = adminState.busy;
+  action.addEventListener("click", () => setAttendance(person, button.add));
+  row.append(action);
+  return row;
+}
+
+async function searchParticipants() {
+  const version = ++adminState.searchVersion;
+  const query = $("adminSearch").value.trim();
+  const activity = $("adminActivity").value;
+  if (!activity || query.length < 2) {
+    $("adminResults").replaceChildren();
+    message("adminMessage", query && activity ? "Digite pelo menos 2 letras." : "");
+    return;
+  }
+  message("adminMessage", "Buscando...");
+  try {
+    const token = await accessToken();
+    if (version !== adminState.searchVersion) return;
+    const data = await request(`${adminPath}?action=search&activity=${encodeURIComponent(activity)}&q=${encodeURIComponent(query)}`, { token });
+    if (version !== adminState.searchVersion) return;
+    if (!Array.isArray(data?.participants)) throw Error();
+    $("adminResults").replaceChildren(...data.participants.map(p =>
+      adminRow(p, p.email, p.present ? { add: false, label: "Remover presença" } : { add: true, label: "Registrar presença" })));
+    message("adminMessage", data.participants.length ? ""
+      : "Ninguém encontrado. A pessoa precisa ter criado a conta no passaporte e confirmado o e-mail.");
+  } catch {
+    if (version === adminState.searchVersion) message("adminMessage", "Não foi possível buscar. Confira sua sessão e tente novamente.", true);
+  }
+}
+
+async function loadAttendees() {
+  const version = ++adminState.listVersion;
+  const activity = $("adminActivity").value;
+  $("adminAttendees").replaceChildren();
+  $("adminCount").textContent = "";
+  if (!activity || !state.session) { message("adminListMessage", activity ? "" : "Selecione uma atividade."); return; }
+  message("adminListMessage", "Carregando presenças...");
+  try {
+    const token = await accessToken();
+    if (version !== adminState.listVersion) return;
+    const data = await request(`${adminPath}?action=list&activity=${encodeURIComponent(activity)}`, { token });
+    if (version !== adminState.listVersion) return;
+    if (!Array.isArray(data?.attendees)) throw Error();
+    $("adminAttendees").replaceChildren(...data.attendees.map(p => {
+      const time = new Date(p.recordedAt);
+      return adminRow({ ...p, present: true }, `${p.email}${Number.isNaN(time.getTime()) ? "" : " · " + time.toLocaleString("pt-BR")}`,
+        { add: false, label: "Remover" });
+    }));
+    $("adminCount").textContent = `${data.total} PRESENTES`;
+    message("adminListMessage", !data.total ? "Nenhuma presença registrada nesta atividade."
+      : data.total > data.attendees.length ? `Mostrando os ${data.attendees.length} registros mais recentes.` : "");
+  } catch {
+    if (version === adminState.listVersion) message("adminListMessage", "Não foi possível carregar as presenças.", true);
+  }
+}
+
+async function setAttendance(person, add) {
+  const activity = $("adminActivity").value;
+  if (adminState.busy || !activity || !state.session) return;
+  if (!add && !confirm(`Remover a presença de ${person.name} nesta atividade?`)) return;
+  const version = adminState.version;
+  adminState.busy = true;
+  try {
+    const token = await accessToken();
+    const data = await request(adminPath, { method: add ? "POST" : "DELETE", token, body: { activity, participant: person.id } });
+    if (version !== adminState.version) return;
+    message("adminMessage", add ? (data?.changed ? `Presença registrada: ${person.name}` : `${person.name} já estava presente.`)
+      : `Presença removida: ${person.name}`);
+    if (add) { $("adminSearch").value = ""; $("adminResults").replaceChildren(); $("adminSearch").focus(); }
+    else await searchParticipants();
+  } catch {
+    if (version === adminState.version) message("adminMessage", "Não foi possível salvar. Confira sua sessão e tente novamente.", true);
+  } finally {
+    if (version === adminState.version) {
+      adminState.busy = false;
+      loadAttendees(); loadAdmin();
+    }
+  }
+}
+
+function download(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a"); link.href = url; link.download = name;
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const raffleError = text => Object.assign(new Error(text), { visible: true });
+
+async function exportRaffle() {
+  const date = $("raffleDate").value;
+  if (!date || !state.session) return;
+  const version = adminState.version;
+  $("raffleExport").disabled = true;
+  message("raffleMessage", "Gerando lista...");
+  try {
+    const entries = []; let offset = 0; let first;
+    for (;;) {
+      const page = await request(`/functions/v1/passport/admin/raffle?date=${date}&offset=${offset}`, { token: await accessToken() });
+      if (version !== adminState.version) return;
+      first ??= page;
+      if (page.pendingAttendances) throw raffleError("Há presenças em atividades sem data. Configure as datas antes de sortear.");
+      if (page.totalEntries !== first.totalEntries) throw raffleError("As presenças mudaram durante a geração. Pause os registros e tente novamente.");
+      entries.push(...page.entries);
+      if (!page.hasMore) break;
+      offset = page.nextOffset;
+    }
+    if (entries.length !== first.totalEntries || new Set(entries.map(e => e.ticketId)).size !== entries.length) {
+      throw raffleError("As presenças mudaram durante a geração. Pause os registros e tente novamente.");
+    }
+    // Uma linha por chance: quem assistiu a três palestras aparece três vezes.
+    download(`sorteio-${date}.txt`, entries.map(e => e.name.trim().split(/\s+/).join(" ") + "\n").join(""), "text/plain;charset=utf-8");
+    download(`sorteio-${date}.json`, JSON.stringify({ date, totalEntries: first.totalEntries,
+      uniqueParticipants: first.uniqueParticipants, entries }, null, 2), "application/json");
+    message("raffleMessage", `${first.totalEntries} chances de ${first.uniqueParticipants} participantes. Arquivos baixados.`);
+  } catch (error) {
+    if (version === adminState.version) message("raffleMessage", error.visible
+      ? error.message : "Não foi possível gerar a lista. Tente novamente.", true);
+  } finally { if (version === adminState.version) $("raffleExport").disabled = !$("raffleDate").value; }
+}
+
+$("adminTab").addEventListener("click", () => switchSection("admin"));
+$("adminActivity").addEventListener("change", () => {
+  $("adminSearch").disabled = !$("adminActivity").value;
+  $("adminSearch").value = ""; $("adminResults").replaceChildren(); message("adminMessage", "");
+  loadAttendees();
+  if ($("adminActivity").value) $("adminSearch").focus();
+});
+$("adminSearch").addEventListener("input", () => { clearTimeout(adminState.timer); adminState.timer = setTimeout(searchParticipants, 300); });
+$("adminRefresh").addEventListener("click", () => { loadAdmin(); loadAttendees(); });
+$("raffleExport").addEventListener("click", exportRaffle);
 $("rankingRefresh").addEventListener("click", loadRanking);
 
 function resetFaqForm() {

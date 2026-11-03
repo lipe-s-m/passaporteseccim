@@ -10,3 +10,4 @@ ui-debug.log*
 .vercel/
 
 .vercel
+supabase/.temp/

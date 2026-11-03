@@ -27,7 +27,8 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
       append(...children) { this.children.push(...children); },
       appendChild(child) { this.children.push(child); },
       replaceChildren(...children) { this.children = children; },
-      focus() { document.activeElement = this; }, reportValidity() { return true; }
+      focus() { document.activeElement = this; }, reportValidity() { return true; },
+      click() { (document.clicked ??= []).push(this); }, remove() {}
     };
   }
   const get = id => { if (!nodes.has(id)) nodes.set(id, element()); return nodes.get(id); };
@@ -36,7 +37,10 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
     addEventListener(k, fn) { this.listeners[k] = fn; } };
   const publicData = path => path.includes('/site_content') ? [{ key: 'page_title', value: 'Evento teste' }]
     : path.includes('/activities') ? [{ id: 'mesa', name: '<img src=x onerror=alert(1)>', description: 'Descrição', category: 'Categoria' }] : [];
+  const blobs = [];
   const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout,
+    confirm: () => true, Blob,
+    URL: { createObjectURL: blob => { blobs.push(blob); return 'blob:' + blobs.length; }, revokeObjectURL() {} },
     fetch: async (url, options) => {
       const path = new URL(url).pathname + new URL(url).search;
       calls.push({ path, url, options });
@@ -53,7 +57,7 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
     .replace('const FIREBASE_API_KEY = "";', 'const FIREBASE_API_KEY = "AIza_test_key";') : configuredSource;
   vm.runInContext(readySource, context);
   const run = value => vm.runInContext(value, context);
-  return { get, calls, run, document,
+  return { get, calls, run, document, blobs,
     submit: id => get(id).listeners.submit({ preventDefault() {} }),
     click: id => get(id).listeners.click(),
     start: async () => { run('clearPassport()'); await run('loadPublicContent()'); }
@@ -259,4 +263,74 @@ test('ranking descarta resultado recebido após logout', async () => {
   await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"}); faqState.ready=true');
   const loading=a.run('loadRanking()'); await Promise.resolve(); a.click('logoutButton'); release(); await loading;
   assert.equal(a.get('rankingList').children.length,0);
+});
+
+const overview = { participants: 2, activities: [
+  { id: 'mesa', name: 'Mesa', eventDate: '2026-11-04', raffleEligible: true, attendances: 1 },
+  { id: 'kafka', name: 'Kafka', eventDate: null, raffleEligible: true, attendances: 0 }] };
+const person = { id: '11111111-1111-4111-8111-111111111111', name: '<b>Ana</b>', email: 'ana@example.com', present: false };
+
+function adminApp({ denied = false, raffle } = {}) {
+  return app({ handle: (path, options, pub) => {
+    if (path.includes('/passport/admin/raffle')) return raffle;
+    if (path.includes('/passport/admin/attendance')) {
+      if (denied) return { status: 403, code: 'ADMIN_REQUIRED' };
+      if (options.method === 'POST' || options.method === 'DELETE') return { changed: true };
+      if (path.includes('action=overview')) return overview;
+      if (path.includes('action=search')) return { participants: [person] };
+      if (path.includes('action=list')) return { total: 1, attendees: [{ ...person, recordedAt: '2026-11-04T12:00:00Z' }] };
+    }
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+}
+const login = async a => { await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()'); await a.run('loadAdmin()'); };
+
+test('aba da organização só aparece quando o banco autoriza a conta', async () => {
+  const a = adminApp({ denied: true }); await login(a);
+  assert.equal(a.get('adminTab').hidden, true);
+  a.run('switchSection("admin")'); assert.equal(a.get('adminPanel').hidden, true); assert.equal(a.get('passportPanel').hidden, false);
+  const b = adminApp(); await login(b);
+  assert.equal(b.get('adminTab').hidden, false);
+  assert.equal(b.get('adminActivity').children[1].textContent, '04/11 · Mesa (1)');
+  assert.equal(b.get('raffleDate').children.length, 1);
+  assert.match(b.get('raffleMessage').textContent, /1 atividade\(s\) sem data/);
+  b.click('logoutButton');
+  assert.equal(b.get('adminTab').hidden, true); assert.equal(b.get('adminPanel').hidden, true);
+  assert.equal(b.get('adminResults').children.length, 0);
+});
+
+test('organização busca, registra presença como texto seguro e prepara a próxima busca', async () => {
+  const a = adminApp(); await login(a);
+  a.run('switchSection("admin")'); assert.equal(a.get('adminPanel').hidden, false);
+  a.get('adminActivity').value = 'mesa'; a.get('adminActivity').listeners.change();
+  assert.equal(a.get('adminSearch').disabled, false);
+  a.get('adminSearch').value = ' an '; await a.run('searchParticipants()');
+  const search = a.calls.find(c => c.path.includes('action=search'));
+  assert.match(search.path, /activity=mesa&q=an$/);
+  const row = a.get('adminResults').children[0];
+  assert.equal(row.children[0].children[0].textContent, '<b>Ana</b>');
+  await row.children.at(-1).listeners.click();
+  const write = a.calls.find(c => c.options.method === 'POST');
+  assert.deepEqual(JSON.parse(write.options.body), { activity: 'mesa', participant: person.id });
+  assert.equal(write.options.headers.Authorization, 'Bearer jwt');
+  assert.match(a.get('adminMessage').textContent, /Presença registrada/);
+  assert.equal(a.get('adminSearch').value, ''); assert.equal(a.document.activeElement, a.get('adminSearch'));
+  await a.run('loadAttendees()');
+  assert.equal(a.get('adminCount').textContent, '1 PRESENTES');
+  await a.get('adminAttendees').children[0].children.at(-1).listeners.click();
+  assert(a.calls.some(c => c.options.method === 'DELETE'));
+});
+
+test('lista do sorteio repete nomes por chance e recusa presenças sem data', async () => {
+  const entry = { ticketId: 't1', participantId: 'p', name: ' Ana   Souza ', activityId: 'mesa', activityName: 'Mesa' };
+  const raffle = { totalEntries: 2, uniqueParticipants: 1, hasMore: false, pendingAttendances: 0,
+    entries: [entry, { ...entry, ticketId: 't2' }], unconfiguredActivities: [] };
+  const a = adminApp({ raffle }); await login(a);
+  await a.run('exportRaffle()');
+  assert.equal(await a.blobs[0].text(), 'Ana Souza\nAna Souza\n');
+  assert.match(a.get('raffleMessage').textContent, /2 chances de 1 participantes/);
+  const b = adminApp({ raffle: { ...raffle, pendingAttendances: 3 } }); await login(b);
+  await b.run('exportRaffle()');
+  assert.equal(b.blobs.length, 0); assert.match(b.get('raffleMessage').textContent, /sem data/);
 });

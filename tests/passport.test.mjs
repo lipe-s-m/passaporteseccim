@@ -10,7 +10,7 @@ const token = (changes = {}, header = {}) => [
   Buffer.from(JSON.stringify({ ...claims, ...changes })).toString('base64url'), 'signature'
 ].join('.');
 const account = { localId: 'user-a', email: 'Pessoa@Example.com', emailVerified: true, displayName: 'Pessoa teste', validSince: String(time - 100) };
-function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle } = {}) {
+function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle, attendance } = {}) {
   const calls = [];
   const handler = createHandler({ projectId, apiKey: 'AIza_test_key', supabaseUrl: 'https://db.supabase.co', serviceKey: 'ADMIN_SECRET',
     now: () => time * 1000, fetcher: async (url, options) => {
@@ -18,11 +18,12 @@ function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = '
       if (url.includes('identitytoolkit')) return Response.json({ users: user ? [user] : [] }, { status: googleStatus });
       if (url.endsWith('/get_badge_ranking')) return Response.json(ranking, {status:dbStatus});
       if (url.endsWith('/get_daily_raffle')) return Response.json(raffle, {status:dbStatus});
+      if (url.endsWith('/admin_attendance')) return Response.json(attendance, {status:dbStatus});
       return Response.json({ participant: { id: 'uuid-a', full_name: 'Pessoa teste', email: 'privado@example.com' },
         earnedBadges: ['mesa-redonda'], secret: 'ADMIN_SECRET' }, { status: dbStatus });
     } });
-  return { calls, send: (jwt = token(), url = 'https://edge.test/passport', method = 'GET') => handler(new Request(url, {
-    method, headers: jwt ? { Authorization: `Bearer ${jwt}` } : {}
+  return { calls, send: (jwt = token(), url = 'https://edge.test/passport', method = 'GET', body) => handler(new Request(url, {
+    method, headers: jwt ? { Authorization: `Bearer ${jwt}` } : {}, ...(body ? { body: JSON.stringify(body) } : {})
   })) };
 }
 test('sem token, token malformado e método de escrita não acessam o banco', async () => {
@@ -67,6 +68,49 @@ test('sorteio mantém nomes repetidos, pagina resultados e só devolve campos pe
   assert.equal(data.nextOffset,1000); assert.equal(data.uniqueParticipants,500);
   assert(!JSON.stringify(data).includes('privado')); assert(!JSON.stringify(data).includes('segredo'));
   assert.equal((await app({raffle:{entries:[]}}).send(token(),'https://edge.test/passport/admin/raffle?date=2026-11-03')).status,503);
+});
+
+const attendanceUrl = 'https://edge.test/passport/admin/attendance';
+const participantId = '11111111-1111-4111-8111-111111111111';
+
+test('presença exige conta confirmada e permissão no banco, ignora UID e papel do cliente',async()=>{
+  const denied=app({dbStatus:403,attendance:{code:'42501',message:'Informação privada'}});
+  assert.equal((await denied.send('',attendanceUrl+'?action=overview')).status,401);
+  assert.equal((await denied.send(token(),attendanceUrl+'?action=overview','PATCH')).status,405);
+  const result=await denied.send(token({role:'service_role',admin:true}),attendanceUrl+'?action=overview&p_uid=admin');
+  assert.equal(result.status,403); assert.deepEqual(await result.json(),{code:'ADMIN_REQUIRED'});
+  assert.deepEqual(JSON.parse(denied.calls.at(-1).options.body),{p_uid:'user-a',p_action:'overview',p_activity:null,p_participant:null,p_query:null});
+  const unverified=app({user:{...account,emailVerified:false}});
+  assert.equal((await unverified.send(token(),attendanceUrl+'?action=overview')).status,403); assert.equal(unverified.calls.length,1);
+});
+
+test('presença valida ação, atividade, busca e participante antes do banco',async()=>{
+  const a=app();
+  for(const query of ['', 'action=add&activity=mesa', 'action=search&activity=mesa&q=a', 'action=list',
+    'action=list&activity=Mesa', 'action=search&activity=mesa&q='+'x'.repeat(121)]) {
+    assert.equal((await a.send(token(),attendanceUrl+'?'+query)).status,400);
+  }
+  for(const body of [{activity:'mesa'},{activity:'mesa',participant:'invalido'},{activity:'../x',participant:participantId}]) {
+    assert.equal((await a.send(token(),attendanceUrl,'POST',body)).status,400);
+  }
+  assert(!a.calls.some(c=>c.url.includes('/admin_attendance')));
+});
+
+test('presença registra com o UID verificado e filtra campos privados',async()=>{
+  const a=app({attendance:{changed:true,firebase_uid:'segredo'}});
+  const r=await a.send(token(),attendanceUrl,'POST',{activity:'mesa',participant:participantId,p_uid:'outro'});
+  assert.equal(r.status,200); assert.deepEqual(await r.json(),{changed:true});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'add',p_activity:'mesa',p_participant:participantId,p_query:null});
+  await a.send(token(),attendanceUrl,'DELETE',{activity:'mesa',participant:participantId});
+  assert.equal(JSON.parse(a.calls.at(-1).options.body).p_action,'remove');
+  const search=app({attendance:{participants:[{id:participantId,name:'Pessoa',email:'p@example.com',present:true,firebase_uid:'segredo'}]}});
+  const found=await search.send(token(),attendanceUrl+'?action=search&activity=mesa&q=%20pes%20');
+  assert.deepEqual(await found.json(),{participants:[{id:participantId,name:'Pessoa',email:'p@example.com',present:true}]});
+  assert.equal(JSON.parse(search.calls.at(-1).options.body).p_query,'pes');
+  assert.equal((await app({attendance:{participants:null}}).send(token(),attendanceUrl+'?action=search&activity=mesa&q=pes')).status,503);
+  const list=await app({attendance:{total:1,attendees:[{id:participantId,name:'Pessoa',email:'p@example.com',recordedAt:'2026-11-03T12:00:00Z',recorded_by:'segredo'}]}})
+    .send(token(),attendanceUrl+'?action=list&activity=mesa');
+  assert(!JSON.stringify(await list.json()).includes('segredo'));
 });
 
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{
