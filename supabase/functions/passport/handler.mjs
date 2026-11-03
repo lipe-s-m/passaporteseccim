@@ -41,7 +41,7 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     const walkin = url.pathname.endsWith('/passport/admin/participants');
     const draws = url.pathname.endsWith('/passport/admin/draws');
     const methods = faq ? ['GET','POST','PATCH','DELETE'] : attendance ? ['GET','POST','DELETE']
-      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH'] : ['GET'];
+      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
     }
@@ -153,13 +153,13 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
         input = request.method === 'GET' ? Object.fromEntries(url.searchParams) : await readJson(request, 2000);
         if (!input || !validDate(input.date)) throw Error();
         if (request.method === 'POST' && input.prize !== undefined && (typeof input.prize !== 'string' || input.prize.trim().length > 120)) throw Error();
-        if (request.method === 'PATCH' && (typeof input.id !== 'string' ||
+        if (['PATCH','DELETE'].includes(request.method) && (typeof input.id !== 'string' ||
           !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id))) throw Error();
       } catch { return response(400, 'INVALID_DRAW'); }
       try {
         const { data, error } = await adminRpc('admin_raffle_draw', {
-          p_action:({GET:'list',POST:'draw',PATCH:'absent'})[request.method], p_date:input.date,
-          p_prize:request.method === 'POST' ? (input.prize ?? '').trim() : '', p_draw:request.method === 'PATCH' ? input.id : null
+          p_action:({GET:'list',POST:'draw',PATCH:'absent',DELETE:'delete'})[request.method], p_date:input.date,
+          p_prize:request.method === 'POST' ? (input.prize ?? '').trim() : '', p_draw:['PATCH','DELETE'].includes(request.method) ? input.id : null
         }, 'DRAW_UNAVAILABLE');
         if (error) return error;
         if (!Array.isArray(data?.draws) || !Array.isArray(data.reel) ||

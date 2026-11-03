@@ -140,7 +140,7 @@ test('sorteio no painel lista, sorteia e marca ausente sem expor e-mail ou UID',
   const state={drawnId:participantId,reel:['Ana','Bruno',7],remainingParticipants:3,totalEntries:9,
     draws:[{id:participantId,name:'Ana',prize:'Caneca',absent:false,drawnAt:'2026-11-03T20:00:00Z',chances:3,email:'privado',participant_id:'segredo'}]};
   const a=app({rpcs:{admin_raffle_draw:state}});
-  assert.equal((await a.send(token(),drawsUrl+'?date=2026-11-03','DELETE')).status,405);
+  assert.equal((await a.send(token(),drawsUrl+'?date=2026-11-03','PUT')).status,405);
   for(const [method,url,body] of [['GET',drawsUrl+'?date=2026-02-30'],['GET',drawsUrl],['POST',drawsUrl,{date:'2026-11-03',prize:'x'.repeat(121)}],
     ['PATCH',drawsUrl,{date:'2026-11-03',id:'invalido'}]]) {
     assert.equal((await a.send(token(),url,method,body)).status,400);
@@ -153,6 +153,9 @@ test('sorteio no painel lista, sorteia e marca ausente sem expor e-mail ou UID',
   assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'draw',p_date:'2026-11-03',p_prize:'Caneca',p_draw:null});
   await a.send(token(),drawsUrl,'PATCH',{date:'2026-11-03',id:participantId});
   assert.equal(JSON.parse(a.calls.at(-1).options.body).p_action,'absent');
+  assert.equal((await a.send(token(),drawsUrl,'DELETE',{date:'2026-11-03',id:'invalido'})).status,400);
+  await a.send(token(),drawsUrl,'DELETE',{date:'2026-11-03',id:participantId});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'delete',p_date:'2026-11-03',p_prize:'',p_draw:participantId});
   await a.send(token(),drawsUrl+'?date=2026-11-03&p_uid=outro');
   assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'list',p_date:'2026-11-03',p_prize:'',p_draw:null});
   const denied=app({dbStatus:403,rpcs:{admin_raffle_draw:{code:'42501'}}});

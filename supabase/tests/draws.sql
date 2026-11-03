@@ -74,6 +74,23 @@ begin
   exception when invalid_parameter_value then null;
   end;
   begin
+    perform public.admin_raffle_draw(admin,'delete','2099-07-02',null,first_draw);
+    raise exception 'Apagar sorteio de outro dia aceito';
+  exception when invalid_parameter_value then null;
+  end;
+  data := public.admin_raffle_draw(admin,'delete','2099-07-01',null,first_draw);
+  if jsonb_array_length(data->'draws') <> 1 or (data->>'remainingParticipants')::int <> 1
+    or exists(select 1 from jsonb_array_elements(data->'draws') d where (d->>'id')::uuid = first_draw) then
+    raise exception 'Sorteio apagado continua valendo: %', data;
+  end if;
+  data := public.admin_raffle_draw(admin,'draw','2099-07-01','');
+  if data->>'drawnId' is null or jsonb_array_length(data->'draws') <> 2 then raise exception 'Pessoa do sorteio apagado não voltou a concorrer'; end if;
+  begin
+    perform public.admin_raffle_draw(admin,'delete','2099-07-01',null,first_draw);
+    raise exception 'Apagar duas vezes aceito';
+  exception when invalid_parameter_value then null;
+  end;
+  begin
     perform public.admin_raffle_draw(admin,'draw','2099-07-01',repeat('x',121));
     raise exception 'Prêmio longo aceito';
   exception when invalid_parameter_value then null;

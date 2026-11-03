@@ -292,6 +292,8 @@ main{padding:32px 0 64px}
 .raffle-button:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(121,100,245,.4)}
 .raffle-button:disabled{cursor:not-allowed}
 .winner-row.absent .admin-person strong{text-decoration:line-through;opacity:.6}
+.winner-actions{margin:0;gap:8px}
+.action-button.danger{border-color:rgba(255,170,168,.55);color:#ffcfcd}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
 .confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;animation:fall linear forwards}
 @keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
@@ -1198,12 +1200,18 @@ function renderDraws(data) {
       Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
       draw.absent ? "ausente" : ""].filter(Boolean).join(" · ");
     info.append(name, detail); row.append(info);
+    const actions = document.createElement("div"); actions.className = "faq-controls winner-actions";
     if (!draw.absent) {
       const absent = document.createElement("button"); absent.type = "button"; absent.className = "action-button secondary";
       absent.textContent = "Ausente"; absent.disabled = raffleState.spinning;
       absent.addEventListener("click", () => markAbsent(draw));
-      row.append(absent);
+      actions.append(absent);
     }
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "action-button secondary danger";
+    remove.textContent = "Apagar"; remove.disabled = raffleState.spinning;
+    remove.addEventListener("click", () => deleteDraw(draw));
+    actions.append(remove);
+    row.append(actions);
     return row;
   }));
 }
@@ -1318,6 +1326,27 @@ async function markAbsent(draw) {
     message("raffleMessage", `${draw.name} marcado(a) como ausente. Bora sortear de novo! 🎲`);
   } catch {
     if (version === raffleState.version) message("raffleMessage", "Não foi possível marcar a ausência. Tente novamente.", true);
+  }
+}
+
+async function deleteDraw(draw) {
+  const date = $("raffleDate").value;
+  if (!date || raffleState.spinning || !state.session) return;
+  if (!confirm(`Apagar o sorteio de ${draw.name}? Use para sorteios de teste ou feitos por engano. A pessoa volta a concorrer hoje e o registro some do histórico.`)) return;
+  const version = raffleState.version;
+  try {
+    const token = await accessToken();
+    const data = await request(drawsPath, { method: "DELETE", token, body: { date, id: draw.id } });
+    if (version !== raffleState.version) return;
+    if (!Array.isArray(data?.draws)) throw Error();
+    renderDraws(data);
+    if ($("raffleName").textContent === draw.name) {
+      $("raffleName").textContent = "Quem será?"; $("rafflePrizeLabel").textContent = "";
+      $("raffleReel").classList.remove("winner");
+    }
+    message("raffleMessage", `Sorteio de ${draw.name} apagado. A pessoa voltou a concorrer.`);
+  } catch {
+    if (version === raffleState.version) message("raffleMessage", "Não foi possível apagar o sorteio. Tente novamente.", true);
   }
 }
 

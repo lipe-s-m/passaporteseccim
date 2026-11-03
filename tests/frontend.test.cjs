@@ -283,6 +283,7 @@ function adminApp({ denied = false, raffle, draws = drawState } = {}) {
     if (path.includes('/passport/admin/draws')) {
       if (options.method === 'POST') return { ...draws, drawnId: winner.id, reel: ['Ana', 'Bia'], remainingParticipants: 1, draws: [winner] };
       if (options.method === 'PATCH') return { ...draws, remainingParticipants: 1, draws: [{ ...winner, absent: true }] };
+      if (options.method === 'DELETE') return { ...draws, remainingParticipants: 2, draws: [] };
       return draws;
     }
     if (path.includes('/passport/admin/attendance')) {
@@ -381,10 +382,20 @@ test('sorteio no painel mostra o ganhador escolhido pelo servidor e permite marc
   assert.equal(a.get('confetti').children.length, 0);
   const row = a.get('raffleWinners').children[0];
   assert.equal(row.children[0].children[0].textContent, '🏆 1º · <i>Bia</i>');
-  await row.children.at(-1).listeners.click();
+  const [absentButton, deleteButton] = row.children.at(-1).children;
+  assert.equal(absentButton.textContent, 'Ausente'); assert.equal(deleteButton.textContent, 'Apagar');
+  await absentButton.listeners.click();
   const absent = a.calls.find(c => c.options.method === 'PATCH');
   assert.deepEqual(JSON.parse(absent.options.body), { date: '2026-11-04', id: winner.id });
-  assert.match(a.get('raffleWinners').children[0].children[0].children[1].textContent, /ausente/);
+  const absentRow = a.get('raffleWinners').children[0];
+  assert.match(absentRow.children[0].children[1].textContent, /ausente/);
+  assert.deepEqual(absentRow.children.at(-1).children.map(b => b.textContent), ['Apagar']);
+  await absentRow.children.at(-1).children[0].listeners.click();
+  const removed = a.calls.find(c => c.options.method === 'DELETE');
+  assert.deepEqual(JSON.parse(removed.options.body), { date: '2026-11-04', id: winner.id });
+  assert.equal(a.get('raffleWinners').children.length, 0);
+  assert.equal(a.get('raffleName').textContent, 'Quem será?');
+  assert.match(a.get('raffleMessage').textContent, /apagado/);
   a.click('logoutButton');
   assert.equal(a.get('raffleWinners').children.length, 0); assert.equal(a.get('raffleName').textContent, 'Quem será?');
 });
