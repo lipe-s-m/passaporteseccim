@@ -295,7 +295,9 @@ Site público: https://passaporte-seccim.vercel.app. Projeto Vercel `passaporte-
 
 `vercel.json` configura hospedagem estática, revalidação da página e cabeçalhos de segurança. `.vercelignore` permite enviar somente `index.html`, `favicon.png` e a configuração Vercel. Documentação, migrações, scripts e dados privados não são publicados. `.vercel/` mantém o vínculo local do projeto e é ignorado pelo Git.
 
-Para publicar alterações, execute `npx.cmd -y vercel@65.10.0 deploy --yes --prod` na raiz, com a conta Vercel autenticada. O deploy atual foi feito pela CLI; não há publicação automática por push configurada. O helper `scripts/authorize_firebase_domain.cjs` permite autorizar novos domínios usando a sessão administrativa local da CLI Firebase, sem expor credenciais.
+**Publicação automática:** o projeto Vercel está conectado ao repositório GitHub `lipe-s-m/passaporteseccim`. Cada push no `main` publica o site em produção em poucos segundos; o `.vercelignore` continua limitando o envio a `index.html`, `favicon.png` e `vercel.json`. Pushes em outras branches geram previews protegidos por login da Vercel. O deploy manual pela CLI (`npx -y vercel@65.10.0 deploy --yes --prod`) continua possível.
+
+**Ordem ao mudar backend e site juntos:** migrações e Edge Function não são publicadas pelo push. Primeiro `npx -y supabase db push --remote --yes`, depois `npx -y supabase functions deploy passport --remote --yes`, e só então o push do `index.html`, para o site novo nunca chamar rotas que ainda não existem. O helper `scripts/authorize_firebase_domain.cjs` permite autorizar novos domínios usando a sessão administrativa local da CLI Firebase, sem expor credenciais.
 
 Validação: domínio público respondeu HTTP 200 sem autenticação Vercel e contém ranking e link de inscrição. URLs de `dados-privados`, `.git/config`, documentação e código da Edge Function responderam HTTP 404.
 
