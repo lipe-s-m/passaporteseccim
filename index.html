@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111a20">
+<title>Passaporte Digital · SECCIM 2026</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#111a20;--ink:#f4f3f8;--muted:#9aa7ae;
+  --purple:#7964f5;--green:#22e39a;
+  --cream:#d7d2ff;--dark:#20212a;--shadow:0 22px 60px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-2;background:
+ radial-gradient(ellipse at 82% 8%,rgba(117,94,245,.19),transparent 33%),
+ radial-gradient(ellipse at 8% 75%,rgba(25,217,145,.08),transparent 32%),
+ linear-gradient(145deg,#111a20,#131d24 60%,#10181e)}
+/* perspectiva digital inspirada no material do evento */
+.wireframe{position:fixed;inset:-15%;z-index:-1;pointer-events:none;opacity:.42;transform:perspective(800px) rotateX(53deg) rotateZ(-13deg) scale(1.25);transform-origin:center}
+.wireframe:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(111,96,232,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(111,96,232,.22) 1px,transparent 1px);background-size:58px 58px;border-radius:48%;mask-image:radial-gradient(ellipse,black 20%,transparent 76%)}
+.wireframe:after{content:"";position:absolute;inset:12%;border:1px solid rgba(34,227,154,.17);border-radius:50%;box-shadow:0 0 0 55px rgba(121,100,245,.035),0 0 0 110px rgba(121,100,245,.035),0 0 0 165px rgba(121,100,245,.025)}
+.shell{width:min(1160px,calc(100% - 48px));margin:auto}
+.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07)}
+
+.top-right{display:flex;align-items:center;gap:22px}
+.event-tag{font-size:11px;color:#c9c4e9;letter-spacing:.12em;text-transform:uppercase}
+
+main{padding:38px 0 72px}
+.welcome{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:25px;gap:20px}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);font-weight:750}
+h1{font-size:clamp(27px,4vw,39px);line-height:1.12;letter-spacing:-.045em;margin:9px 0 0;font-weight:750}
+.welcome p{color:var(--muted);margin:9px 0 0;font-size:14px}
+/* Tipografia pixelada aplicada apenas aos textos de apresentação */
+.eyebrow,h1,.section-head h2{font-family:"Geist Pixel",sans-serif}
+.eyebrow{font-size:10px;letter-spacing:.08em;font-weight:700}
+h1{font-size:clamp(20px,2.5vw,28px);line-height:1.45;letter-spacing:0;font-weight:700}
+.welcome p{
+  font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.6;
+  letter-spacing:normal;
+  color:var(--muted);
+  margin:9px 0 0
+}
+.hero-grid{display:block}
+.passport{position:relative;overflow:hidden;border-radius:23px;padding:26px 29px;background:linear-gradient(115deg,#27234e 0%,#38306e 48%,#6551d7 100%);box-shadow:0 20px 55px rgba(56,43,133,.26);border:1px solid rgba(255,255,255,.2)}
+.passport:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMjAiIGhlaWdodD0iMTkwIiB2aWV3Qm94PSIwIDAgMjIwIDE5MCI+CjxnIGZpbGw9IiNlOWU3ZmYiPgogIDxnIG9wYWNpdHk9Ii43MiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjggMjQpIj4KICAgIDxyZWN0IHg9IjciIHk9IjAiIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSIwIiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iNyIgeT0iNyIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjE0IiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iNyIgeT0iMTQiIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz4KICA8L2c+CiAgPGcgb3BhY2l0eT0iLjQ4IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNDUgMTgpIHNjYWxlKC43MikiPgogICAgPHJlY3QgeD0iNyIgeT0iMCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iMTQiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSIxNCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPgogIDwvZz4KICA8ZyBvcGFjaXR5PSIuNTgiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwNCA5Mikgc2NhbGUoMS4wNSkiPgogICAgPHJlY3QgeD0iNyIgeT0iMCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iMTQiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSIxNCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPgogIDwvZz4KICA8ZyBvcGFjaXR5PSIuNjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE4NCAxNDUpIHNjYWxlKC44MikiPgogICAgPHJlY3QgeD0iNyIgeT0iMCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iMTQiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSI3IiB5PSIxNCIgd2lkdGg9IjciIGhlaWdodD0iNyIvPgogIDwvZz4KICA8ZyBvcGFjaXR5PSIuMzUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ3IDE1MCkgc2NhbGUoLjU4KSI+CiAgICA8cmVjdCB4PSI3IiB5PSIwIiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iMCIgeT0iNyIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjciIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSIxNCIgeT0iNyIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjciIHk9IjE0IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+CiAgPC9nPgo8L2c+CjxnIGZpbGw9IiNjNWMwZmYiPgogIDxyZWN0IHg9Ijg3IiB5PSI0MyIgd2lkdGg9IjUiIGhlaWdodD0iNSIgb3BhY2l0eT0iLjQ4Ii8+CiAgPHJlY3QgeD0iMjAzIiB5PSI3NyIgd2lkdGg9IjQiIGhlaWdodD0iNCIgb3BhY2l0eT0iLjYiLz4KICA8cmVjdCB4PSIxOSIgeT0iMTEyIiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBvcGFjaXR5PSIuNDIiLz4KICA8cmVjdCB4PSIxMzIiIHk9IjE2OSIgd2lkdGg9IjUiIGhlaWdodD0iNSIgb3BhY2l0eT0iLjUiLz4KICA8cmVjdCB4PSIxNjQiIHk9IjExMiIgd2lkdGg9IjQiIGhlaWdodD0iNCIgb3BhY2l0eT0iLjM4Ii8+CjwvZz48L3N2Zz4=");background-repeat:repeat;background-size:220px 190px;background-position:right bottom;opacity:.72;mask-image:radial-gradient(ellipse 112% 105% at 100% 100%,#000 0%,rgba(0,0,0,.82) 43%,rgba(0,0,0,.3) 68%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 112% 105% at 100% 100%,#000 0%,rgba(0,0,0,.82) 43%,rgba(0,0,0,.3) 68%,transparent 100%);image-rendering:pixelated}
+/* Removido o brilho diagonal geométrico; o gradiente e as estrelas permanecem. */
+.passport:after{content:none}
+.passport-head,.passport-content,.passport-foot{position:relative;z-index:1}
+.passport-head{display:flex;justify-content:space-between;align-items:center}
+
+.chip{display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.26);border-radius:99px;padding:7px 10px;font-size:10px;color:#eeeaff;background:rgba(255,255,255,.09)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.passport-content{display:flex;align-items:center;justify-content:space-between;margin-top:35px;gap:20px}
+.participant small{color:#c6c0f3;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+.participant h2{font-size:clamp(30px, 4vw, 42px);letter-spacing:-.04em;margin:7px 0 8px}
+.participant p{margin:0;color:#d9d5f4;font-size:12px}
+
+.passport-foot{display:flex;align-items:center;justify-content:space-between;margin-top:28px;padding-top:15px;border-top:1px solid rgba(255,255,255,.2)}
+.id-block span{display:block;color:#c9c2f0;font-size:9px;text-transform:uppercase;letter-spacing:.16em;margin-bottom:4px}
+.id-block strong{font-size:12px;letter-spacing:.1em}
+
+.progress-card{position:relative;z-index:1;margin-top:20px;border:1px solid rgba(255,255,255,.2);border-radius:16px;background:rgba(20,16,61,.28);color:#fff;padding:15px 17px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-height:0}
+.progress-top{display:flex;justify-content:space-between;align-items:center}
+.progress-top small{font-size:10px;color:#ded8ff;text-transform:uppercase;letter-spacing:.15em;font-weight:700}
+.progress-icon{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.14);color:#d8d0ff;display:grid;place-items:center}
+.progress-icon svg{width:18px}
+.progress-number{display:flex;align-items:baseline;gap:7px;margin:5px 0 2px}
+.progress-number strong{font-size:32px;letter-spacing:-.06em;color:#fff}
+.progress-number span{font-size:12px;color:#ded8ff}
+.progress-card p{font-size:11px;color:#ded8ff;margin:0}
+.progress-track{height:7px;border-radius:20px;background:rgba(255,255,255,.18);margin:12px 0 0;overflow:hidden}
+.progress-track span{display:block;width:60%;height:100%;border-radius:20px;background:linear-gradient(90deg,#b7a5ff,#fff);box-shadow:0 0 12px rgba(183,165,255,.45)}
+.progress-bottom{display:flex;justify-content:space-between;font-size:10px;color:#ded8ff}
+.progress-bottom strong{color:#fff}
+
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:17px;gap:16px}
+.section-head h2{font-size:21px;letter-spacing:-.03em;margin:6px 0 0}
+.section-head p{margin:6px 0 0;color:var(--muted);font-size:12px}
+.collection-meta{font-size:11px;color:#c4baff;background:rgba(121,100,245,.12);border:1px solid rgba(121,100,245,.24);padding:8px 11px;border-radius:10px;white-space:nowrap}
+.badge-collection{margin-top:42px}
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.badge-card{position:relative;text-align:center;min-width:0;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));border-radius:17px;padding:17px 16px 15px;color:var(--ink);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;overflow:hidden}
+.badge-card:hover{transform:translateY(-4px);border-color:rgba(165,140,255,.65);box-shadow:0 14px 28px rgba(0,0,0,.2)}
+.badge-card.earned{border-color:rgba(165,140,255,.3)}
+.badge-card.earned:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 22%,rgba(121,100,245,.13),transparent 52%);pointer-events:none}
+.badge-card.locked{filter:saturate(.35);opacity:.57}
+.badge-art{position:relative;width:62px;height:62px;border-radius:19px;margin:0 auto 15px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(121,100,245,.24),rgba(121,100,245,.08));border:1px solid rgba(165,140,255,.28);color:#b5a7ff}
+.badge-art svg{width:27px;height:27px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.earned .badge-art{background:linear-gradient(145deg,rgba(121,100,245,.3),rgba(121,100,245,.1));border-color:rgba(165,140,255,.48);color:#b9aaff;box-shadow:0 0 24px rgba(121,100,245,.15)}
+.badge-card h3{font-size:13px;margin:0 0 5px;letter-spacing:-.01em}
+.badge-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07);font-size:9px;color:#9ca9af}
+.badge-foot strong{color:#b9aaff;font-weight:650}
+.locked .badge-foot strong{color:#9ca9af}
+
+.modal-backdrop{position:fixed;inset:0;z-index:10;background:rgba(5,10,14,.72);backdrop-filter:blur(9px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex;animation:fade .18s ease}
+.modal{
+  width:min(420px,100%);
+  border-radius:22px;
+  background:linear-gradient(145deg,#1f2e37,#172229);
+  color:#f4f3f8;
+  padding:25px;
+  border:1px solid rgba(165,140,255,.22);
+  box-shadow:0 30px 90px rgba(0,0,0,.5);
+  position:relative;
+  animation:rise .22s ease;
+}
+
+.modal-close{
+  position:absolute;
+  right:16px;
+  top:16px;
+  width:32px;
+  height:32px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;
+  background:rgba(255,255,255,.08);
+  color:#d8d0ff;
+  cursor:pointer;
+  font-size:20px;
+}
+
+.modal .badge-art{
+  width:76px;
+  height:76px;
+  margin-bottom:18px;
+  background:linear-gradient(145deg,rgba(121,100,245,.3),rgba(121,100,245,.1));
+  color:#b9aaff;
+  border-color:rgba(165,140,255,.48);
+}
+
+.modal .badge-art svg{
+  width:35px;
+  height:35px;
+}
+
+.modal h2{
+  font-size:23px;
+  letter-spacing:-.04em;
+  margin:0 0 7px;
+  color:#f4f3f8;
+}
+
+.modal-desc{
+  font-size:13px;
+  color:#aeb9c0;
+  line-height:1.6;
+  margin:0 0 20px;
+}
+
+.detail-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  border-top:1px solid rgba(255,255,255,.09);
+  font-size:11px;
+}
+
+.detail-row span{
+  color:#9aa7ae;
+}
+
+.detail-row strong{
+  color:#e6e0ff;
+  text-align:right;
+}
+
+.modal-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:99px;
+  background:rgba(34,227,154,.12);
+  color:#22e39a;
+  font-size:10px;
+  font-weight:750;
+  margin-bottom:15px;
+  border:1px solid rgba(34,227,154,.2);
+}
+
+.modal-status.locked-status{
+  background:rgba(255,255,255,.07);
+  color:#aab3ba;
+  border-color:rgba(255,255,255,.1);
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}@keyframes rise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+.badge-art svg{width:27px;height:27px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.badge-card.locked .badge-art{color:#9aa7ae;background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12)}
+.badge-card.earned .badge-art{color:#b9aaff}
+.page-message{color:var(--muted);font-size:13px;margin:0 0 14px}
+.page-message.error{color:#ffaaa8}
+.badge-card:focus-visible,.modal-close:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+
+.badge-collection{margin-top:34px}
+@media(max-width:800px){.badge-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.shell{width:min(100% - 30px,440px)}.topbar{height:70px}.event-tag{display:none}main{padding-top:28px}.welcome{align-items:flex-start;flex-direction:column}.passport{padding:21px}.passport-content{margin-top:18px}.passport-foot{margin-top:20px}.progress-card{margin-top:17px}.badge-grid{gap:10px}.badge-card{padding:14px 12px}.badge-art{width:54px;height:54px;border-radius:16px}.section-head{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wireframe" aria-hidden="true"></div>
+<header class="shell topbar">
+  <div class="top-right"><span class="event-tag">Semana Acadêmica de Ciência da Computação 2026</span></div>
+  <div class="top-right"><span class="event-tag">UFRRJ</span></div>
+</header>
+
+<main class="shell">
+  <section class="welcome">
+    <div><div class="eyebrow">Sua jornada começa aqui</div><h1>Meu Passaporte Digital<span aria-hidden="true"></span></h1><p>Acompanhe suas conquistas e explore tudo o que a SECCIM preparou.</p></div>
+  </section>
+
+  <section class="hero-grid" aria-label="Resumo do passaporte">
+    <article class="passport">
+
+      <div class="passport-content">
+        <div class="participant"><small>Nome:</small><h2 id="participantName">Carregando...</h2></div>
+        <div class="passport-head"><span class="chip"><i></i>ONLINE</span></div>
+      </div>
+      <div class="passport-foot">
+        <div class="id-block"><span>Identificação:</span><strong id="participantId">—</strong></div>
+      </div>
+    <article class="progress-card">
+      <div>
+        <div class="progress-top"><small>Seu progresso</small><span class="progress-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7"/></svg></span></div>
+        <div class="progress-number"><strong id="progressPercent">0%</strong><span>da jornada</span></div>
+        <p>Você está no caminho para completar sua coleção.</p>
+        <div class="progress-track"><span id="progressBar" style="width:0%"></span></div>
+      </div>
+      <div class="progress-bottom"><span id="progressCount">0 de 15 selos</span></div>
+    </article>
+     </article>
+
+  </section>
+
+  <section id="colecao" class="badge-collection">
+    <div class="section-head"><div><div class="eyebrow">Sua jornada em emblemas</div><h2>Coleção de Selos</h2><p>Cada experiência deixa uma marca. Toque em um selo para ver os detalhes.</p></div><span class="collection-meta" id="collectionMeta">0 / 15 DESBLOQUEADOS</span></div>
+    <p id="pageMessage" class="page-message" role="status" aria-live="polite">Carregando seu passaporte...</p>
+    <div class="badge-grid" id="badgeGrid"></div>
+  </section>
+
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+    <div class="modal-status" id="modalStatus">✓ SELO CONQUISTADO</div>
+    <h2 id="modalTitle">Detalhes da atividade</h2>
+    <p class="modal-desc" id="modalDescription"></p>
+    <div class="detail-row"><span>Categoria</span><strong id="modalCategory"></strong></div>
+  </div>
+</div>
+<script>
+/*
+ * CONFIGURAÇÃO DA API
+ * 1. Cole abaixo a URL publicada do Google Apps Script (Web App).
+ * 2. O frontend envia o identificador pela query string: ?id=SEU_ID.
+ * 3. O adaptador normalizeApiResponse() concentra a leitura dos campos do JSON.
+ */
+const API_URL = "https://script.google.com/macros/s/AKfycbxgvfcYLkoBvnOM27-ixV9esK__i8PLCDEDRP8j8RRDxv1NU8xle-ThVt1gMH9LQp4oIw/exec";
+
+const badges = [
+  {
+    id: "mesa-redonda",
+    name: "Mesa-redonda",
+    desc: "Três ex-alunos e um professor da casa debatem suas jornadas reais, desde a sala de aula até os desafios da área tech. A conversa aborda como o curso moldou suas visões, a transição para o mercado de trabalho e os principais aprendizados profissionais colhidos na área.",
+    category: "Carreira e experiências"
+  },
+  {
+    id: "trabalhando-com-dados",
+    name: "Trabalhando com Dados nos dias atuais",
+    desc: "A apresentação aborda as principais funções, ferramentas e a rotina da área de dados, demonstrando como ferramentas de integração, data lake e data viz se conectam no dia a dia.",
+    category: "Dados"
+  },
+  {
+    id: "tecnologia-ia-oportunidades",
+    name: "Tecnologia, Inteligência Artificial e Oportunidades para o Futuro",
+    desc: "Conduzido pelo instrutor Vitor Mello junto a alunos de destaque, o encontro aborda a formação tecnológica, o uso de Inteligência Artificial na transformação social e cases de sucesso no desenvolvimento de projetos reais.",
+    category: "Inteligência Artificial"
+  },
+  {
+    id: "iniciacao-cientifica",
+    name: "Apresentações de Iniciação Científica",
+    desc: "Confira a integração entre tecnologia, direito e sociedade na UFRRJ: pesquisas sobre o mapeamento de conexões interdisciplinares com Redes Complexas (UniHub), a aplicação de LLMs no Direito Digital para classificação de condutas e o uso de RAG em redes federadas para facilitar o acesso à informação acadêmica.",
+    category: "Pesquisa"
+  },
+  {
+    id: "linkedin-curriculo-entrevista",
+    name: "LinkedIn, currículo e entrevista: construindo sua jornada profissional",
+    desc: "O bate-papo explora como valorizar competências, conquistar oportunidades e utilizar a Inteligência Artificial de forma estratégica.",
+    category: "Carreira e experiências"
+  },
+  {
+    id: "da-rural-ao-canada",
+    name: "Da Rural ao Canadá",
+    desc: "O encontro aborda desafios, conquistas, experiências de empreendedorismo (incluindo o fracasso de uma startup), o trabalho em empresas internacionais e os caminhos para construir carreira fora do país.",
+    category: "Carreira e experiências"
+  },
+  {
+    id: "e-se-a-aws-fosse-um-jogo",
+    name: "E se a AWS fosse um jogo?",
+    desc: "Uma abordagem lúdica e acessível da Amazon Web Services, utilizando analogias com o universo dos games para explorar ferramentas, caminhos e os principais serviços da plataforma.",
+    category: "Computação em nuvem"
+  },
+  {
+    id: "meninas-na-robotica",
+    name: "Meninas na Robótica",
+    desc: "Apresentação de projetos desenvolvidos pelo grupo, demonstrando o trabalho realizado na união entre criatividade, experimentação e tecnologia. A atividade busca incentivar o interesse pela robótica e evidenciar a inclusão de meninas na área.",
+    category: "Robótica"
+  },
+  {
+    id: "equipe-robotica-shield-nig",
+    name: "Equipe de Robótica SHIELD NIG",
+    desc: "Descubra como a SHIELD NIG transforma ideias em robôs de alta performance em um bate-papo com Gabriel e a equipe premiada no Torneio Brasil de Robótica.",
+    category: "Robótica"
+  },
+  {
+    id: "sua-ideia-vale-uma-startup",
+    name: "Sua ideia vale uma startup?",
+    desc: "A palestra apresenta um caminho estratégico para transformar ideias, TCCs e pesquisas acadêmicas em startups viáveis na região, mostrando o cenário atual de apoio legal e financeiro, como o Marco Legal das Startups e editais de fomento.",
+    category: "Empreendedorismo"
+  },
+  {
+    id: "visao-sobre-ai-gateway",
+    name: "Uma visão sobre AI Gateway",
+    desc: "Abordagem sobre o erro comum de chamar modelos de IA de forma direta, apresentando padrões de projeto alternativos e explicando como os AI Gateways solucionam esse problema na arquitetura de sistemas.",
+    category: "Inteligência Artificial"
+  },
+  {
+    id: "ciencia-computacao-alem-software",
+    name: "Ciência da Computação além das empresas de software",
+    desc: "O encontro aborda a entrada no mercado de trabalho, o valor das oportunidades acadêmicas e os desafios de atuar como desenvolvedor em um ambiente multidisciplinar, mostrando como aplicar conhecimentos da graduação em automação, inovação e resolução de problemas reais.",
+    category: "Carreira e experiências"
+  },
+  {
+    id: "kafka-alem-das-filas",
+    name: "Kafka além das filas",
+    desc: "Entenda como o Apache Kafka funciona por dentro e quais padrões tornam sistemas orientados a eventos confiáveis.",
+    category: "Engenharia de software"
+  },
+  {
+    id: "como-iniciar-em-ia-security",
+    name: "Como iniciar em IA Security",
+    desc: "A apresentação explora as mudanças na superfície de ataque, as principais ameaças voltadas a aplicações e agentes com inteligência artificial, além de estratégias de defesa.",
+    category: "Segurança"
+  },
+  {
+    id: "como-e-desenvolver-um-jogo",
+    name: "Como é desenvolver um jogo?",
+    desc: "A palestra aborda o desenvolvimento do Desafiaula, um jogo multiplayer que transforma disciplinas escolares em minigames interativos em Unity.",
+    category: "Desenvolvimento de jogos"
+  }
+];
+
+const lockClosedSvg = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+    <circle cx="12" cy="15.5" r="1"></circle>
+    <path d="M12 16.5v1.5"></path>
+  </svg>`;
+
+const lockOpenSvg = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+    <path d="M8 10V7a4 4 0 0 1 7.7-1.5"></path>
+    <circle cx="12" cy="15.5" r="1"></circle>
+    <path d="M12 16.5v1.5"></path>
+  </svg>`;
+
+const badgeGrid = document.getElementById("badgeGrid");
+const backdrop = document.getElementById("modalBackdrop");
+const pageMessage = document.getElementById("pageMessage");
+
+function setPageMessage(message, isError = false) {
+  pageMessage.textContent = message;
+  pageMessage.classList.toggle("error", isError);
+  pageMessage.hidden = !message;
+}
+
+/*
+ * ADAPTADOR DO JSON
+ * O código abaixo aceita:
+ * - participante na raiz ou dentro de "participante";
+ * - nome / name e id / identificador;
+ * - selos / badges como lista de IDs ou nomes.
+ *
+ * Se o JSON da sua API usar outros nomes, ajuste somente esta função.
+ */
+function normalizeApiResponse(data) {
+  const participant = data.participante || data.participant || data;
+
+  return {
+    id: participant.id ?? participant.identificador ?? participant.ID ?? "",
+    name: participant.nome ?? participant.name ?? participant.Nome ?? "",
+    earnedBadges: participant.selos ?? participant.badges ?? participant.conquistas ?? []
+  };
+}
+
+function isBadgeEarned(badge, earnedList) {
+  if (!Array.isArray(earnedList)) return false;
+
+  return earnedList.some(item => {
+    const value = typeof item === "string"
+      ? item
+      : (item.id ?? item.nome ?? item.name ?? item.selo ?? "");
+
+    const normalized = String(value).trim().toLocaleLowerCase("pt-BR");
+    return normalized === badge.id.toLocaleLowerCase("pt-BR") ||
+           normalized === badge.name.toLocaleLowerCase("pt-BR");
+  });
+}
+
+function renderBadges(earnedList) {
+  badgeGrid.innerHTML = "";
+
+  badges.forEach((badge, index) => {
+    badge.earned = isBadgeEarned(badge, earnedList);
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `badge-card ${badge.earned ? "earned" : "locked"}`;
+    card.dataset.badge = String(index);
+    card.setAttribute("aria-label", `${badge.name}. ${badge.earned ? "Conquistado" : "Bloqueado"}`);
+
+    card.innerHTML = `
+      <div class="badge-art">${badge.earned ? lockOpenSvg : lockClosedSvg}</div>
+      <h3></h3>
+      <p></p>
+      <div class="badge-foot">
+        <span>${badge.earned ? "ATIVIDADE CONCLUÍDA" : "AGUARDANDO PARTICIPAÇÃO"}</span>
+        <strong>${badge.earned ? "CONQUISTADO" : "BLOQUEADO"}</strong>
+      </div>`;
+
+    card.addEventListener("click", () => openBadge(index));
+    badgeGrid.appendChild(card);
+  });
+
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = badges.length;
+  const earned = badges.filter(badge => badge.earned).length;
+  const remaining = total - earned;
+  const percent = Math.round((earned / total) * 100);
+
+  document.getElementById("progressPercent").textContent = `${percent}%`;
+  document.getElementById("progressBar").style.width = `${percent}%`;
+  document.getElementById("progressCount").textContent = `${earned} de ${total} selos`;
+  document.getElementById("collectionMeta").textContent =
+    `${earned} / ${total} DESBLOQUEADOS`;
+}
+
+function openBadge(index) {
+  const badge = badges[index];
+  if (!badge) return;
+
+  document.getElementById("modalTitle").textContent = badge.name;
+  document.getElementById("modalDescription").textContent = badge.desc;
+  document.getElementById("modalCategory").textContent = badge.category;
+
+  const status = document.getElementById("modalStatus");
+  status.textContent = badge.earned ? "CONQUISTADO" : "BLOQUEADO";
+  status.classList.toggle("locked-status", !badge.earned);
+
+  backdrop.classList.add("open");
+  document.getElementById("modalClose").focus();
+}
+
+function closeModal() {
+  backdrop.classList.remove("open");
+}
+
+document.getElementById("modalClose").addEventListener("click", closeModal);
+backdrop.addEventListener("click", event => {
+  if (event.target === backdrop) closeModal();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeModal();
+});
+
+async function loadParticipant() {
+  const params = new URLSearchParams(window.location.search);
+  const participantId = params.get("id") || params.get("ID");
+
+  if (!participantId) {
+    setPageMessage("Identificador não informado. Acesse o passaporte pelo link individual recebido.");
+    document.getElementById("participantName").textContent = "Participante";
+    document.getElementById("participantId").textContent = "—";
+    renderBadges([]);
+    return;
+  }
+
+  if (API_URL.startsWith("COLE_AQUI_A_URL")) {
+    setPageMessage("Configure a URL da API no início do JavaScript para carregar os dados do participante.", true);
+    document.getElementById("participantName").textContent = "Participante";
+    document.getElementById("participantId").textContent = participantId;
+    renderBadges([]);
+    return;
+  }
+
+  try {
+    setPageMessage("Carregando os dados do seu passaporte...");
+    const separator = API_URL.includes("?") ? "&" : "?";
+    const response = await fetch(`${API_URL}${separator}id=${encodeURIComponent(participantId)}`);
+
+    if (!response.ok) {
+      throw new Error(`A API respondeu com o status ${response.status}.`);
+    }
+
+    const data = await response.json();
+
+    if (data.erro || data.error) {
+      throw new Error(data.erro || data.error);
+    }
+
+    const participant = normalizeApiResponse(data);
+
+    if (!participant.name) {
+      throw new Error("Participante não encontrado ou resposta da API sem o campo de nome.");
+    }
+
+    document.getElementById("participantName").textContent = participant.name;
+    document.getElementById("participantId").textContent = participant.id || participantId;
+
+    renderBadges(participant.earnedBadges);
+    setPageMessage("");
+  } catch (error) {
+    console.error("Erro ao carregar o Passaporte Digital:", error);
+    setPageMessage(`Não foi possível carregar seu passaporte. ${error.message}`, true);
+    renderBadges([]);
+  }
+}
+
+loadParticipant();
+</script>
+</body>
+</html>
