@@ -273,9 +273,16 @@ const person = { id: '11111111-1111-4111-8111-111111111111', name: '<b>Ana</b>',
 const drawState = { drawnId: null, reel: [], remainingParticipants: 2, totalEntries: 3, draws: [] };
 const winner = { id: '22222222-2222-4222-8222-222222222222', name: '<i>Bia</i>', prize: 'Caneca', absent: false, drawnAt: '2026-11-04T20:00:00Z', chances: 2 };
 
-function adminApp({ denied = false, raffle, draws = drawState } = {}) {
+function adminApp({ denied = false, raffle, draws = drawState, personActivities = [] } = {}) {
   return app({ handle: (path, options, pub) => {
     if (path.includes('/passport/admin/raffle')) return raffle;
+    if (path.includes('/passport/admin/person')) {
+      if (options.method === 'POST') {
+        const input = JSON.parse(options.body);
+        return { added: input.add.length, removed: input.remove.length, participant: person, activities: input.add };
+      }
+      return { participant: person, activities: personActivities };
+    }
     if (path.includes('/passport/admin/participants')) {
       const input = JSON.parse(options.body);
       return { created: true, changed: true, participant: { id: person.id, name: input.name, email: input.email, linked: false } };
@@ -325,7 +332,8 @@ test('organização busca, registra presença como texto seguro e prepara a pró
   assert.match(search.path, /activity=mesa&q=an$/);
   const row = a.get('adminResults').children[0];
   assert.equal(row.children[0].children[0].textContent, '<b>Ana</b>');
-  await row.children.at(-1).listeners.click();
+  assert.equal(row.children.at(-1).textContent, 'Várias palestras');
+  await row.children.find(c => c.textContent === 'Registrar presença').listeners.click();
   const write = a.calls.find(c => c.options.method === 'POST');
   assert.deepEqual(JSON.parse(write.options.body), { activity: 'mesa', participant: person.id });
   assert.equal(write.options.headers.Authorization, 'Bearer jwt');
@@ -366,6 +374,10 @@ test('cadastro na hora aproveita a busca e registra presença de quem não tem c
   assert.equal(write.options.headers.Authorization, 'Bearer jwt');
   assert.match(a.get('adminMessage').textContent, /Cadastro criado: Maria Silva está presente/);
   assert.equal(a.get('walkinForm').hidden, true); assert.equal(a.get('adminSearch').value, '');
+  // Em seguida abre a lista de palestras para marcar as outras do dia.
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(a.get('multiPanel').hidden, false);
+  assert.equal(a.get('multiTitle').textContent, 'Presenças de Maria Silva');
 });
 
 test('sorteio no painel mostra o ganhador escolhido pelo servidor e permite marcar ausente', async () => {
@@ -404,4 +416,42 @@ test('rodapé aponta para as redes oficiais em nova aba sem vazar a página de o
   for (const url of ['https://www.instagram.com/seccim_ufrrj/', 'https://www.linkedin.com/in/seccim/']) {
     assert.match(html, new RegExp(`href="${url.replace(/[.\/]/g, m => '\\' + m)}" target="_blank" rel="noopener noreferrer"`));
   }
+});
+
+test('várias palestras: marca o dia inteiro e salva só a diferença numa chamada', async () => {
+  const a = adminApp({ personActivities: ['kafka'] }); await login(a);
+  a.get('adminActivity').value = 'mesa'; a.get('adminActivity').listeners.change();
+  a.get('adminSearch').value = 'ana'; await a.run('searchParticipants()');
+  await a.get('adminResults').children[0].children.at(-1).listeners.click();
+  assert.equal(a.get('multiPanel').hidden, false);
+  assert.equal(a.get('multiTitle').textContent, 'Presenças de <b>Ana</b>');
+  const [dayWithDate, undated] = a.get('multiDays').children;
+  assert.match(dayWithDate.children[0].children[0].textContent, /04\/11/);
+  assert.equal(undated.children[0].children[0].textContent, 'Sem data');
+  // A atividade em andamento vem pré-marcada; a já registrada aparece marcada como salva.
+  assert.equal(dayWithDate.children[1].children[0].checked, true);
+  assert.equal(undated.children[1].className, 'multi-option saved');
+  assert.equal(a.get('multiSave').textContent, 'Salvar (+1)');
+  // Desmarcar a já registrada vira remoção; "Marcar todas" do dia mantém a pré-marcada.
+  a.get('multiDays').children[1].children[1].children[0].checked = false;
+  a.get('multiDays').children[1].children[1].children[0].listeners.change();
+  assert.equal(a.get('multiSave').textContent, 'Salvar (+1 / −1)');
+  await a.click('multiSave');
+  const save = a.calls.find(c => c.path.includes('/admin/person') && c.options.method === 'POST');
+  assert.deepEqual(JSON.parse(save.options.body), { participant: person.id, add: ['mesa'], remove: ['kafka'] });
+  assert.match(a.get('adminMessage').textContent, /1 presença registrada, 1 removida/);
+  assert.equal(a.get('multiPanel').hidden, true); assert.equal(a.document.activeElement, a.get('adminSearch'));
+});
+
+test('várias palestras: sem mudança não salva e logout fecha o painel', async () => {
+  const a = adminApp({ personActivities: ['mesa'] }); await login(a);
+  a.get('adminActivity').value = 'mesa'; a.get('adminActivity').listeners.change();
+  await a.run(`openMulti(${JSON.stringify(person)}, ['mesa'])`);
+  assert.equal(a.get('multiSave').disabled, true);
+  await a.click('multiSave');
+  assert(!a.calls.some(c => c.path.includes('/admin/person') && c.options.method === 'POST'));
+  a.get('multiDays').children[1].children[0].children[1].listeners.click();
+  assert.equal(a.get('multiSave').textContent, 'Salvar (+1)');
+  a.click('logoutButton');
+  assert.equal(a.get('multiPanel').hidden, true); assert.equal(a.get('multiDays').children.length, 0);
 });

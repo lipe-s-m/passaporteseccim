@@ -336,3 +336,9 @@ Testes: `node --test tests/frontend.test.cjs tests/passport.test.mjs` (34 testes
 **Redes sociais:** o rodapé, visível antes e depois do login, tem links para o Instagram (@seccim_ufrrj) e o LinkedIn oficiais, abertos em nova aba com `noopener noreferrer`.
 
 Migração `20261103200000_walkin_and_draws.sql`. Testes: `supabase/tests/draws.sql` (cadastro, e-mail repetido sem sobrescrever, validações, sorteio sem repetir pessoa, fim das chances, ausência, ponderação 3:1 em 400 sorteios, permissões), mais 39 testes Node.
+
+## Presença em várias palestras de uma vez — 03/11/2026
+
+Cada resultado da busca no painel tem o botão **Várias palestras**. Ele abre a lista de atividades agrupada por dia, com **Marcar todas** por dia: as presenças já registradas vêm marcadas (indicadas como "registrada"), e a atividade selecionada no painel vem pré-marcada. **Salvar** aplica só a diferença numa única chamada: marca o que foi adicionado e remove o que foi desmarcado (com confirmação antes de remover). O **cadastro na hora** abre essa lista em seguida, para registrar as outras palestras do dia de quem chegou sem conta.
+
+O navegador envia as listas `add` e `remove`, e não a lista final, para não apagar uma presença registrada por outro organizador ao mesmo tempo. Rota `GET|POST /passport/admin/person` → RPC `admin_person_attendances` (`SECURITY DEFINER`, autorização em `private.admins`, no máximo 50 atividades por chamada, lote inválido não é aplicado pela metade). As chances do sorteio acompanham automaticamente pelos triggers existentes. Migração `20261103220000_person_attendances.sql`; teste `supabase/tests/person_attendances.sql`.

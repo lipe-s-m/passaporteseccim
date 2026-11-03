@@ -163,6 +163,29 @@ test('sorteio no painel lista, sorteia e marca ausente sem expor e-mail ou UID',
   assert.equal((await app({rpcs:{admin_raffle_draw:{draws:null}}}).send(token(),drawsUrl+'?date=2026-11-03')).status,503);
 });
 
+const personUrl = 'https://edge.test/passport/admin/person';
+
+test('presenças em lote validam atividades, removem duplicatas e usam o UID verificado',async()=>{
+  const result={added:2,removed:1,participant:{id:participantId,name:'Pessoa',email:'p@example.com',firebase_uid:'segredo'},activities:['mesa','kafka']};
+  const a=app({rpcs:{admin_person_attendances:result}});
+  assert.equal((await a.send(token(),personUrl,'DELETE')).status,405);
+  assert.equal((await a.send('',personUrl+'?participant='+participantId)).status,401);
+  for(const [method,url,body] of [['GET',personUrl+'?participant=invalido'],['POST',personUrl,{participant:participantId}],
+    ['POST',personUrl,{participant:participantId,add:['Mesa']}],['POST',personUrl,{participant:participantId,add:'mesa'}],
+    ['POST',personUrl,{participant:participantId,add:Array.from({length:51},(_, i)=>'p'+i)}]]) {
+    assert.equal((await a.send(token(),url,method,body)).status,400);
+  }
+  assert(!a.calls.some(c=>c.url.includes('/admin_person_attendances')));
+  const read=await a.send(token(),personUrl+'?participant='+participantId+'&p_uid=outro');
+  assert.equal(read.status,200);
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_participant:participantId,p_add:[],p_remove:[]});
+  const r=await a.send(token(),personUrl,'POST',{participant:participantId,add:['mesa','kafka','mesa'],remove:['aws'],p_uid:'outro'});
+  assert.deepEqual(await r.json(),{added:2,removed:1,participant:{id:participantId,name:'Pessoa',email:'p@example.com'},activities:['mesa','kafka']});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_participant:participantId,p_add:['mesa','kafka'],p_remove:['aws']});
+  const denied=app({dbStatus:403,rpcs:{admin_person_attendances:{code:'42501'}}});
+  assert.equal((await denied.send(token(),personUrl,'POST',{participant:participantId,add:['mesa']})).status,403);
+});
+
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{
   const ranking={entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,email:'privado',id:'uuid'}],mine:{position:1,badgeCount:2,email:'privado'}};
   const a=app({ranking}); const url='https://edge.test/passport/ranking?p_uid=outro';

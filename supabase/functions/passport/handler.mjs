@@ -40,8 +40,9 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     const attendance = url.pathname.endsWith('/passport/admin/attendance');
     const walkin = url.pathname.endsWith('/passport/admin/participants');
     const draws = url.pathname.endsWith('/passport/admin/draws');
+    const person = url.pathname.endsWith('/passport/admin/person');
     const methods = faq ? ['GET','POST','PATCH','DELETE'] : attendance ? ['GET','POST','DELETE']
-      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : ['GET'];
+      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : person ? ['GET','POST'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
     }
@@ -145,6 +146,30 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
         return response(200,null,{ created:data.created === true, changed:data.changed === true,
           participant:{ id:p.id, name:p.name, email:p.email, linked:p.linked === true } });
       } catch { return response(503,'PARTICIPANT_UNAVAILABLE'); }
+    }
+
+    if (person) {
+      let input;
+      const slugs = list => Array.isArray(list) && list.length <= 50 &&
+        list.every(id => typeof id === 'string' && id.length <= 200 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(id));
+      try {
+        input = request.method === 'GET' ? Object.fromEntries(url.searchParams) : await readJson(request, 8000);
+        if (!input || typeof input.participant !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.participant)) throw Error();
+        if (request.method === 'POST' && (!slugs(input.add ?? []) || !slugs(input.remove ?? []) ||
+          (input.add ?? []).length + (input.remove ?? []).length < 1)) throw Error();
+      } catch { return response(400, 'INVALID_PERSON_ATTENDANCE'); }
+      try {
+        const { data, error } = await adminRpc('admin_person_attendances', { p_participant:input.participant,
+          p_add:request.method === 'POST' ? [...new Set(input.add ?? [])] : [],
+          p_remove:request.method === 'POST' ? [...new Set(input.remove ?? [])] : [] }, 'ATTENDANCE_UNAVAILABLE');
+        if (error) return error;
+        if (!data?.participant?.id || !Array.isArray(data.activities)) return response(503,'ATTENDANCE_UNAVAILABLE');
+        return response(200,null,{ added:Number.isSafeInteger(data.added) ? data.added : 0,
+          removed:Number.isSafeInteger(data.removed) ? data.removed : 0,
+          participant:{ id:data.participant.id, name:data.participant.name, email:data.participant.email },
+          activities:data.activities.filter(id => typeof id === 'string') });
+      } catch { return response(503,'ATTENDANCE_UNAVAILABLE'); }
     }
 
     if (draws) {
