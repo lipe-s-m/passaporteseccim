@@ -39,7 +39,7 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
     : path.includes('/activities') ? [{ id: 'mesa', name: '<img src=x onerror=alert(1)>', description: 'Descrição', category: 'Categoria' }] : [];
   const blobs = [];
   const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout,
-    confirm: () => true, Blob,
+    confirm: () => true, Blob, matchMedia: () => ({ matches: true }),
     URL: { createObjectURL: blob => { blobs.push(blob); return 'blob:' + blobs.length; }, revokeObjectURL() {} },
     fetch: async (url, options) => {
       const path = new URL(url).pathname + new URL(url).search;
@@ -270,9 +270,21 @@ const overview = { participants: 2, activities: [
   { id: 'kafka', name: 'Kafka', eventDate: null, raffleEligible: true, attendances: 0 }] };
 const person = { id: '11111111-1111-4111-8111-111111111111', name: '<b>Ana</b>', email: 'ana@example.com', present: false };
 
-function adminApp({ denied = false, raffle } = {}) {
+const drawState = { drawnId: null, reel: [], remainingParticipants: 2, totalEntries: 3, draws: [] };
+const winner = { id: '22222222-2222-4222-8222-222222222222', name: '<i>Bia</i>', prize: 'Caneca', absent: false, drawnAt: '2026-11-04T20:00:00Z', chances: 2 };
+
+function adminApp({ denied = false, raffle, draws = drawState } = {}) {
   return app({ handle: (path, options, pub) => {
     if (path.includes('/passport/admin/raffle')) return raffle;
+    if (path.includes('/passport/admin/participants')) {
+      const input = JSON.parse(options.body);
+      return { created: true, changed: true, participant: { id: person.id, name: input.name, email: input.email, linked: false } };
+    }
+    if (path.includes('/passport/admin/draws')) {
+      if (options.method === 'POST') return { ...draws, drawnId: winner.id, reel: ['Ana', 'Bia'], remainingParticipants: 1, draws: [winner] };
+      if (options.method === 'PATCH') return { ...draws, remainingParticipants: 1, draws: [{ ...winner, absent: true }] };
+      return draws;
+    }
     if (path.includes('/passport/admin/attendance')) {
       if (denied) return { status: 403, code: 'ADMIN_REQUIRED' };
       if (options.method === 'POST' || options.method === 'DELETE') return { changed: true };
@@ -294,7 +306,9 @@ test('aba da organização só aparece quando o banco autoriza a conta', async (
   assert.equal(b.get('adminTab').hidden, false);
   assert.equal(b.get('adminActivity').children[1].textContent, '04/11 · Mesa (1)');
   assert.equal(b.get('raffleDate').children.length, 1);
-  assert.match(b.get('raffleMessage').textContent, /1 atividade\(s\) sem data/);
+  await b.run('loadDraws()');
+  assert.match(b.get('raffleStats').textContent, /3 chances no dia · 2 pessoas ainda podem ganhar · 1 atividade\(s\) sem data/);
+  assert.equal(b.get('raffleDraw').disabled, false);
   b.click('logoutButton');
   assert.equal(b.get('adminTab').hidden, true); assert.equal(b.get('adminPanel').hidden, true);
   assert.equal(b.get('adminResults').children.length, 0);
@@ -317,7 +331,7 @@ test('organização busca, registra presença como texto seguro e prepara a pró
   assert.match(a.get('adminMessage').textContent, /Presença registrada/);
   assert.equal(a.get('adminSearch').value, ''); assert.equal(a.document.activeElement, a.get('adminSearch'));
   await a.run('loadAttendees()');
-  assert.equal(a.get('adminCount').textContent, '1 PRESENTES');
+  assert.equal(a.get('adminCount').textContent, '1 PRESENTE');
   await a.get('adminAttendees').children[0].children.at(-1).listeners.click();
   assert(a.calls.some(c => c.options.method === 'DELETE'));
 });
@@ -333,4 +347,50 @@ test('lista do sorteio repete nomes por chance e recusa presenças sem data', as
   const b = adminApp({ raffle: { ...raffle, pendingAttendances: 3 } }); await login(b);
   await b.run('exportRaffle()');
   assert.equal(b.blobs.length, 0); assert.match(b.get('raffleMessage').textContent, /sem data/);
+});
+
+test('cadastro na hora aproveita a busca e registra presença de quem não tem conta', async () => {
+  const a = adminApp(); await login(a);
+  a.get('adminActivity').value = 'mesa'; a.get('adminActivity').listeners.change();
+  assert.equal(a.get('walkinToggle').disabled, false);
+  a.get('adminSearch').value = 'Maria Silva'; a.click('walkinToggle');
+  assert.equal(a.get('walkinForm').hidden, false); assert.equal(a.get('walkinName').value, 'Maria Silva');
+  assert.equal(a.document.activeElement, a.get('walkinEmail'));
+  a.get('walkinEmail').value = 'invalido'; await a.submit('walkinForm');
+  assert(!a.calls.some(c => c.path.includes('/admin/participants')));
+  assert(a.get('adminMessage').classList.contains('error'));
+  a.get('walkinEmail').value = ' Maria@Example.com '; await a.submit('walkinForm');
+  const write = a.calls.find(c => c.path.includes('/admin/participants'));
+  assert.deepEqual(JSON.parse(write.options.body), { activity: 'mesa', name: 'Maria Silva', email: 'maria@example.com' });
+  assert.equal(write.options.headers.Authorization, 'Bearer jwt');
+  assert.match(a.get('adminMessage').textContent, /Cadastro criado: Maria Silva está presente/);
+  assert.equal(a.get('walkinForm').hidden, true); assert.equal(a.get('adminSearch').value, '');
+});
+
+test('sorteio no painel mostra o ganhador escolhido pelo servidor e permite marcar ausente', async () => {
+  const a = adminApp(); await login(a); await a.run('loadDraws()');
+  a.get('rafflePrize').value = ' Caneca ';
+  await a.click('raffleDraw');
+  const draw = a.calls.find(c => c.path.includes('/admin/draws') && c.options.method === 'POST');
+  assert.deepEqual(JSON.parse(draw.options.body), { date: '2026-11-04', prize: 'Caneca' });
+  assert.equal(a.get('raffleName').textContent, '<i>Bia</i>');
+  assert.equal(a.get('rafflePrizeLabel').textContent, '🎁 Caneca');
+  assert(a.get('raffleReel').classList.contains('winner'));
+  assert.match(a.get('raffleMessage').textContent, /Bia<\/i> ganhou Caneca! Tinha 2 chances/);
+  assert.equal(a.get('rafflePrize').value, '');
+  assert.equal(a.get('confetti').children.length, 0);
+  const row = a.get('raffleWinners').children[0];
+  assert.equal(row.children[0].children[0].textContent, '🏆 1º · <i>Bia</i>');
+  await row.children.at(-1).listeners.click();
+  const absent = a.calls.find(c => c.options.method === 'PATCH');
+  assert.deepEqual(JSON.parse(absent.options.body), { date: '2026-11-04', id: winner.id });
+  assert.match(a.get('raffleWinners').children[0].children[0].children[1].textContent, /ausente/);
+  a.click('logoutButton');
+  assert.equal(a.get('raffleWinners').children.length, 0); assert.equal(a.get('raffleName').textContent, 'Quem será?');
+});
+
+test('rodapé aponta para as redes oficiais em nova aba sem vazar a página de origem', () => {
+  for (const url of ['https://www.instagram.com/seccim_ufrrj/', 'https://www.linkedin.com/in/seccim/']) {
+    assert.match(html, new RegExp(`href="${url.replace(/[.\/]/g, m => '\\' + m)}" target="_blank" rel="noopener noreferrer"`));
+  }
 });

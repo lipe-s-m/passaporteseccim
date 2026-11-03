@@ -10,7 +10,7 @@ const token = (changes = {}, header = {}) => [
   Buffer.from(JSON.stringify({ ...claims, ...changes })).toString('base64url'), 'signature'
 ].join('.');
 const account = { localId: 'user-a', email: 'Pessoa@Example.com', emailVerified: true, displayName: 'Pessoa teste', validSince: String(time - 100) };
-function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle, attendance } = {}) {
+function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle, attendance, rpcs = {} } = {}) {
   const calls = [];
   const handler = createHandler({ projectId, apiKey: 'AIza_test_key', supabaseUrl: 'https://db.supabase.co', serviceKey: 'ADMIN_SECRET',
     now: () => time * 1000, fetcher: async (url, options) => {
@@ -19,6 +19,8 @@ function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = '
       if (url.endsWith('/get_badge_ranking')) return Response.json(ranking, {status:dbStatus});
       if (url.endsWith('/get_daily_raffle')) return Response.json(raffle, {status:dbStatus});
       if (url.endsWith('/admin_attendance')) return Response.json(attendance, {status:dbStatus});
+      const rpc = Object.keys(rpcs).find(name => url.endsWith('/' + name));
+      if (rpc) return Response.json(rpcs[rpc], {status:dbStatus});
       return Response.json({ participant: { id: 'uuid-a', full_name: 'Pessoa teste', email: 'privado@example.com' },
         earnedBadges: ['mesa-redonda'], secret: 'ADMIN_SECRET' }, { status: dbStatus });
     } });
@@ -111,6 +113,51 @@ test('presença registra com o UID verificado e filtra campos privados',async()=
   const list=await app({attendance:{total:1,attendees:[{id:participantId,name:'Pessoa',email:'p@example.com',recordedAt:'2026-11-03T12:00:00Z',recorded_by:'segredo'}]}})
     .send(token(),attendanceUrl+'?action=list&activity=mesa');
   assert(!JSON.stringify(await list.json()).includes('segredo'));
+});
+
+const walkinUrl = 'https://edge.test/passport/admin/participants';
+const drawsUrl = 'https://edge.test/passport/admin/draws';
+
+test('cadastro pela organização valida dados, normaliza e-mail e usa o UID verificado',async()=>{
+  const registered={created:true,changed:true,participant:{id:participantId,name:'Nova',email:'nova@example.com',linked:false,firebase_uid:'segredo'}};
+  const a=app({rpcs:{admin_register_participant:registered}});
+  assert.equal((await a.send(token(),walkinUrl,'GET')).status,405);
+  assert.equal((await a.send('',walkinUrl,'POST',{activity:'mesa',name:'Nova',email:'nova@example.com'})).status,401);
+  for(const body of [{activity:'mesa',name:' ',email:'nova@example.com'},{activity:'mesa',name:'Nova',email:'sem-arroba'},
+    {activity:'mesa',name:'x'.repeat(121),email:'nova@example.com'},{activity:'Mesa',name:'Nova',email:'nova@example.com'},{activity:'mesa',name:'Nova'}]) {
+    assert.equal((await a.send(token(),walkinUrl,'POST',body)).status,400);
+  }
+  assert(!a.calls.some(c=>c.url.includes('/admin_register_participant')));
+  const r=await a.send(token(),walkinUrl,'POST',{activity:'mesa',name:'  Nova ',email:' Nova@Example.com ',p_uid:'outro'});
+  assert.equal(r.status,200);
+  assert.deepEqual(await r.json(),{created:true,changed:true,participant:{id:participantId,name:'Nova',email:'nova@example.com',linked:false}});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_activity:'mesa',p_name:'Nova',p_email:'nova@example.com'});
+  const denied=app({dbStatus:403,rpcs:{admin_register_participant:{code:'42501'}}});
+  assert.equal((await denied.send(token(),walkinUrl,'POST',{activity:'mesa',name:'Nova',email:'nova@example.com'})).status,403);
+});
+
+test('sorteio no painel lista, sorteia e marca ausente sem expor e-mail ou UID',async()=>{
+  const state={drawnId:participantId,reel:['Ana','Bruno',7],remainingParticipants:3,totalEntries:9,
+    draws:[{id:participantId,name:'Ana',prize:'Caneca',absent:false,drawnAt:'2026-11-03T20:00:00Z',chances:3,email:'privado',participant_id:'segredo'}]};
+  const a=app({rpcs:{admin_raffle_draw:state}});
+  assert.equal((await a.send(token(),drawsUrl+'?date=2026-11-03','DELETE')).status,405);
+  for(const [method,url,body] of [['GET',drawsUrl+'?date=2026-02-30'],['GET',drawsUrl],['POST',drawsUrl,{date:'2026-11-03',prize:'x'.repeat(121)}],
+    ['PATCH',drawsUrl,{date:'2026-11-03',id:'invalido'}]]) {
+    assert.equal((await a.send(token(),url,method,body)).status,400);
+  }
+  const drawn=await a.send(token(),drawsUrl,'POST',{date:'2026-11-03',prize:' Caneca '});
+  assert.equal(drawn.status,200);
+  const data=await drawn.json();
+  assert.deepEqual(data.reel,['Ana','Bruno']); assert.equal(data.drawnId,participantId); assert.equal(data.draws[0].chances,3);
+  assert(!JSON.stringify(data).includes('privado')); assert(!JSON.stringify(data).includes('segredo'));
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'draw',p_date:'2026-11-03',p_prize:'Caneca',p_draw:null});
+  await a.send(token(),drawsUrl,'PATCH',{date:'2026-11-03',id:participantId});
+  assert.equal(JSON.parse(a.calls.at(-1).options.body).p_action,'absent');
+  await a.send(token(),drawsUrl+'?date=2026-11-03&p_uid=outro');
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'list',p_date:'2026-11-03',p_prize:'',p_draw:null});
+  const denied=app({dbStatus:403,rpcs:{admin_raffle_draw:{code:'42501'}}});
+  assert.equal((await denied.send(token(),drawsUrl,'POST',{date:'2026-11-03'})).status,403);
+  assert.equal((await app({rpcs:{admin_raffle_draw:{draws:null}}}).send(token(),drawsUrl+'?date=2026-11-03')).status,503);
 });
 
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{

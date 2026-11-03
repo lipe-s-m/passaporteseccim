@@ -31,7 +31,7 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 
 1. Conta administrativa da organização cadastrada, confirmada e autorizada em `private.admins`. O e-mail fica fora deste repositório público.
 2. Datas oficiais aplicadas pela migração `20261103190000_event_dates.sql`, a partir do formulário de inscrição: 5 atividades em 03/11, 1 em 04/11, 4 em 05/11 e 5 em 06/11. Todas são elegíveis ao sorteio. "Meninas na Robótica" tem duas sessões no formulário, mas é um único selo.
-3. Pendente: a planilha real de inscrições não foi importada; o vencedor não é escolhido pelo sistema.
+3. Cadastro na hora e sorteio de ganhadores no painel (migração `20261103200000_walkin_and_draws.sql`). Pendente: a planilha real de inscrições não foi importada.
 
 ## Painel da organização (implantado)
 
@@ -49,7 +49,7 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 - Preserve RLS/grants restritivos. Não adicione acesso de participante ou `anon` ao sorteio. Nunca exponha `service_role` nem aceite UID/papel da query/body como autorização.
 - Admin tem apenas leitura do sorteio. O proprietário do banco concede/revoga acesso; a verificação a cada requisição invalida a autorização imediatamente.
 - Pause baixas durante exportações paginadas. A ferramenta detecta mudanças em totais/tickets duplicados, mas múltiplas solicitações GET não formam um snapshot transacional.
-- Ainda não há função de escolha/armazenamento de vencedor.
+- Vencedores ficam em `public.raffle_draws`, com uma vitória por pessoa e dia.
 
 ## Arquivos principais
 

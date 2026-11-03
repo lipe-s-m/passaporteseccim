@@ -1,6 +1,6 @@
 # Sorteios por dia
 
-O sistema prepara as chances; não escolhe vencedores. Cada presença confirmada em uma atividade elegível gera **uma linha** em `public.raffle_entries`. Três palestras no mesmo dia = três chances. A mesma palestra não pode gerar duas chances para a mesma pessoa, mesmo que a organização repita a baixa.
+O sistema prepara as chances e, pelo painel **Organização**, sorteia o ganhador no banco (detalhes em `DOCUMENTACAO.md`, seção "Cadastro na hora, sorteio no painel"). Cada presença confirmada em uma atividade elegível gera **uma linha** em `public.raffle_entries`. Três palestras no mesmo dia = três chances. A mesma palestra não pode gerar duas chances para a mesma pessoa, mesmo que a organização repita a baixa.
 
 O dia vem de `activities.event_date`, data real da palestra no calendário de São Paulo. `attendances.recorded_at` continua registrando quando a presença foi digitada e não define o sorteio. Uma presença de terça registrada na quarta participa de terça.
 

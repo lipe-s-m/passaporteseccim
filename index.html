@@ -273,9 +273,42 @@ main{padding:32px 0 64px}
 .admin-person{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:17px}
 .admin-person small{display:block;color:var(--muted);font-size:14px}
 .admin-row .action-button{flex:0 0 auto}
-.admin-row .action-button.secondary{background:transparent;border-color:#687780}
+.action-button.secondary{background:transparent;border-color:#687780}
 .admin-status{color:var(--green);font-size:14px;font-weight:650}
 .admin-panel h3{font-size:20px;margin:28px 0 8px}.admin-panel .faq-card h3{margin-top:0}
+.walkin-card{border-color:rgba(34,227,154,.35)}
+/* Palco do sorteio: roleta, confete e modo telão */
+.raffle-stage{position:relative;overflow:hidden;margin:36px 0 8px;padding:24px;border-radius:22px;border:1px solid rgba(165,140,255,.35);background:linear-gradient(145deg,#27234e,#1b2932 62%);box-shadow:var(--shadow)}
+.raffle-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.raffle-stage h3{margin:4px 0 0;font-size:24px}
+.raffle-controls{display:grid;gap:0 16px;margin-top:8px}
+.raffle-stats{color:var(--cream);font-size:15px;line-height:1.5;margin:0 0 16px;text-align:center}
+.raffle-reel{display:grid;place-items:center;align-content:center;gap:8px;min-height:160px;padding:20px;border-radius:18px;background:#0d1419;border:2px dashed rgba(165,140,255,.45);text-align:center;margin-bottom:16px}
+.raffle-reel span{font-family:"Geist Pixel",sans-serif;font-size:clamp(26px,7vw,48px);line-height:1.2;overflow-wrap:anywhere;color:#fff}
+.raffle-reel small{color:var(--green);font-size:17px;font-weight:650}
+.raffle-reel.spinning span{color:#b9aaff}
+.raffle-reel.winner{border-style:solid;border-color:var(--green);box-shadow:0 0 0 4px rgba(34,227,154,.15),0 0 48px rgba(34,227,154,.28);animation:pop .55s ease}
+.raffle-button{width:100%;min-height:60px;font-size:20px;font-weight:750;border-color:#d7d2ff;background:linear-gradient(90deg,#5340b5,#7964f5);transition:transform .2s,box-shadow .2s}
+.raffle-button:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(121,100,245,.4)}
+.raffle-button:disabled{cursor:not-allowed}
+.winner-row.absent .admin-person strong{text-decoration:line-through;opacity:.6}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;animation:fall linear forwards}
+@keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes fall{to{transform:translateY(1100px) rotate(720deg);opacity:.15}}
+.raffle-stage:fullscreen{display:flex;flex-direction:column;justify-content:center;padding:4vw 6vw;overflow:auto;border-radius:0}
+.raffle-stage:fullscreen .raffle-reel{min-height:42vh}
+.raffle-stage:fullscreen .raffle-reel span{font-size:clamp(40px,8vw,112px)}
+.raffle-stage:fullscreen .raffle-reel small{font-size:clamp(18px,2.5vw,32px)}
+@media(min-width:640px){.raffle-stage{padding:32px}.raffle-controls{grid-template-columns:1fr 1fr}}
+/* Redes sociais */
+.site-footer{padding:8px 0 48px;text-align:center;color:var(--muted)}
+.site-footer p{margin:0 0 14px;font-size:16px}
+.social-links{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.social-link{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:10px 20px;border-radius:99px;border:1px solid rgba(165,140,255,.35);background:rgba(121,100,245,.12);color:var(--ink);text-decoration:none;font-size:16px;transition:transform .2s,border-color .2s,background .2s}
+.social-link:hover{transform:translateY(-2px);border-color:#b9aaff;background:rgba(121,100,245,.24)}
+.social-link:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.social-link svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
@@ -373,20 +406,43 @@ main{padding:32px 0 64px}
     <label class="faq-field" for="adminSearch">Buscar participante<input id="adminSearch" type="search" autocomplete="off" maxlength="120" placeholder="Nome ou e-mail" disabled></label>
     <p id="adminMessage" class="page-message" role="status" aria-live="polite"></p>
     <ul id="adminResults" class="admin-list" aria-label="Resultado da busca"></ul>
+    <button id="walkinToggle" class="account-switch" type="button" disabled>Não encontrou? Cadastrar participante na hora</button>
+    <form id="walkinForm" class="faq-card walkin-card" hidden>
+      <h3>✨ Cadastro na hora</h3>
+      <p class="faq-hint">A presença já fica registrada. O selo aparece quando a pessoa criar a conta no passaporte com este mesmo e-mail.</p>
+      <label class="faq-field" for="walkinName">Nome completo<input id="walkinName" autocomplete="off" maxlength="120" required></label>
+      <label class="faq-field" for="walkinEmail">E-mail<input id="walkinEmail" type="email" autocomplete="off" maxlength="254" required></label>
+      <div class="faq-controls"><button id="walkinSave" class="action-button" type="submit">Cadastrar e registrar presença</button><button id="walkinCancel" class="action-button secondary" type="button">Cancelar</button></div>
+    </form>
     <h3>Presentes nesta atividade</h3>
     <div class="faq-controls"><button id="adminRefresh" class="action-button" type="button">Atualizar lista</button></div>
     <p id="adminListMessage" class="faq-hint" role="status" aria-live="polite"></p>
     <ul id="adminAttendees" class="admin-list" aria-label="Presenças registradas"></ul>
-    <div class="faq-card">
-      <h3>Sorteio do dia</h3>
-      <p class="faq-hint">Cada presença numa atividade do dia vale uma chance. Pause os registros enquanto gera a lista.</p>
-      <label class="faq-field" for="raffleDate">Dia<select id="raffleDate"></select></label>
-      <button id="raffleExport" class="action-button" type="button" disabled>Baixar lista do sorteio</button>
-      <p id="raffleMessage" class="faq-hint" role="status" aria-live="polite"></p>
-    </div>
+    <section id="raffleStage" class="raffle-stage" aria-labelledby="raffleTitle">
+      <div id="confetti" class="confetti" aria-hidden="true"></div>
+      <div class="raffle-head"><div><div class="eyebrow">Hora do brinde</div><h3 id="raffleTitle">🎲 Sorteio do dia</h3></div><button id="raffleFullscreen" class="action-button secondary" type="button" hidden>⛶ Modo telão</button></div>
+      <div class="raffle-controls">
+        <label class="faq-field" for="raffleDate">Dia<select id="raffleDate"></select></label>
+        <label class="faq-field" for="rafflePrize">Brinde (opcional)<input id="rafflePrize" maxlength="120" autocomplete="off" placeholder="Ex.: caneca da SECCIM"></label>
+      </div>
+      <p id="raffleStats" class="raffle-stats"></p>
+      <div id="raffleReel" class="raffle-reel"><span id="raffleName">Quem será?</span><small id="rafflePrizeLabel"></small></div>
+      <button id="raffleDraw" class="action-button raffle-button" type="button" disabled>🎲 Sortear!</button>
+      <p id="raffleMessage" class="page-message" role="status" aria-live="polite"></p>
+      <ol id="raffleWinners" class="admin-list" aria-label="Ganhadores do dia"></ol>
+      <p class="faq-hint">Cada presença numa palestra do dia vale uma chance, e cada pessoa ganha no máximo uma vez por dia. Se alguém não estiver no auditório, marque como ausente e sorteie de novo.</p>
+      <div class="faq-controls"><button id="raffleExport" class="action-button secondary" type="button" disabled>Baixar lista de chances</button></div>
+    </section>
   </section>
   <noscript>Ative o JavaScript para acessar seu passaporte.</noscript>
 </main>
+<footer class="shell site-footer">
+  <p>Acompanhe a SECCIM nas redes</p>
+  <div class="social-links">
+    <a class="social-link" href="https://www.instagram.com/seccim_ufrrj/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg><span>Instagram · @seccim_ufrrj</span></a>
+    <a class="social-link" href="https://www.linkedin.com/in/seccim/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v6M8 7.5v.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17"/></svg><span>LinkedIn · SECCIM</span></a>
+  </div>
+</footer>
 </div>
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
   <div class="modal">
@@ -411,7 +467,8 @@ const $ = id => document.getElementById(id);
 const state = { copy: Object.create(null), badges: [], session: null, generation: 0, focus: null, mode: "login", busy: false };
 const faqState = { ready:false, version:0, questions:[], editing:null, busy:false };
 const rankingState = { version:0 };
-const adminState = { version:0, listVersion:0, searchVersion:0, activities:[], busy:false, timer:null };
+const adminState = { version:0, listVersion:0, searchVersion:0, activities:[], undated:0, busy:false, timer:null };
+const raffleState = { version:0, date:"", remaining:0, spinning:false };
 const lockClosedSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 const lockOpenSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>';
 
@@ -845,7 +902,7 @@ function switchSection(faq) {
   }
   if (section === "faq" && !faqState.busy) loadQuestions();
   if (section === "ranking") loadRanking();
-  if (section === "admin") { loadAdmin(); loadAttendees(); }
+  if (section === "admin") { loadAdmin(); loadAttendees(); loadDraws(); }
 }
 
 async function loadRanking() {
@@ -892,6 +949,14 @@ function resetAdmin() {
   $("adminCount").textContent = "";
   for (const id of ["adminMessage","adminListMessage","raffleMessage"]) message(id, "");
   $("raffleExport").disabled = true;
+  closeWalkin();
+  $("walkinToggle").disabled = true;
+  raffleState.version++; raffleState.date = ""; raffleState.remaining = 0; raffleState.spinning = false;
+  $("raffleWinners").replaceChildren(); $("confetti").replaceChildren();
+  $("raffleStats").textContent = ""; $("rafflePrize").value = "";
+  $("raffleName").textContent = "Quem será?"; $("rafflePrizeLabel").textContent = "";
+  $("raffleReel").classList.remove("winner", "spinning");
+  $("raffleDraw").disabled = true;
 }
 
 async function loadAdmin() {
@@ -921,15 +986,16 @@ function renderAdminActivities() {
     ...adminState.activities.map(a => option(a.id, `${shortDate(a.eventDate)} · ${a.name} (${a.attendances})`)));
   $("adminActivity").value = adminState.activities.some(a => a.id === selected) ? selected : "";
   $("adminSearch").disabled = !$("adminActivity").value;
+  $("walkinToggle").disabled = !$("adminActivity").value;
   const dates = [...new Set(adminState.activities.filter(a => a.raffleEligible && a.eventDate).map(a => a.eventDate))].sort();
   const day = $("raffleDate").value;
   $("raffleDate").replaceChildren(...dates.map(date => option(date, new Date(`${date}T12:00:00Z`)
     .toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }))));
   $("raffleDate").value = dates.includes(day) ? day : dates.find(date => date >= new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })) ?? dates.at(-1) ?? "";
   $("raffleExport").disabled = !dates.length;
-  const undated = adminState.activities.filter(a => a.raffleEligible && !a.eventDate).length;
-  message("raffleMessage", !dates.length ? "Nenhuma atividade tem data configurada ainda."
-    : undated ? `${undated} atividade(s) sem data ainda não geram chances.` : "");
+  adminState.undated = adminState.activities.filter(a => a.raffleEligible && !a.eventDate).length;
+  if (!dates.length) { $("raffleStats").textContent = "Nenhuma atividade tem data configurada ainda."; $("raffleDraw").disabled = true; }
+  else if ($("raffleDate").value !== raffleState.date) loadDraws();
 }
 
 function adminRow(person, detail, button) {
@@ -968,7 +1034,7 @@ async function searchParticipants() {
     $("adminResults").replaceChildren(...data.participants.map(p =>
       adminRow(p, p.email, p.present ? { add: false, label: "Remover presença" } : { add: true, label: "Registrar presença" })));
     message("adminMessage", data.participants.length ? ""
-      : "Ninguém encontrado. A pessoa precisa ter criado a conta no passaporte e confirmado o e-mail.");
+      : `Ninguém encontrado com “${query}”. Use “Cadastrar participante na hora” logo abaixo.`);
   } catch {
     if (version === adminState.searchVersion) message("adminMessage", "Não foi possível buscar. Confira sua sessão e tente novamente.", true);
   }
@@ -992,7 +1058,7 @@ async function loadAttendees() {
       return adminRow({ ...p, present: true }, `${p.email}${Number.isNaN(time.getTime()) ? "" : " · " + time.toLocaleString("pt-BR")}`,
         { add: false, label: "Remover" });
     }));
-    $("adminCount").textContent = `${data.total} PRESENTES`;
+    $("adminCount").textContent = `${data.total} ${data.total === 1 ? "PRESENTE" : "PRESENTES"}`;
     message("adminListMessage", !data.total ? "Nenhuma presença registrada nesta atividade."
       : data.total > data.attendees.length ? `Mostrando os ${data.attendees.length} registros mais recentes.` : "");
   } catch {
@@ -1066,14 +1132,219 @@ async function exportRaffle() {
 }
 
 $("adminTab").addEventListener("click", () => switchSection("admin"));
+function openWalkin() {
+  // Aproveita o que foi digitado na busca: e-mail vai para o e-mail, o resto para o nome.
+  const typed = $("adminSearch").value.trim();
+  $("walkinName").value = typed.includes("@") ? "" : typed;
+  $("walkinEmail").value = typed.includes("@") ? typed : "";
+  $("walkinForm").hidden = false; $("walkinToggle").hidden = true;
+  (typed && !typed.includes("@") ? $("walkinEmail") : $("walkinName")).focus();
+}
+
+function closeWalkin() {
+  $("walkinForm").hidden = true; $("walkinToggle").hidden = false;
+  $("walkinName").value = ""; $("walkinEmail").value = ""; $("walkinSave").disabled = false;
+}
+
+async function registerWalkin() {
+  const activity = $("adminActivity").value;
+  const name = $("walkinName").value.trim();
+  const email = $("walkinEmail").value.trim().toLowerCase();
+  if (adminState.busy || !activity || !state.session) return;
+  if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    message("adminMessage", "Informe o nome completo e um e-mail válido.", true);
+    return;
+  }
+  const version = adminState.version;
+  adminState.busy = true; $("walkinSave").disabled = true;
+  try {
+    const token = await accessToken();
+    const data = await request("/functions/v1/passport/admin/participants", { method: "POST", token, body: { activity, name, email } });
+    if (version !== adminState.version) return;
+    const person = data?.participant;
+    if (!person?.name) throw Error();
+    message("adminMessage", data.created ? `✨ Cadastro criado: ${person.name} está presente! O selo aparece quando criar a conta com ${person.email}.`
+      : data.changed ? `✅ ${person.email} já tinha cadastro como ${person.name}. Presença registrada.`
+      : `${person.name} já estava presente nesta atividade.`);
+    closeWalkin();
+    $("adminSearch").value = ""; $("adminResults").replaceChildren(); $("adminSearch").focus();
+  } catch {
+    if (version === adminState.version) message("adminMessage", "Não foi possível cadastrar. Confira os dados e tente novamente.", true);
+  } finally {
+    if (version === adminState.version) {
+      adminState.busy = false; $("walkinSave").disabled = false;
+      loadAttendees(); loadAdmin();
+    }
+  }
+}
+
+const drawsPath = "/functions/v1/passport/admin/draws";
+const reducedMotion = () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+
+function renderDraws(data) {
+  raffleState.remaining = data.remainingParticipants;
+  const undated = adminState.undated ? ` · ${adminState.undated} atividade(s) sem data ainda não contam` : "";
+  $("raffleStats").textContent = data.totalEntries
+    ? `${data.totalEntries} ${data.totalEntries === 1 ? "chance" : "chances"} no dia · ${data.remainingParticipants} ${data.remainingParticipants === 1 ? "pessoa ainda pode" : "pessoas ainda podem"} ganhar${undated}`
+    : `Ainda não há chances neste dia. Registre presenças nas palestras do dia${undated}.`;
+  $("raffleDraw").disabled = raffleState.spinning || !data.remainingParticipants;
+  $("raffleWinners").replaceChildren(...data.draws.map((draw, index) => ({ draw, number: index + 1 })).reverse().map(({ draw, number }) => {
+    const row = document.createElement("li"); row.className = "admin-row winner-row" + (draw.absent ? " absent" : " present");
+    const info = document.createElement("div"); info.className = "admin-person";
+    const name = document.createElement("strong"); name.textContent = `🏆 ${number}º · ${draw.name}`;
+    const time = new Date(draw.drawnAt);
+    const detail = document.createElement("small");
+    detail.textContent = [draw.prize || "Brinde", `${draw.chances} ${draw.chances === 1 ? "chance" : "chances"}`,
+      Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      draw.absent ? "ausente" : ""].filter(Boolean).join(" · ");
+    info.append(name, detail); row.append(info);
+    if (!draw.absent) {
+      const absent = document.createElement("button"); absent.type = "button"; absent.className = "action-button secondary";
+      absent.textContent = "Ausente"; absent.disabled = raffleState.spinning;
+      absent.addEventListener("click", () => markAbsent(draw));
+      row.append(absent);
+    }
+    return row;
+  }));
+}
+
+async function loadDraws() {
+  const date = $("raffleDate").value;
+  const version = ++raffleState.version;
+  raffleState.date = date;
+  raffleState.spinning = false;
+  $("raffleWinners").replaceChildren();
+  $("raffleDraw").disabled = true;
+  $("raffleName").textContent = "Quem será?"; $("rafflePrizeLabel").textContent = "";
+  $("raffleReel").classList.remove("winner", "spinning");
+  message("raffleMessage", "");
+  if (!date || !state.session) return;
+  try {
+    const token = await accessToken();
+    if (version !== raffleState.version) return;
+    const data = await request(`${drawsPath}?date=${date}`, { token });
+    if (version !== raffleState.version) return;
+    if (!Array.isArray(data?.draws)) throw Error();
+    renderDraws(data);
+  } catch {
+    if (version === raffleState.version) $("raffleStats").textContent = "Não foi possível carregar o sorteio. Use “Atualizar lista” para tentar de novo.";
+  }
+}
+
+function spin(names, winner) {
+  // Animação apenas: o ganhador já foi escolhido e gravado pelo banco.
+  if (reducedMotion()) return Promise.resolve();
+  const pool = names.length ? names : [winner];
+  $("raffleReel").classList.add("spinning");
+  return new Promise(resolve => {
+    let step = 0;
+    const steps = 30;
+    const tick = () => {
+      $("raffleName").textContent = pool[step % pool.length];
+      if (++step >= steps) { $("raffleReel").classList.remove("spinning"); resolve(); return; }
+      setTimeout(tick, 45 + Math.pow(step / steps, 3) * 380);
+    };
+    tick();
+  });
+}
+
+function celebrate() {
+  if (reducedMotion()) return;
+  const colors = ["#7964f5", "#22e39a", "#d7d2ff", "#ffd166", "#ff7eb6"];
+  $("confetti").replaceChildren(...Array.from({ length: 90 }, (_, index) => {
+    const piece = document.createElement("i");
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[index % colors.length];
+    piece.style.animationDuration = `${1.8 + Math.random() * 1.8}s`;
+    piece.style.animationDelay = `${Math.random() * .5}s`;
+    return piece;
+  }));
+  setTimeout(() => $("confetti").replaceChildren(), 4500);
+}
+
+async function drawWinner() {
+  const date = $("raffleDate").value;
+  if (!date || raffleState.spinning || !state.session) return;
+  const version = raffleState.version;
+  raffleState.spinning = true;
+  $("raffleDraw").disabled = true;
+  $("raffleReel").classList.remove("winner");
+  $("raffleName").textContent = "🎲 Sorteando..."; $("rafflePrizeLabel").textContent = "";
+  message("raffleMessage", "");
+  try {
+    const token = await accessToken();
+    const data = await request(drawsPath, { method: "POST", token, body: { date, prize: $("rafflePrize").value.trim() } });
+    if (version !== raffleState.version) return;
+    const winner = data?.draws?.find(draw => draw.id === data.drawnId);
+    if (!data?.drawnId || !winner) {
+      $("raffleName").textContent = "Fim das chances!";
+      message("raffleMessage", "Todo mundo com chance neste dia já foi sorteado. 🎉");
+      raffleState.spinning = false;
+      if (Array.isArray(data?.draws)) renderDraws(data);
+      return;
+    }
+    await spin(data.reel, winner.name);
+    if (version !== raffleState.version) return;
+    $("raffleName").textContent = winner.name;
+    $("rafflePrizeLabel").textContent = winner.prize ? `🎁 ${winner.prize}` : "🎉 Parabéns!";
+    $("raffleReel").classList.add("winner");
+    message("raffleMessage", `🏆 ${winner.name} ganhou${winner.prize ? ` ${winner.prize}` : ""}! Tinha ${winner.chances} ${winner.chances === 1 ? "chance" : "chances"} no dia.`);
+    $("rafflePrize").value = "";
+    celebrate();
+    raffleState.spinning = false;
+    renderDraws(data);
+  } catch {
+    if (version !== raffleState.version) return;
+    $("raffleName").textContent = "Quem será?";
+    message("raffleMessage", "Não foi possível sortear agora. Confira a conexão e tente novamente.", true);
+  } finally {
+    if (version === raffleState.version) {
+      raffleState.spinning = false;
+      $("raffleDraw").disabled = !raffleState.remaining;
+    }
+  }
+}
+
+async function markAbsent(draw) {
+  const date = $("raffleDate").value;
+  if (!date || raffleState.spinning || !state.session) return;
+  if (!confirm(`${draw.name} não está aqui? A pessoa sai do sorteio de hoje e você pode sortear de novo.`)) return;
+  const version = raffleState.version;
+  try {
+    const token = await accessToken();
+    const data = await request(drawsPath, { method: "PATCH", token, body: { date, id: draw.id } });
+    if (version !== raffleState.version) return;
+    renderDraws(data);
+    message("raffleMessage", `${draw.name} marcado(a) como ausente. Bora sortear de novo! 🎲`);
+  } catch {
+    if (version === raffleState.version) message("raffleMessage", "Não foi possível marcar a ausência. Tente novamente.", true);
+  }
+}
+
+$("walkinToggle").addEventListener("click", openWalkin);
+$("walkinCancel").addEventListener("click", closeWalkin);
+$("walkinForm").addEventListener("submit", event => { event.preventDefault(); return registerWalkin(); });
+$("raffleDate").addEventListener("change", loadDraws);
+$("raffleDraw").addEventListener("click", drawWinner);
+$("raffleFullscreen").hidden = !document.fullscreenEnabled;
+$("raffleFullscreen").addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else $("raffleStage").requestFullscreen?.().catch(() => {});
+});
+document.addEventListener("fullscreenchange", () => {
+  $("raffleFullscreen").textContent = document.fullscreenElement ? "Sair do telão" : "⛶ Modo telão";
+});
+
 $("adminActivity").addEventListener("change", () => {
+  closeWalkin();
   $("adminSearch").disabled = !$("adminActivity").value;
+  $("walkinToggle").disabled = !$("adminActivity").value;
   $("adminSearch").value = ""; $("adminResults").replaceChildren(); message("adminMessage", "");
   loadAttendees();
   if ($("adminActivity").value) $("adminSearch").focus();
 });
 $("adminSearch").addEventListener("input", () => { clearTimeout(adminState.timer); adminState.timer = setTimeout(searchParticipants, 300); });
-$("adminRefresh").addEventListener("click", () => { loadAdmin(); loadAttendees(); });
+$("adminRefresh").addEventListener("click", () => { loadAdmin(); loadAttendees(); loadDraws(); });
 $("raffleExport").addEventListener("click", exportRaffle);
 $("rankingRefresh").addEventListener("click", loadRanking);
 
