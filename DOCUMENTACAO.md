@@ -10,20 +10,22 @@ Documentação atualizada em 03/11/2026. Interface e conteúdo em português.
 |---|---|---|
 | Supabase Free | `passaporte-seccim` / `mqparqbuhstkdpcgbbsa` | Banco, RLS, catálogo e Edge Function ativos; região São Paulo |
 | Firebase Spark | `passaporte-seccim-2026` | E-mail/senha habilitado, política de senha aplicada; faturamento desabilitado |
-| Frontend | `index.html` | Configurações públicas preenchidas; ainda não publicado nesta tarefa |
+| Frontend | `index.html` e `palestra.html` | Publicados em https://passaporte-seccim.vercel.app |
 
 [Abrir Supabase](https://supabase.com/dashboard/project/mqparqbuhstkdpcgbbsa) · [Abrir Firebase](https://console.firebase.google.com/project/passaporte-seccim-2026/overview)
 
-O banco contém **15 atividades e 48 textos públicos**. A planilha real ainda não foi recebida/importada. Ao concluir os testes, os cadastros e as presenças sintéticos foram removidos: a contagem voltou a zero. Não foram enviados e-mails aos participantes ou a endereços fictícios.
+O catálogo contém **15 atividades**. O banco já possui presenças reais; não limpar registros nem reaplicar seeds como carga substitutiva. Os testes do editor usam fixtures isoladas em transação revertida.
 
 ## Arquitetura
 
 ```mermaid
 flowchart TD
     U[Participante] --> H[index.html: HTML, CSS e JavaScript]
+    H --> D[palestra.html: detalhes públicos]
     H -->|E-mail e senha por HTTPS| F[Firebase Authentication]
     F -->|Confirmação e recuperação| E[E-mail padrão do Firebase]
     H -->|Leitura pública| C[Supabase REST: atividades e textos]
+    D -->|Leitura pública| C
     H -->|ID token Firebase no cabeçalho| G[Supabase Edge Function passport]
     G -->|Valida token e consulta conta| F
     G -->|Somente identidade verificada| R[RPC get_firebase_passport]
@@ -34,6 +36,18 @@ flowchart TD
 ```
 
 O frontend permanece estático: não há framework, compilação ou dependências de produção para instalar. HTML, CSS e JavaScript estão em `index.html`. A fonte visual usa Google Fonts e o ícone é local. As integrações de produção usam as APIs REST oficiais e `fetch`; a Edge Function também não instala bibliotecas externas.
+
+## Página de detalhes das palestras
+
+Cada selo oferece “Saiba mais” e abre `palestra.html?id=<id-da-atividade>`. A página pública mostra o título, categoria, resumo e descrição da palestra, dia/horário, nome/foto/bio do palestrante, redes sociais e slides quando os campos forem preenchidos. O conteúdo remoto é inserido como texto simples. A foto deve estar em HTTPS no domínio `res.cloudinary.com`; redes e slides usam HTTPS.
+
+A migration local `20261105002508_speaker_details.sql` adiciona os campos editoriais a `public.activities`, que já é pública para leitura. O editor está preparado no painel Organização, na seção “Informações das palestras e palestrantes”. Ele permite preencher os campos, ver a foto pelo link HTTPS do Cloudinary e pré-visualizar a página em um iframe. A prévia usa somente `sessionStorage` e não grava no servidor. Não há upload de imagem: o campo aceita o link público de uma imagem já hospedada no Cloudinary, sem credencial no navegador.
+
+A migração local `20261105002514_admin_activity_content.sql` cria a RPC `admin_activity_content`, revisão de conteúdo e auditoria de autoria em tabela **privada**, sem expor o UID do administrador na tabela pública. `GET/POST /functions/v1/passport/admin/activity-content` valida Firebase e a permissão atual em `private.admins`. Apenas campos editoriais permitidos são alterados; revisões antigas recebem 409 para impedir sobrescrita de outro administrador. Horários são enviados em UTC-03 e exibidos em America/Sao_Paulo; a data continua definindo o dia das chances dos sorteios.
+
+As migrações foram aplicadas e a rota implantada na Edge Function `passport` versão 10 após autorização explícita do usuário. O editor agora lê/grava pela API administrativa. Os 51 testes Node do frontend, validação e handler passaram, e `supabase/tests/activity_content.sql` validou a gravação, auditoria, conflitos, bloqueio a conta comum, URLs/datas inválidas e grants em uma transação revertida. O site foi publicado em https://passaporte-seccim.vercel.app; as páginas e os campos editoriais responderam 200, e o endpoint do editor recusou requisições sem identidade válida com 401. A publicação não apaga presenças nem preenche dados fictícios nas palestras reais.
+
+O repositório principal é https://github.com/lipe-s-m/passaporteseccim, configurado como `origin`. `upstream` preserva a referência ao repositório original. Os nomes dos arquivos de migração foram alinhados aos IDs registrados no Supabase para evitar reaplicações. Mudanças futuras em produção continuam dependendo de nova autorização explícita do usuário.
 
 O Firebase guarda e verifica as credenciais. **Não existe coluna de senha no Supabase. A senha não é enviada à Edge Function.** A função recebe somente o ID token, consulta `accounts:lookup` no Google e só então acessa o cadastro correspondente.
 
@@ -90,7 +104,7 @@ Editar textos em `site_content` e descrições/ordem em `activities`. `active=fa
 4. A pessoa confirma pelo link, volta ao passaporte e usa **Já confirmei meu e-mail**. O backend consulta o estado atual da conta no Google.
 5. Em acessos seguintes, entra com e-mail e senha. Não é enviado código a cada login.
 6. **Esqueci minha senha** usa o e-mail e o formulário de recuperação gerenciados pelo Firebase.
-7. A sessão fica apenas em memória. Recarregar/fechar a página exige nova entrada com senha; novas consultas renovam o token quando necessário.
+7. A sessão fica na memória e em `sessionStorage` da mesma aba para permitir voltar da página de palestra e recarregar sem entrar novamente. Nenhuma senha é armazenada. O token continua sendo validado pelo backend a cada consulta e renovado pelo Firebase quando necessário; tokens rejeitados são descartados. A opção Sair também remove a sessão salva.
 8. **Sair** limpa os tokens e os dados privados deste navegador. É um logout local, equivalente ao descarte da sessão no cliente; não revoga todas as sessões da conta.
 
 O autocadastro cria um passaporte vazio, sem conceder presenças. O nome fornecido pelo usuário é apenas texto de apresentação, nunca uma autorização administrativa.
@@ -339,6 +353,8 @@ Migração `20261103200000_walkin_and_draws.sql`. Testes: `supabase/tests/draws.
 
 ## Presença em várias palestras de uma vez — 03/11/2026
 
+O painel de Organização também permite colar até 100 e-mails para uma atividade. O backend normaliza e-mails, ignora duplicatas, registra somente participantes existentes e apresenta resultados separados para presenças novas, já registradas, e-mails não encontrados e entradas inválidas. A lista desconhecida fica disponível para revisão; não há cadastro nem concessão de presença por correspondência parcial. A RPC `admin_bulk_attendance` exige autorização administrativa, faz a baixa de forma transacional e aciona os mesmos gatilhos das baixas individuais. O endpoint `POST /passport/admin/attendance/bulk` valida a conta Firebase e o formato da requisição.
+
 Cada resultado da busca no painel tem o botão **Várias palestras**. Ele abre a lista de atividades agrupada por dia, com **Marcar todas** por dia: as presenças já registradas vêm marcadas (indicadas como "registrada"), e a atividade selecionada no painel vem pré-marcada. **Salvar** aplica só a diferença numa única chamada: marca o que foi adicionado e remove o que foi desmarcado (com confirmação antes de remover). O **cadastro na hora** abre essa lista em seguida, para registrar as outras palestras do dia de quem chegou sem conta.
 
-O navegador envia as listas `add` e `remove`, e não a lista final, para não apagar uma presença registrada por outro organizador ao mesmo tempo. Rota `GET|POST /passport/admin/person` → RPC `admin_person_attendances` (`SECURITY DEFINER`, autorização em `private.admins`, no máximo 50 atividades por chamada, lote inválido não é aplicado pela metade). As chances do sorteio acompanham automaticamente pelos triggers existentes. Migração `20261103220000_person_attendances.sql`; teste `supabase/tests/person_attendances.sql`.
+O navegador envia as listas `add` e `remove`, e não a lista final, para não apagar uma presença registrada por outro organizador ao mesmo tempo. Rota `GET|POST /passport/admin/person` → RPC `admin_person_attendances` (`SECURITY DEFINER`, autorização em `private.admins`, no máximo 50 atividades por chamada, lote inválido não é aplicado pela metade). As chances do sorteio acompanham automaticamente pelos triggers existentes. Migração `20261104221329_person_attendances.sql`; teste `supabase/tests/person_attendances.sql`.

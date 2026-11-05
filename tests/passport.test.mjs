@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHandler } from '../supabase/functions/passport/handler.mjs';
 
+const editorial={name:'Palestra',category:'Dados',description:'Descrição',short_description:'',speaker_name:'Ana',speaker_bio:'',
+  speaker_photo_url:null,event_date:'2026-11-04',starts_at:null,ends_at:null,slides_url:null,speaker_socials:{}};
+
 const time = 1800000000;
 const claims = { aud: 'seccim-test', iss: 'https://securetoken.google.com/seccim-test', sub: 'user-a',
   iat: time - 20, auth_time: time - 20, exp: time + 3600 };
@@ -34,6 +37,29 @@ test('sem token, token malformado e método de escrita não acessam o banco', as
   assert.equal((await a.send('not-a-jwt')).status, 401);
   assert.equal((await a.send(token(), undefined, 'POST')).status, 405);
   assert.equal(a.calls.length, 0);
+});
+
+test('editor verifica Firebase e autorização, ignora UID e papel enviados no corpo',async()=>{
+  const url='https://edge.test/passport/admin/activity-content';
+  const denied=app({dbStatus:403,rpcs:{admin_activity_content:{code:'42501'}}});
+  assert.equal((await denied.send('',url)).status,401);
+  assert.equal((await denied.send(token(),url,'DELETE')).status,405);
+  const body={activity:'mesa',content:editorial,revision:0,p_uid:'admin-falso',role:'service_role'};
+  assert.equal((await denied.send(token({admin:true}),url,'POST',body)).status,403);
+  assert.equal(JSON.parse(denied.calls.at(-1).options.body).p_uid,'user-a');
+  assert.equal((await app({user:{...account,emailVerified:false}}).send(token(),url,'POST',body)).status,403);
+});
+
+test('editor lê/salva somente campos permitidos, recusa formato ruim e sinaliza conflito',async()=>{
+  const url='https://edge.test/passport/admin/activity-content';
+  const a=app({rpcs:{admin_activity_content:{activity:{id:'mesa',...editorial,content_revision:1,private_field:'segredo'}}}});
+  assert.equal((await a.send(token(),url+'?activity=mesa')).status,200);
+  const r=await a.send(token(),url,'POST',{activity:'mesa',content:editorial,revision:0});
+  assert.equal(r.status,200);assert.equal((await r.json()).activity.private_field,undefined);
+  assert.equal((await a.send(token(),url,'POST',{activity:'mesa',content:{...editorial,active:false},revision:0})).status,400);
+  const conflict=app({dbStatus:409,rpcs:{admin_activity_content:{code:'40001'}}});
+  const result=await conflict.send(token(),url,'POST',{activity:'mesa',content:editorial,revision:0});
+  assert.equal(result.status,409);assert.equal((await result.json()).code,'CONTENT_CONFLICT');
 });
 
 test('sorteio exige conta confirmada e permissão no banco, ignora papel e UID do cliente',async()=>{

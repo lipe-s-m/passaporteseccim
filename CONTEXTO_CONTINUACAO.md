@@ -1,12 +1,21 @@
 # Contexto para continuar o projeto
 
-Atualizado em 3 de novembro de 2026, após o painel da organização. Leia este arquivo antes de continuar. Há documentação complementar em `DOCUMENTACAO.md` e `SORTEIOS.md`.
+Atualizado em 4 de novembro de 2026, após a ativação autorizada do editor de palestras em produção. Repositório principal: https://github.com/lipe-s-m/passaporteseccim (`origin`); o repositório original ficou como `upstream`. Leia este arquivo antes de continuar. Há documentação complementar em `DOCUMENTACAO.md` e `SORTEIOS.md`.
 
 ## Objetivo
 
 Sortear brindes por dia entre quem assistiu às palestras. Cada presença confirmada pela organização gera uma chance para a pessoa no dia da palestra. Três palestras na terça dão três entradas no sorteio de terça; uma palestra dá uma. A organização precisa obter a lista com segurança; por enquanto, não é necessária uma interface.
 
 ## Arquitetura atual
+
+### Página de informações das palestras (em andamento)
+
+- `palestra.html?id=<activity_id>`: página pública mobile first de detalhes, aberta pelo link “Saiba mais” em cada selo.
+- Correção da navegação: o login usa `sessionStorage` na mesma aba, além da memória, para o link Voltar não perder a sessão. Senhas não são guardadas; logout e resposta 401 removem a sessão salva, e o backend continua verificando o token.
+- Migration local `supabase/migrations/20261105002508_speaker_details.sql`: novos campos opcionais em `public.activities` para resumo, palestrante, foto Cloudinary, mini bio, horário, redes e slides.
+- O usuário autorizou concluir a ativação, publicar em produção e fazer push. As migrações editoriais foram aplicadas, a Edge Function atualizada para a versão 10 e o site publicado em https://passaporte-seccim.vercel.app. Próximas alterações em produção continuam exigindo autorização explícita.
+- O formulário editorial está em Organização → “Informações das palestras e palestrantes”, com foto por URL Cloudinary, horários, redes, slides e prévia em iframe. Rota `GET/POST /passport/admin/activity-content`; migration `20261105002514_admin_activity_content.sql` com allowlist `private.admins`, revisão otimista e auditoria privada. Salvar funciona pela API habilitada. Fotos são links já hospedados no Cloudinary; upload ainda não foi integrado.
+- 51 testes Node passaram. O SQL do editor foi validado no Supabase com fixtures em transação revertida: gravação/revisão, auditoria privada, recusa de conta comum, conflitos, links/datas inválidos e grants restritos. Não limpar presenças reais. Próximo passo de conteúdo: a organização preencher as informações reais pelo painel.
 
 - Frontend estático em `index.html`, publicado em https://passaporte-seccim.vercel.app.
 - Firebase Authentication autentica por e-mail e senha. Supabase armazena participantes, atividades, presenças e perguntas, protegidos por RLS.
@@ -34,6 +43,8 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 3. Cadastro na hora e sorteio de ganhadores no painel (migração `20261103200000_walkin_and_draws.sql`). Pendente: a planilha real de inscrições não foi importada.
 
 ## Painel da organização (implantado)
+
+O painel aceita até 100 e-mails colados para uma única atividade. Participantes cadastrados recebem a presença, e o administrador vê separadamente e-mails não encontrados, entradas inválidas e presenças já existentes. Não cria contas nem associa usuários por aproximação. Rota `POST /passport/admin/attendance/bulk`, RPC `admin_bulk_attendance`, mesmas permissões da organização usadas no painel.
 
 - Migração `20261103180000_admin_attendance.sql` aplicada em produção com `supabase db push --remote`. Edge Function `passport` reimplantada com a rota `GET|POST|DELETE /passport/admin/attendance`. Site publicado na Vercel pela CLI, a partir da pasta vinculada (`.vercel/`, ignorada).
 - Aba **Organização** no `index.html`: escolher a atividade, buscar por nome/e-mail, registrar/remover presença e baixar a lista do sorteio do dia. Detalhes em `DOCUMENTACAO.md` (seção "Painel da organização").

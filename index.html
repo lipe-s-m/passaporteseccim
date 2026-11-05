@@ -90,8 +90,12 @@ h1{font-size:clamp(28px,5vw,40px);line-height:1.3;letter-spacing:0;font-weight:7
 .collection-meta{font-size:14px;color:#c4baff;background:rgba(121,100,245,.12);border:1px solid rgba(121,100,245,.24);padding:8px 11px;border-radius:10px;white-space:nowrap}
 .badge-collection{margin-top:42px}
 .badge-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
-.badge-card{position:relative;text-align:center;min-width:0;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));border-radius:17px;padding:17px 16px 15px;color:var(--ink);cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s;overflow:hidden}
+.badge-card{position:relative;text-align:center;min-width:0;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));border-radius:17px;padding:17px 16px 15px;color:var(--ink);transition:transform .22s,border-color .22s,box-shadow .22s;overflow:hidden}
 .badge-card:hover{transform:translateY(-4px);border-color:rgba(165,140,255,.65);box-shadow:0 14px 28px rgba(0,0,0,.2)}
+.badge-card-trigger{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:inherit;font:inherit;cursor:pointer}
+.badge-more{display:flex;justify-content:center;align-items:center;min-height:46px;margin-top:8px;border-top:1px solid rgba(255,255,255,.08);color:#c5bbff;font-size:15px;font-weight:700;text-decoration:none}
+.badge-more:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
+.badge-card-trigger:focus-visible,.badge-more:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:8px}
 .badge-card.earned{border-color:rgba(165,140,255,.3)}
 .badge-card.earned:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 22%,rgba(121,100,245,.13),transparent 52%);pointer-events:none}
 .badge-card.locked{filter:saturate(.35);opacity:.57}
@@ -278,6 +282,7 @@ main{padding:32px 0 64px}
 .admin-panel h3{font-size:20px;margin:28px 0 8px}.admin-panel .faq-card h3{margin-top:0}
 .walkin-card{border-color:rgba(34,227,154,.35)}
 .multi-card{border-color:rgba(185,170,255,.55)}
+.editor-grid{display:grid;gap:0 20px}.editor-fields{border:0;padding:0;margin:0;min-width:0}.editor-fields[disabled]{opacity:.65}.editor-photo{max-width:150px;aspect-ratio:1;object-fit:cover;border-radius:16px;margin:12px 0}.editor-preview{width:100%;height:720px;border:1px solid rgba(185,170,255,.4);border-radius:16px;background:#10171c;margin-top:20px}.editor-section summary{cursor:pointer;min-height:48px;font-size:20px;font-weight:700;padding:10px 0}.editor-section{margin:28px 0}.editor-status{font-size:15px;line-height:1.6;color:var(--muted)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(min-width:760px){.editor-grid{grid-template-columns:1fr 1fr}.editor-grid .faq-field:has(textarea){grid-column:1/-1}}
 .multi-day{margin:18px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
 .multi-day-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .multi-day-head strong{display:inline-block;font-size:17px}.multi-day-head strong::first-letter{text-transform:uppercase}
@@ -410,8 +415,58 @@ main{padding:32px 0 64px}
     <ol id="rankingList" class="ranking-list" aria-label="Participantes com mais selos"></ol>
   </section>
   <section id="adminPanel" class="admin-panel" aria-labelledby="adminTitle" hidden>
+    <details class="faq-card editor-section" id="editorSection">
+      <summary>Informações das palestras e palestrantes</summary>
+      <p class="faq-hint">Escolha uma palestra para editar o conteúdo da página “Saiba mais”.</p>
+      <label class="faq-field" for="editorActivity">Palestra<select id="editorActivity"><option value="">Selecione uma palestra</option></select></label>
+      <p id="editorMessage" class="page-message" role="status" aria-live="polite"></p>
+      <form id="editorForm" hidden>
+        <fieldset id="editorFields" class="editor-fields">
+          <legend class="sr-only">Conteúdo da palestra</legend>
+          <div class="editor-grid">
+        <label class="faq-field" for="editorName">Nome da palestra<input id="editorName" type="text" maxlength="200" required></label>
+        <label class="faq-field" for="editorCategory">Categoria<input id="editorCategory" type="text" maxlength="120" required></label>
+        <label class="faq-field" for="editorSummary">Resumo curto<textarea id="editorSummary" rows="3" maxlength="800"></textarea></label>
+        <label class="faq-field" for="editorDescription">Descrição da palestra<textarea id="editorDescription" rows="6" maxlength="8000"></textarea></label>
+        <label class="faq-field" for="editorSpeaker">Nome do palestrante<input id="editorSpeaker" type="text" maxlength="160"></label>
+        <label class="faq-field" for="editorBio">Mini bio do palestrante<textarea id="editorBio" rows="3" maxlength="4000"></textarea></label>
+        <label class="faq-field" for="editorPhoto">Link da foto no Cloudinary<input id="editorPhoto" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorDate">Data da palestra<input id="editorDate" type="date"></label>
+        <label class="faq-field" for="editorStart">Início (horário de Brasília)<input id="editorStart" type="time"></label>
+        <label class="faq-field" for="editorEnd">Término (opcional)<input id="editorEnd" type="time"></label>
+        <label class="faq-field" for="editorInstagram">Instagram<input id="editorInstagram" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorLinkedin">LinkedIn<input id="editorLinkedin" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorYoutube">YouTube<input id="editorYoutube" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorWebsite">Site do palestrante<input id="editorWebsite" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorSlides">Link dos slides<input id="editorSlides" type="url" maxlength="2048"></label>
+          </div>
+          <img id="editorPhotoPreview" class="editor-photo" alt="Prévia da foto do palestrante" hidden>
+          <p class="faq-hint">Use o link https da imagem hospedada no Cloudinary. Os horários seguem Brasília. A data da palestra também define o dia das chances de sorteio.</p>
+        </fieldset>
+        <div class="faq-controls">
+          <button id="editorSave" class="action-button" type="submit" disabled>Salvar informações</button>
+          <button id="editorPreview" class="action-button secondary" type="button">Pré-visualizar página</button>
+          <button id="editorReload" class="account-switch" type="button">Recarregar informações</button>
+        </div>
+      </form>
+      <iframe id="editorPreviewFrame" class="editor-preview" title="Pré-visualização da palestra" hidden></iframe>
+    </details>
     <div class="section-head"><div><div class="eyebrow">Organização</div><h2 id="adminTitle">Registro de presenças</h2><p>Escolha a atividade em andamento, busque a pessoa pelo nome ou e-mail e registre a presença.</p></div><span class="collection-meta" id="adminCount"></span></div>
     <label class="faq-field" for="adminActivity">Atividade<select id="adminActivity"><option value="">Selecione uma atividade</option></select></label>
+    <form id="bulkAttendanceForm" class="faq-card bulk-attendance">
+      <h3>Registrar lista de e-mails</h3>
+      <p class="faq-hint">Cole até 100 e-mails, separados por espaço, vírgula, ponto e vírgula ou quebra de linha. Só serão registrados e-mails já cadastrados no passaporte.</p>
+      <label class="faq-field" for="bulkAttendanceEmails">E-mails dos participantes<textarea id="bulkAttendanceEmails" rows="5" maxlength="30000" placeholder="ana@email.com&#10;bruno@email.com" disabled></textarea></label>
+      <button id="bulkAttendanceSubmit" class="action-button" type="submit" disabled>Registrar presenças da lista</button>
+      <p id="bulkAttendanceMessage" class="page-message" role="status" aria-live="polite"></p>
+      <div id="bulkAttendanceResults" hidden>
+        <p id="bulkAttendanceSummary" class="faq-hint"></p>
+        <div id="bulkAttendanceMissingGroup" hidden><h4>Não encontrados no cadastro</h4><ul id="bulkAttendanceMissing" class="admin-list"></ul></div>
+        <div id="bulkAttendanceInvalidGroup" hidden><h4>E-mails inválidos</h4><ul id="bulkAttendanceInvalid" class="admin-list"></ul></div>
+        <div id="bulkAttendanceAddedGroup" hidden><h4>Presença registrada</h4><ul id="bulkAttendanceAdded" class="admin-list"></ul></div>
+        <div id="bulkAttendancePresentGroup" hidden><h4>Já estavam presentes</h4><ul id="bulkAttendancePresent" class="admin-list"></ul></div>
+      </div>
+    </form>
     <label class="faq-field" for="adminSearch">Buscar participante<input id="adminSearch" type="search" autocomplete="off" maxlength="120" placeholder="Nome ou e-mail" disabled></label>
     <p id="adminMessage" class="page-message" role="status" aria-live="polite"></p>
     <ul id="adminResults" class="admin-list" aria-label="Resultado da busca"></ul>
@@ -485,8 +540,10 @@ const state = { copy: Object.create(null), badges: [], session: null, generation
 const faqState = { ready:false, version:0, questions:[], editing:null, busy:false };
 const rankingState = { version:0 };
 const adminState = { version:0, listVersion:0, searchVersion:0, activities:[], undated:0, busy:false, timer:null };
+const bulkAttendanceState = { version:0, busy:false };
 const raffleState = { version:0, date:"", remaining:0, spinning:false };
 const multiState = { version:0, person:null, saved:new Set(), checked:new Set(), busy:false };
+const editorState = {version:0,activity:null,revision:null,busy:false,ready:false,dirty:false};
 const lockClosedSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 const lockOpenSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>';
 
@@ -576,12 +633,13 @@ function updateProgress(privateLoaded = false) {
 function renderBadges(privateLoaded = false) {
   $("badgeGrid").replaceChildren();
   state.badges.forEach((badge, index) => {
-    const card = document.createElement("button");
-    card.type = "button";
+    const card = document.createElement("article");
     card.className = `badge-card ${badge.earned ? "earned" : "locked"}`;
     const status = !privateLoaded ? text("status_login", "Entre para consultar")
       : badge.earned ? text("status_earned", "CONQUISTADO") : text("status_locked", "BLOQUEADO");
-    card.setAttribute("aria-label", `${badge.name}. ${status}`);
+    const detailsButton=document.createElement("button");
+    detailsButton.type="button";detailsButton.className="badge-card-trigger";
+    detailsButton.setAttribute("aria-label", `${badge.name}. ${status}. Abrir resumo do selo.`);
     // Apenas ícones locais entram em innerHTML. Todo conteúdo remoto usa textContent.
     const art = document.createElement("div");
     art.className = "badge-art";
@@ -595,8 +653,11 @@ function renderBadges(privateLoaded = false) {
     const label = document.createElement("strong");
     label.textContent = status;
     foot.append(category, label);
-    card.append(art, title, foot);
-    card.addEventListener("click", () => openBadge(index, privateLoaded));
+    detailsButton.append(art, title, foot);
+    detailsButton.addEventListener("click", () => openBadge(index, privateLoaded));
+    const more=document.createElement("a");more.className="badge-more";more.href=`palestra.html?id=${encodeURIComponent(badge.id)}`;more.textContent="Saiba mais →";
+    more.setAttribute("aria-label",`Saiba mais sobre ${badge.name}`);
+    card.append(detailsButton,more);
     $("badgeGrid").appendChild(card);
   });
   updateProgress(privateLoaded);
@@ -691,7 +752,15 @@ async function accessToken() {
   if (!state.session) throw new Error("Sessão ausente.");
   if (state.session.expiresAt < Date.now() + 30000) {
     const generation = state.generation;
-    const data = await firebaseRequest("", { grant_type: "refresh_token", refresh_token: state.session.refreshToken }, true);
+    let data;
+    try {
+      data = await firebaseRequest("", { grant_type: "refresh_token", refresh_token: state.session.refreshToken }, true);
+    } catch (error) {
+      if (generation === state.generation && ["INVALID_REFRESH_TOKEN","TOKEN_EXPIRED","USER_DISABLED","USER_NOT_FOUND","INVALID_ID_TOKEN"].includes(error.code)) {
+        forgetSession(); error.status = 401;
+      }
+      throw error;
+    }
     if (generation !== state.generation) throw new Error("Sessão encerrada.");
     saveSession({ idToken: data.id_token, refreshToken: data.refresh_token, expiresIn: data.expires_in });
   }
@@ -703,8 +772,24 @@ function saveSession(data) {
   if (!data?.idToken || !data?.refreshToken || !Number.isFinite(seconds) || seconds <= 0) {
     throw new Error("Resposta de autenticação inválida.");
   }
-  // Tokens apenas em memória. Senhas nunca são guardadas no estado ou no banco.
+  // Persistência limitada à aba, para navegar entre passaporte e palestra.
   state.session = { idToken: data.idToken, refreshToken: data.refreshToken, expiresAt: Date.now() + seconds * 1000 };
+  try { sessionStorage.setItem("seccim.auth.session", JSON.stringify(state.session)); } catch {}
+}
+
+function forgetSession() {
+  state.session = null;
+  try { sessionStorage.removeItem("seccim.auth.session"); } catch {}
+}
+
+function restoreSession() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem("seccim.auth.session"));
+    if (!saved || typeof saved.idToken !== "string" || !saved.idToken || saved.idToken.length > 8192 ||
+      typeof saved.refreshToken !== "string" || !saved.refreshToken || saved.refreshToken.length > 8192 ||
+      !Number.isFinite(saved.expiresAt) || saved.expiresAt <= 0) { forgetSession(); return; }
+    state.session = { idToken:saved.idToken, refreshToken:saved.refreshToken, expiresAt:saved.expiresAt };
+  } catch { forgetSession(); }
 }
 
 async function loadPassport() {
@@ -742,7 +827,7 @@ async function loadPassport() {
       showVerification();
       return;
     }
-    if (error.status === 401) { state.generation++; state.session = null; }
+    if (error.status === 401) { state.generation++; forgetSession(); }
     clearPassport();
     if (state.session) {
       $("authSection").hidden = true;
@@ -754,6 +839,7 @@ async function loadPassport() {
 }
 
 async function loadPublicContent() {
+  if (state.session) $("authSection").hidden = true;
   if (!configured()) {
     state.publicReady = false;
     setAuthBusy(false);
@@ -764,7 +850,8 @@ async function loadPublicContent() {
   try {
     const [copy, activities] = await Promise.all([
       request("/rest/v1/site_content?select=key,value"),
-      request("/rest/v1/activities?select=id,name,description,category&order=sort_order.asc,id.asc")
+      request("/rest/v1/activities?select=id,name,description,short_description,category,event_date,speaker_name,speaker_photo_url,speaker_bio,starts_at,ends_at,speaker_socials,slides_url&order=sort_order.asc,id.asc").catch(() =>
+        request("/rest/v1/activities?select=id,name,description,category,event_date&order=sort_order.asc,id.asc"))
     ]);
     if (!Array.isArray(copy) || !Array.isArray(activities)) throw new Error("Conteúdo inválido.");
     state.copy = Object.fromEntries(copy.map(row => [row.key, row.value]));
@@ -838,7 +925,7 @@ $("authForm").addEventListener("submit", async event => {
         ? "Sua conta foi criada, mas não conseguimos salvar seu nome. Entre novamente para continuar."
         : "Conta criada. Não foi possível enviar a confirmação. Tente reenviar ou entre novamente.", true);
     } else {
-      state.session = null;
+      forgetSession();
       clearPassport();
       message("authMessage", mode === "signup"
         ? text("signup_error", "Não foi possível concluir o cadastro. Se já possui conta, entre ou recupere a senha.")
@@ -880,7 +967,7 @@ $("resetPassword").addEventListener("click", async () => {
 
 $("logoutButton").addEventListener("click", () => {
   state.generation++;
-  state.session = null;
+  forgetSession();
   state.mode = "login";
   $("password").value = "";
   clearPassport();
@@ -956,14 +1043,178 @@ $("rankingTab").addEventListener("click", () => switchSection("ranking"));
 
 const adminPath = "/functions/v1/passport/admin/attendance";
 const personPath = "/functions/v1/passport/admin/person";
+const editorPath = "/functions/v1/passport/admin/activity-content";
+const editorTextFields={name:"editorName",category:"editorCategory",short_description:"editorSummary",description:"editorDescription",speaker_name:"editorSpeaker",speaker_bio:"editorBio"};
+
+function resetEditor(){
+  editorState.version++;Object.assign(editorState,{activity:null,revision:null,busy:false,ready:false,dirty:false});
+  $("editorForm").hidden=true;$("editorFields").disabled=false;$("editorSave").disabled=true;
+  $("editorPreview").disabled=false;
+  $("editorActivity").value="";$("editorPreviewFrame").hidden=true;$("editorPreviewFrame").removeAttribute?.("src");
+  $("editorPhotoPreview").hidden=true;
+  for(const id of [...Object.values(editorTextFields),"editorDate","editorStart","editorEnd","editorPhoto","editorSlides","editorInstagram","editorLinkedin","editorYoutube","editorWebsite"])$(id).value="";
+  try{sessionStorage.removeItem("seccim.content.preview");}catch{}
+  message("editorMessage","");
+}
+function editorPhoto(){
+  const raw=$("editorPhoto").value.trim();const img=$("editorPhotoPreview");img.hidden=true;
+  try{const u=new URL(raw);if(u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password){img.src=u.href;img.hidden=false;}}catch{}
+}
+function editorTime(value){
+  if(!value||!Number.isFinite(Date.parse(value)))return "";
+  return new Intl.DateTimeFormat("en-GB",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(value));
+}
+function fillEditor(data){
+  for(const [key,id] of Object.entries(editorTextFields))$(id).value=typeof data[key]==="string"?data[key]:"";
+  $("editorDate").value=data.event_date??"";$("editorStart").value=editorTime(data.starts_at);$("editorEnd").value=editorTime(data.ends_at);
+  $("editorPhoto").value=data.speaker_photo_url??"";$("editorSlides").value=data.slides_url??"";
+  for(const [key,id] of Object.entries({instagram:"editorInstagram",linkedin:"editorLinkedin",youtube:"editorYoutube",website:"editorWebsite"}))$(id).value=data.speaker_socials?.[key]??"";
+  editorPhoto();$("editorForm").hidden=false;editorState.dirty=false;
+}
+async function loadEditor(){
+  const activity=$("editorActivity").value;const version=++editorState.version;
+  Object.assign(editorState,{activity,ready:false,revision:null,busy:true,dirty:false});
+  $("editorFields").disabled=false;$("editorPreview").disabled=false;
+  $("editorForm").hidden=true;$("editorSave").disabled=true;$("editorPreviewFrame").hidden=true;
+  if(!activity||!state.session){editorState.busy=false;message("editorMessage","");return;}
+  message("editorMessage","Carregando informações...");
+  try{
+    const token=await accessToken();if(version!==editorState.version)return;
+    const data=await request(`${editorPath}?activity=${encodeURIComponent(activity)}`,{token});
+    if(version!==editorState.version)return;
+    if(!data?.activity?.id||!Number.isSafeInteger(data.activity.content_revision))throw Error();
+    editorState.revision=data.activity.content_revision;editorState.ready=true;fillEditor(data.activity);
+    $("editorSave").disabled=false;message("editorMessage","");
+  }catch(error){
+    if(version!==editorState.version)return;
+    if(error.status===401||error.status===403){message("editorMessage","Entre novamente com uma conta da organização para editar.",true);return;}
+    // A preparação local permite revisar o formulário sem publicar a nova API.
+    const local=["localhost","127.0.0.1","::1","[::1]"].includes(typeof location!=="undefined"?location.hostname:"");
+    const existing=state.badges.find(row=>row.id===activity);
+    if(local&&existing){fillEditor(existing);message("editorMessage","Você pode editar e pré-visualizar. O salvamento ficará disponível quando o editor for habilitado no servidor.");}
+    else message("editorMessage","Não foi possível carregar o editor. Tente recarregar as informações.",true);
+  }finally{if(version===editorState.version)editorState.busy=false;}
+}
+function readEditor(){
+  const data=Object.fromEntries(Object.entries(editorTextFields).map(([key,id])=>[key,$(id).value.trim()]));
+  data.event_date=$("editorDate").value||null;
+  const start=$("editorStart").value,end=$("editorEnd").value;
+  if((start&&!data.event_date)||(end&&!start))throw Error("Preencha a data e o horário de início.");
+  // Programação da SECCIM no Brasil, horário de Brasília (UTC-03).
+  data.starts_at=start?`${data.event_date}T${start}:00-03:00`:null;
+  data.ends_at=end?`${data.event_date}T${end}:00-03:00`:null;
+  if(data.ends_at&&Date.parse(data.ends_at)<=Date.parse(data.starts_at))throw Error("O término precisa ser depois do início.");
+  data.speaker_photo_url=$("editorPhoto").value.trim()||null;data.slides_url=$("editorSlides").value.trim()||null;
+  if(data.speaker_photo_url){let valid=false;try{const u=new URL(data.speaker_photo_url);valid=u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("Use um link https de imagem do Cloudinary.");}
+  data.speaker_socials={};
+  for(const [key,id] of Object.entries({instagram:"editorInstagram",linkedin:"editorLinkedin",youtube:"editorYoutube",website:"editorWebsite"}))if($(id).value.trim())data.speaker_socials[key]=$(id).value.trim();
+  for(const url of [data.slides_url,...Object.values(data.speaker_socials)])if(url){let valid=false;try{const u=new URL(url);valid=u.protocol==='https:'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("Os links de redes e slides precisam começar com https://.");}
+  return data;
+}
+async function saveEditor(event){
+  event.preventDefault();if(editorState.busy||!editorState.ready||!state.session||!$("editorForm").reportValidity())return;
+  let content;try{content=readEditor();}catch(error){message("editorMessage",error.message,true);return;}
+  const version=editorState.version,activity=editorState.activity;
+  editorState.busy=true;$("editorSave").disabled=true;$("editorFields").disabled=true;$("editorPreview").disabled=true;
+  message("editorMessage","Salvando informações...");
+  try{
+    const token=await accessToken();if(version!==editorState.version)return;
+    const data=await request(editorPath,{method:"POST",token,body:{activity,content,revision:editorState.revision}});
+    if(version!==editorState.version)return;
+    if(!data?.activity?.id||!Number.isSafeInteger(data.activity.content_revision))throw Error();
+    editorState.revision=data.activity.content_revision;fillEditor(data.activity);
+    const badge=state.badges.find(row=>row.id===activity);if(badge)Object.assign(badge,data.activity);
+    renderBadges(true);loadAdmin();message("editorMessage","Informações salvas.");
+  }catch(error){
+    if(version!==editorState.version)return;
+    if(error.status===409){editorState.ready=false;message("editorMessage","Outra pessoa alterou esta palestra. Copie suas alterações e recarregue as informações antes de salvar.",true);}
+    else message("editorMessage",error.status===403?"Sua conta não tem permissão para salvar.":error.status===400?"Confira os textos, horários e links antes de salvar.":"Não foi possível salvar. Seus campos foram mantidos para tentar novamente.",true);
+  }finally{if(version===editorState.version){editorState.busy=false;$("editorFields").disabled=false;$("editorPreview").disabled=false;$("editorSave").disabled=!editorState.ready;}}
+}
+$("editorForm").addEventListener("submit",saveEditor);
+$("editorForm").addEventListener("input",()=>{editorState.dirty=true;});
+$("editorActivity").addEventListener("change",()=>{
+  if(editorState.dirty&&!confirm("Descartar as alterações ainda não salvas?")){$("editorActivity").value=editorState.activity;return;}
+  loadEditor();
+});
+$("editorReload").addEventListener("click",()=>{if(!editorState.dirty||confirm("Descartar as alterações e recarregar?"))loadEditor();});
+$("editorPhoto").addEventListener("input",editorPhoto);
+$("editorPhotoPreview").addEventListener("error",()=>{$("editorPhotoPreview").hidden=true;});
+$("editorPreview").addEventListener("click",()=>{
+  if(editorState.busy||!$("editorForm").reportValidity())return;
+  try{
+    const data={...readEditor(),id:editorState.activity};sessionStorage.setItem("seccim.content.preview",JSON.stringify(data));
+    $("editorPreviewFrame").src=`palestra.html?id=${encodeURIComponent(editorState.activity)}&preview=1&v=${Date.now()}`;
+    $("editorPreviewFrame").hidden=false;
+  }catch(error){message("editorMessage",error.message||"Não foi possível abrir a prévia nesta aba.",true);}
+});
 const dayLabel = date => new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" });
 const shortDate = date => date ? date.split("-").reverse().slice(0, 2).join("/") : "sem data";
 
+function clearBulkAttendance() {
+  bulkAttendanceState.version++; bulkAttendanceState.busy=false;
+  $("bulkAttendanceEmails").value=""; $("bulkAttendanceEmails").disabled=true;
+  $("bulkAttendanceSubmit").disabled=true; $("bulkAttendanceSubmit").textContent="Registrar presenças da lista";
+  $("bulkAttendanceResults").hidden=true;
+  for(const group of ["Missing","Invalid","Added","Present"]) {
+    $(`bulkAttendance${group}Group`).hidden=true; $(`bulkAttendance${group}`).replaceChildren();
+  }
+  $("bulkAttendanceSummary").textContent=""; message("bulkAttendanceMessage","");
+}
+
+async function registerBulkAttendance(event) {
+  event.preventDefault();
+  const activity=$("adminActivity").value;
+  const emails=$("bulkAttendanceEmails").value.split(/[\s,;]+/).map(email=>email.trim()).filter(Boolean);
+  if(bulkAttendanceState.busy||!activity||!state.session)return;
+  if(!emails.length){message("bulkAttendanceMessage","Cole pelo menos um e-mail.",true);return;}
+  if(emails.length>100){message("bulkAttendanceMessage","O limite é de 100 e-mails por envio.",true);return;}
+  const version=++bulkAttendanceState.version;
+  bulkAttendanceState.busy=true; $("bulkAttendanceSubmit").disabled=true;
+  message("bulkAttendanceMessage","Conferindo cadastro e registrando presenças...");
+  try {
+    const token=await accessToken();
+    if(version!==bulkAttendanceState.version||!state.session)return;
+    const data=await request("/functions/v1/passport/admin/attendance/bulk",{
+      method:"POST",token,body:{activity,emails}
+    });
+    if(version!==bulkAttendanceState.version)return;
+    for(const group of ["Missing","Invalid","Added","Present"]) {
+      const key={Missing:"notFound",Invalid:"invalid",Added:"registered",Present:"alreadyPresent"}[group];
+      const values=data[key]; if(!Array.isArray(values))throw Error();
+      const list=$(`bulkAttendance${group}`);
+      list.replaceChildren(...values.map(item=>{
+        const row=document.createElement("li");row.className="admin-row";
+        const label=document.createElement("span");label.className="admin-person";
+        label.textContent=typeof item==="string"?item:`${item.name} · ${item.email}`;
+        row.append(label);return row;
+      }));
+      $(`bulkAttendance${group}Group`).hidden=!values.length;
+    }
+    const counts=[`${data.registered.length} registrada(s)`,`${data.alreadyPresent.length} já presente(s)`,
+      `${data.notFound.length} não encontrado(s)`,`${data.invalid.length} inválido(s)`];
+    if(data.duplicatesIgnored)counts.push(`${data.duplicatesIgnored} e-mail(s) repetido(s) ignorado(s)`);
+    $("bulkAttendanceSummary").textContent=counts.join(" · ");
+    $("bulkAttendanceResults").hidden=false;
+    $("bulkAttendanceEmails").value="";
+    message("bulkAttendanceMessage","Lista processada. Confira os resultados acima.");
+    loadAttendees();loadAdmin();
+  }catch{
+    if(version===bulkAttendanceState.version)message("bulkAttendanceMessage","Não foi possível processar a lista. Tente novamente.",true);
+  }finally{
+    if(version===bulkAttendanceState.version){bulkAttendanceState.busy=false;$("bulkAttendanceSubmit").disabled=!$("adminActivity").value;}
+  }
+}
+
+$("bulkAttendanceForm").addEventListener("submit",registerBulkAttendance);
+
 function resetAdmin() {
+  resetEditor();
   adminState.version++; adminState.listVersion++; adminState.searchVersion++;
   adminState.activities = []; adminState.busy = false;
   clearTimeout(adminState.timer);
   $("adminTab").hidden = true; $("adminPanel").hidden = true;
+  clearBulkAttendance();
   $("adminSearch").value = ""; $("adminSearch").disabled = true;
   for (const id of ["adminResults","adminAttendees"]) $(id).replaceChildren();
   $("adminCount").textContent = "";
@@ -1001,6 +1252,11 @@ async function loadAdmin() {
 }
 
 function renderAdminActivities() {
+  const editorSelected=$("editorActivity").value;
+  const editorOptions=adminState.activities.map(activity=>{const option=document.createElement("option");option.value=activity.id;option.textContent=activity.name;return option;});
+  const editorPlaceholder=document.createElement("option");editorPlaceholder.value="";editorPlaceholder.textContent="Selecione uma palestra";
+  $("editorActivity").replaceChildren(editorPlaceholder,...editorOptions);
+  $("editorActivity").value=adminState.activities.some(a=>a.id===editorSelected)?editorSelected:"";
   const selected = $("adminActivity").value;
   const option = (value, label) => { const node = document.createElement("option"); node.value = value; node.textContent = label; return node; };
   $("adminActivity").replaceChildren(option("", "Selecione uma atividade"),
@@ -1495,6 +1751,9 @@ document.addEventListener("fullscreenchange", () => {
 
 $("adminActivity").addEventListener("change", () => {
   closeWalkin();
+  clearBulkAttendance();
+  $("bulkAttendanceEmails").disabled=!$("adminActivity").value;
+  $("bulkAttendanceSubmit").disabled=!$("adminActivity").value;
   $("adminSearch").disabled = !$("adminActivity").value;
   $("walkinToggle").disabled = !$("adminActivity").value;
   $("adminSearch").value = ""; $("adminResults").replaceChildren(); message("adminMessage", "");
@@ -1631,6 +1890,7 @@ $("faqForm").addEventListener("submit", event => {
   return mutateQuestion(faqState.editing ? "PATCH" : "POST", {id:faqState.editing,body,anonymous:$("faqAnonymous").checked});
 });
 
+restoreSession();
 clearPassport();
 loadPublicContent();
 

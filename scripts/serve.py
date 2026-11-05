@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 FILES = {"/": ("index.html", "text/html; charset=utf-8"),
          "/index.html": ("index.html", "text/html; charset=utf-8"),
+         "/palestra.html": ("palestra.html", "text/html; charset=utf-8"),
          "/favicon.png": ("favicon.png", "image/png")}
 
 

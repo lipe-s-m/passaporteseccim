@@ -1,3 +1,5 @@
+import {validContent,publicContent} from './activity-content.mjs';
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -38,11 +40,13 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     const url = new URL(request.url);
     const faq = url.pathname.endsWith('/passport/questions');
     const attendance = url.pathname.endsWith('/passport/admin/attendance');
+    const bulkAttendance = url.pathname.endsWith('/passport/admin/attendance/bulk');
     const walkin = url.pathname.endsWith('/passport/admin/participants');
     const draws = url.pathname.endsWith('/passport/admin/draws');
     const person = url.pathname.endsWith('/passport/admin/person');
-    const methods = faq ? ['GET','POST','PATCH','DELETE'] : attendance ? ['GET','POST','DELETE']
-      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : person ? ['GET','POST'] : ['GET'];
+    const content = url.pathname.endsWith('/passport/admin/activity-content');
+    const methods = faq ? ['GET','POST','PATCH','DELETE'] : bulkAttendance ? ['POST'] : attendance ? ['GET','POST','DELETE']
+      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content) ? ['GET','POST'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
     }
@@ -123,9 +127,46 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
       });
       if (result.ok) return { data: await result.json() };
       const error = await result.json().catch(()=>({}));
-      return { error: response(error.code === '42501' ? 403 : error.code === '22023' ? 400 : 503,
-        error.code === '42501' ? 'ADMIN_REQUIRED' : unavailable) };
+      return { error: response(error.code === '42501' ? 403 : error.code === '22023' ? 400 : error.code === '40001' ? 409 : 503,
+        error.code === '42501' ? 'ADMIN_REQUIRED' : error.code === '40001' ? 'CONTENT_CONFLICT' : unavailable) };
     };
+
+    if(content){
+      let input;
+      try{
+        input=request.method==='GET'?Object.fromEntries(url.searchParams):await readJson(request,24000);
+        if(!input||typeof input.activity!=='string'||input.activity.length>200||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(input.activity))throw Error();
+        if(request.method==='POST'&&(!validContent(input.content)||!Number.isSafeInteger(input.revision)||input.revision<0))throw Error();
+      }catch{return response(400,'INVALID_ACTIVITY_CONTENT');}
+      try{
+        const {data,error}=await adminRpc('admin_activity_content',{p_activity:input.activity,
+          p_content:request.method==='POST'?input.content:null,p_revision:request.method==='POST'?input.revision:null},'CONTENT_UNAVAILABLE');
+        if(error)return error;
+        if(!data?.activity?.id||!Number.isSafeInteger(data.activity.content_revision))return response(503,'CONTENT_UNAVAILABLE');
+        return response(200,null,{activity:publicContent(data.activity)});
+      }catch{return response(503,'CONTENT_UNAVAILABLE');}
+    }
+
+    if (bulkAttendance) {
+      let input;
+      try {
+        input = await readJson(request,32000);
+        if (!input || typeof input.activity !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(input.activity) ||
+          !Array.isArray(input.emails) || input.emails.length < 1 || input.emails.length > 100 ||
+          !input.emails.every(email => typeof email === 'string' && email.length <= 1000)) throw Error();
+      } catch { return response(400,'INVALID_BULK_ATTENDANCE'); }
+      try {
+        const {data,error}=await adminRpc('admin_bulk_attendance',{p_activity:input.activity,p_emails:input.emails},'ATTENDANCE_UNAVAILABLE');
+        if(error)return error;
+        if(!Array.isArray(data.registered)||!Array.isArray(data.alreadyPresent)||!Array.isArray(data.notFound)||
+          !Array.isArray(data.invalid)||!Number.isSafeInteger(data.duplicatesIgnored))return response(503,'ATTENDANCE_UNAVAILABLE');
+        const entries=list=>list.length<=100&&list.every(e=>typeof e==='string'||
+          (e&&typeof e.name==='string'&&typeof e.email==='string'&&e.email.length<=254));
+        if(!entries(data.registered)||!entries(data.alreadyPresent)||!entries(data.notFound)||!entries(data.invalid))return response(503,'ATTENDANCE_UNAVAILABLE');
+        return response(200,null,{registered:data.registered,alreadyPresent:data.alreadyPresent,
+          notFound:data.notFound,invalid:data.invalid,duplicatesIgnored:data.duplicatesIgnored});
+      }catch{return response(503,'ATTENDANCE_UNAVAILABLE');}
+    }
 
     if (walkin) {
       let input;

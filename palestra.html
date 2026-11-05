@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10171c">
+  <meta name="description" content="Conheça as palestras, palestrantes e materiais da SECCIM.">
+  <title>Palestra · SECCIM</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#10171c;--panel:#1c282f;--ink:#f2f5f7;--muted:#bdc8ce;--purple:#b9aaff;--green:#22e39a;--line:rgba(255,255,255,.12)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -10%,rgba(121,100,245,.2),transparent 45%),var(--bg);color:var(--ink);font:16px/1.65 "DM Sans",sans-serif;min-height:100vh}
+    a{color:inherit}.shell{width:min(100% - 32px,880px);margin-inline:auto}.top{padding:22px 0}.brand{font:800 17px "Manrope",sans-serif;letter-spacing:.06em;color:var(--purple);text-decoration:none}.back{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:8px 0;color:var(--muted);font-weight:600;text-decoration:none}.back:hover{color:var(--ink)}
+    main{padding:22px 0 64px}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:13px;font-weight:700;color:var(--green)}h1,h2,h3{font-family:"Manrope",sans-serif;line-height:1.2}h1{font-size:clamp(32px,8vw,58px);letter-spacing:-.04em;margin:10px 0 14px}h2{font-size:25px;margin:0 0 14px}p{margin:0 0 16px}.category{display:inline-flex;border:1px solid var(--line);border-radius:99px;padding:5px 12px;color:var(--muted);font-size:14px}
+    .lead{font-size:18px;color:#e0e6e9;line-height:1.7;max-width:70ch}.meta{display:grid;gap:12px;margin:28px 0 36px}.meta-card,.content-card,.speaker-card{border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));padding:20px}.meta-label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:650}.meta-value{font-size:17px;font-weight:650;overflow-wrap:anywhere}.content-grid{display:grid;gap:18px}.speaker{display:grid;gap:18px;align-items:start}.portrait{width:112px;height:112px;object-fit:cover;border-radius:50%;border:2px solid rgba(185,170,255,.55);background:var(--panel)}.bio{color:#d7dfe3;white-space:pre-line}.socials{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.social{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:9px 15px;border:1px solid rgba(185,170,255,.38);border-radius:99px;text-decoration:none;font-weight:600}.social:hover,.social:focus-visible{border-color:var(--purple);outline:2px solid transparent;background:rgba(121,100,245,.14)}.materials{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}.button{display:inline-flex;justify-content:center;align-items:center;min-height:50px;padding:11px 19px;border-radius:13px;background:#7964f5;color:white;text-decoration:none;font-weight:700}.button:hover{background:#6752dc}.status{margin:30px 0;padding:20px;border-radius:16px;background:var(--panel);color:var(--muted)}[hidden]{display:none!important}
+    footer{padding:24px 0 40px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+    @media(min-width:620px){.shell{width:min(100% - 56px,880px)}main{padding-top:44px}.meta{grid-template-columns:1fr 1fr}.meta-card,.content-card,.speaker-card{padding:28px}.speaker{grid-template-columns:150px minmax(0,1fr)}.portrait{width:136px;height:136px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="shell top"><a class="brand" href="/">SECCIM</a><br><a class="back" href="/">← Voltar ao passaporte</a></header>
+  <main class="shell">
+    <p id="detailStatus" class="status" role="status" aria-live="polite">Carregando informações da palestra…</p>
+    <article id="talk" hidden>
+      <p id="category" class="category" hidden></p>
+      <p class="eyebrow">Programação SECCIM</p>
+      <h1 id="talkTitle"></h1>
+      <p id="talkLead" class="lead" hidden></p>
+      <section class="meta" aria-label="Data e horário">
+        <div id="dateCard" class="meta-card" hidden><span class="meta-label">Data</span><span id="talkDate" class="meta-value"></span></div>
+        <div id="timeCard" class="meta-card" hidden><span class="meta-label">Horário</span><span id="talkTime" class="meta-value"></span></div>
+      </section>
+      <div class="content-grid">
+        <section id="descriptionCard" class="content-card" hidden><h2>Sobre a palestra</h2><p id="talkDescription" class="bio"></p></section>
+        <section id="speakerCard" class="speaker-card speaker" hidden>
+          <div><img id="speakerPhoto" class="portrait" alt="" hidden></div>
+          <div><p class="eyebrow">Quem apresenta</p><h2 id="speakerName"></h2><p id="speakerBio" class="bio" hidden></p><nav id="speakerSocials" class="socials" aria-label="Redes do palestrante"></nav></div>
+        </section>
+        <section id="slidesCard" class="content-card" hidden><h2>Materiais</h2><p>Confira os slides e materiais compartilhados para esta palestra.</p><div class="materials"><a id="slidesLink" class="button" target="_blank" rel="noopener noreferrer">Acessar slides</a></div></section>
+      </div>
+    </article>
+  </main>
+  <footer class="shell">SECCIM · Universidade Federal Rural do Rio de Janeiro</footer>
+<script>
+const SUPABASE_URL="https://mqparqbuhstkdpcgbbsa.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_MMrwKTyjB6oNno3hWrYCwQ_JyKDnbl_";
+const $=id=>document.getElementById(id);
+const cleanText=value=>typeof value==="string"?value.trim():"";
+const safeHttps=value=>{try{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password?url.href:"";}catch{return "";}};
+const allowedSocialHosts={instagram:["instagram.com","www.instagram.com"],linkedin:["linkedin.com","www.linkedin.com"],youtube:["youtube.com","www.youtube.com","youtu.be"],website:null};
+function showStatus(value,error=false){$("detailStatus").textContent=value;$("detailStatus").hidden=!value;$("detailStatus").style.color=error?"#ffaaa8":"";}
+function renderSocials(socials){
+  const labels={instagram:"Instagram",linkedin:"LinkedIn",youtube:"YouTube",website:"Site"};
+  if(!socials||typeof socials!=="object"||Array.isArray(socials))return;
+  for(const key of Object.keys(labels)){
+    const raw=cleanText(socials[key]);if(!raw)continue;
+    const href=safeHttps(raw);if(!href)continue;
+    const url=new URL(href);const hosts=allowedSocialHosts[key];if(hosts&&!hosts.includes(url.hostname.toLowerCase()))continue;
+    const link=document.createElement("a");link.className="social";link.href=href;link.target="_blank";link.rel="noopener noreferrer";link.textContent=labels[key];$("speakerSocials").append(link);
+  }
+}
+function render(data){
+  $("talkTitle").textContent=cleanText(data.name)||"Palestra";document.title=`${$("talkTitle").textContent} · SECCIM`;
+  const category=cleanText(data.category);if(category){$("category").textContent=category;$("category").hidden=false;}
+  const lead=cleanText(data.short_description);if(lead){$("talkLead").textContent=lead;$("talkLead").hidden=false;}
+  const description=cleanText(data.description);if(description){$("talkDescription").textContent=description;$("descriptionCard").hidden=false;}
+  const date=cleanText(data.event_date);
+  if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date)){
+    const parsed=new Date(`${date}T12:00:00Z`);if(Number.isFinite(parsed.getTime())){$("talkDate").textContent=new Intl.DateTimeFormat("pt-BR",{dateStyle:"long",timeZone:"UTC"}).format(parsed);$("dateCard").hidden=false;}
+  }
+  const starts=cleanText(data.starts_at),ends=cleanText(data.ends_at);
+  if(starts){const startDate=new Date(starts);const endDate=ends?new Date(ends):null;if(Number.isFinite(startDate.getTime())){$("talkTime").textContent=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(startDate)+(endDate&&Number.isFinite(endDate.getTime())?` – ${new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(endDate)}`:"");$("timeCard").hidden=false;}}
+  const speaker=cleanText(data.speaker_name),bio=cleanText(data.speaker_bio),photo=safeHttps(cleanText(data.speaker_photo_url));
+  if(speaker||bio||photo||Object.keys(data.speaker_socials??{}).length){$("speakerCard").hidden=false;$("speakerName").textContent=speaker||"Palestrante";$("speakerBio").textContent=bio;$("speakerBio").hidden=!bio;
+    if(photo){const parsed=new URL(photo);if(parsed.hostname.toLowerCase()==="res.cloudinary.com"){$("speakerPhoto").src=photo;$("speakerPhoto").alt=speaker?`Foto de ${speaker}`:"Foto do palestrante";$("speakerPhoto").hidden=false;}}
+    renderSocials(data.speaker_socials);
+  }
+  const slides=safeHttps(cleanText(data.slides_url));if(slides){$("slidesLink").href=slides;$("slidesCard").hidden=false;}
+  $("talk").hidden=false;showStatus("");
+}
+async function loadTalk(){
+  const id=new URLSearchParams(location.search).get("id")||"";
+  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)){showStatus("Não encontramos essa palestra. Confira o link.",true);return;}
+  if(new URLSearchParams(location.search).get("preview")==="1"){
+    try{
+      const draft=JSON.parse(sessionStorage.getItem("seccim.content.preview"));
+      if(!draft||draft.id!==id||typeof draft.name!=="string")throw Error();
+      render(draft);document.querySelector("header").hidden=true;
+      const notice=document.createElement("p");notice.className="status";notice.textContent="Pré-visualização · alterações ainda não salvas";
+      $("talk").prepend(notice);return;
+    }catch{showStatus("A prévia expirou. Gere uma nova pré-visualização pelo painel.",true);return;}
+  }
+  try{
+    const base=`${SUPABASE_URL}/rest/v1/activities?select=id,name,description,category,event_date`;
+    const query=`&id=eq.${encodeURIComponent(id)}&active=eq.true&limit=1`;
+    const options={headers:{apikey:SUPABASE_PUBLISHABLE_KEY},credentials:"omit",cache:"no-store",referrerPolicy:"no-referrer",signal:AbortSignal.timeout(12000)};
+    let response=await fetch(`${base},short_description,speaker_name,speaker_photo_url,speaker_bio,starts_at,ends_at,speaker_socials,slides_url${query}`,options);
+    if(!response.ok)response=await fetch(`${base}${query}`,options);
+    if(!response.ok)throw Error();const rows=await response.json();
+    if(!Array.isArray(rows)||!rows.length){showStatus("Essa palestra ainda não está disponível.",true);return;}render(rows[0]);
+  }catch{showStatus("Não foi possível carregar as informações. Tente novamente mais tarde.",true);}
+}
+loadTalk();
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ const source = html.match(/<script>([\s\S]*?)<\/script>/)[1]
   .replace(/const FIREBASE_API_KEY = "[^"]*";/, 'const FIREBASE_API_KEY = "";')
   .replace(/clearPassport\(\);\s*loadPublicContent\(\);\s*$/, '');
 
-function app({ configured = true, authConfigured = true, handle } = {}) {
+function app({ configured = true, authConfigured = true, handle, storage = new Map() } = {}) {
   const nodes = new Map();
   const calls = [];
   let document;
@@ -38,9 +38,15 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
   const publicData = path => path.includes('/site_content') ? [{ key: 'page_title', value: 'Evento teste' }]
     : path.includes('/activities') ? [{ id: 'mesa', name: '<img src=x onerror=alert(1)>', description: 'Descrição', category: 'Categoria' }] : [];
   const blobs = [];
+  class BrowserURL extends URL {
+    static createObjectURL(blob){blobs.push(blob);return 'blob:'+blobs.length;}
+    static revokeObjectURL(){}
+  }
   const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout,
+    location:{hostname:'localhost'},
+    sessionStorage: {getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
     confirm: () => true, Blob, matchMedia: () => ({ matches: true }),
-    URL: { createObjectURL: blob => { blobs.push(blob); return 'blob:' + blobs.length; }, revokeObjectURL() {} },
+    URL: BrowserURL,
     fetch: async (url, options) => {
       const path = new URL(url).pathname + new URL(url).search;
       calls.push({ path, url, options });
@@ -66,6 +72,67 @@ function app({ configured = true, authConfigured = true, handle } = {}) {
 
 const session = { idToken: 'jwt', refreshToken: 'refresh', expiresIn: '3600' };
 const passport = { participant: { id: 'uuid', full_name: 'Pessoa teste' }, earnedBadges: ['mesa'] };
+
+const editorialActivity={id:'mesa',name:'Palestra',category:'Dados',description:'Texto',short_description:'Resumo',
+  speaker_name:'Ana',speaker_bio:'Mini bio',speaker_photo_url:null,event_date:'2026-11-04',
+  starts_at:'2026-11-04T17:00:00Z',ends_at:'2026-11-04T18:00:00Z',speaker_socials:{},slides_url:null,content_revision:0};
+
+test('editor carrega, pré-visualiza e envia dados com revisão e horário de Brasília',async()=>{
+  const storage=new Map();
+  const a=app({storage,handle:(path,options,pub)=>{
+    if(path.includes('/admin/activity-content'))return {activity:{...editorialActivity,...(options.method==='POST'?JSON.parse(options.body).content:{}),content_revision:options.method==='POST'?1:0}};
+    if(path.includes('/admin/attendance'))return {activities:[{id:'mesa',name:'Palestra'}],participants:1};
+    return pub(path);
+  }});
+  await a.start();a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"});faqState.ready=true');
+  a.get('editorActivity').value='mesa';await a.run('loadEditor()');
+  assert.equal(a.get('editorStart').value,'14:00');assert.equal(a.get('editorSave').disabled,false);
+  a.get('editorName').value='Nome editado';a.get('editorPhoto').value='https://res.cloudinary.com/demo/image/upload/ana.jpg';
+  a.click('editorPreview');
+  const preview=JSON.parse(storage.get('seccim.content.preview'));
+  assert.equal(preview.name,'Nome editado');assert.equal(preview.starts_at,'2026-11-04T14:00:00-03:00');
+  assert.equal(a.get('editorPreviewFrame').hidden,false);
+  await a.submit('editorForm');
+  const write=a.calls.find(c=>c.path.includes('/admin/activity-content')&&c.options.method==='POST');
+  assert.equal(JSON.parse(write.options.body).revision,0);assert.equal(JSON.parse(write.options.body).content.name,'Nome editado');
+  assert.equal(a.run('editorState.revision'),1);a.click('logoutButton');
+  assert.equal(a.get('editorForm').hidden,true);assert.equal(storage.get('seccim.content.preview'),undefined);
+});
+
+test('editor local oferece prévia sem simular salvamento quando API ainda não está habilitada',async()=>{
+  const a=app();await a.start();a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})');
+  a.get('editorActivity').value='mesa';await a.run('loadEditor()');
+  assert.equal(a.get('editorForm').hidden,false);assert.equal(a.get('editorSave').disabled,true);
+  assert.match(a.get('editorMessage').textContent,/salvamento ficará disponível/);
+});
+
+test('editor preserva campos após conflito de edição e bloqueia sobrescrita',async()=>{
+  const a=app({handle:(path,options,pub)=>path.includes('/admin/activity-content')
+    ? options.method==='POST'?{status:409,code:'CONTENT_CONFLICT'}:{activity:editorialActivity}:pub(path)});
+  await a.start();a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})');
+  a.get('editorActivity').value='mesa';await a.run('loadEditor()');a.get('editorName').value='Meu rascunho';
+  await a.submit('editorForm');
+  assert.equal(a.get('editorName').value,'Meu rascunho');assert.equal(a.get('editorSave').disabled,true);
+  assert.match(a.get('editorMessage').textContent,/Outra pessoa alterou/);
+});
+
+test('navegação restaura sessão na mesma aba e sair a remove',async()=>{
+  const storage=new Map();
+  const handle=(path,options,pub)=>path.includes('/functions/v1/passport') ? passport : pub(path);
+  const before=app({storage,handle});await before.start();
+  before.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})');
+  const after=app({storage,handle});await after.start();
+  assert.equal(after.get('authSection').hidden,true);
+  assert.equal(after.get('participantName').textContent,'Pessoa teste');
+  after.click('logoutButton');assert.equal(storage.size,0);
+  const signedOut=app({storage,handle});await signedOut.start();assert.equal(signedOut.get('authSection').hidden,false);
+});
+
+test('sessão salva rejeitada pelo servidor é descartada',async()=>{
+  const storage=new Map([['seccim.auth.session',JSON.stringify({idToken:'revoked',refreshToken:'refresh',expiresAt:Date.now()+3600000})]]);
+  const a=app({storage,handle:(path,options,pub)=>path.includes('/functions/v1/passport') ? {status:401} : pub(path)});
+  await a.start();assert.equal(storage.size,0);assert.equal(a.get('authSection').hidden,false);
+});
 
 test('FAQ envia e edita pergunta anônima, restringe controles ao autor e limpa no logout', async () => {
   let question = {id:'11111111-1111-1111-1111-111111111111',body:'<script>teste</script>',anonymous:true,mine:true,author:'Anônimo',createdAt:'2026-11-03T12:00:00Z',updatedAt:'2026-11-03T12:00:00Z'};
@@ -227,7 +294,7 @@ test('catálogo vazio, falha temporária e modal continuam acessíveis', async (
   await a.start(); assert.equal(a.get('retryButton').hidden, false);
   failed = false; await a.click('retryButton');
   a.run('renderBadges(true)');
-  const card = a.get('badgeGrid').children[0]; card.focus(); card.listeners.click();
+  const card = a.get('badgeGrid').children[0].children[0]; card.focus(); card.listeners.click();
   assert.equal(a.get('pageContent').inert, true); assert.equal(a.document.activeElement, a.get('modalClose'));
   let prevented = false;
   a.document.listeners.keydown({ key: 'Tab', shiftKey:true, preventDefault() { prevented = true; } }); assert(prevented);

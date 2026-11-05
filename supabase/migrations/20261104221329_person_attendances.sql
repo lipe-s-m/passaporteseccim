@@ -2,7 +2,7 @@
 -- O painel envia apenas o que mudou (adicionar/remover), e não a lista final,
 -- para não apagar uma presença registrada por outro organizador ao mesmo tempo.
 begin;
-create function public.admin_person_attendances(p_uid text, p_participant uuid,
+create or replace function public.admin_person_attendances(p_uid text, p_participant uuid,
   p_add text[] default '{}', p_remove text[] default '{}')
 returns jsonb language plpgsql security definer set search_path = ''
 as $$
