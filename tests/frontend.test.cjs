@@ -352,7 +352,7 @@ test('ranking exige login, renderiza nomes como texto e limpa ao sair', async ()
   a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
   a.run('switchSection("ranking")'); await a.run('loadRanking()');
   assert.equal(a.get('rankingPanel').hidden,false); assert.equal(a.get('passportPanel').hidden,true);
-  assert.equal(a.get('rankingList').children[0].children[1].textContent,'<script>nome</script> (você)');
+  assert.equal(a.get('rankingList').children[0].children[2].textContent,'<script>nome</script> (você)');
   assert.match(a.get('rankingSummary').textContent,/1º.*3 selos/);
   a.click('logoutButton'); assert.equal(a.get('rankingList').children.length,0); assert.equal(a.get('rankingPanel').hidden,true);
 });
@@ -718,4 +718,93 @@ test('leitor de QR: registra, avisa repetição, ignora a mesma leitura seguida 
   await b.run('handleScan("https://site-qualquer.test")'); assert.match(b.get('scanResult').textContent, /não é do passaporte/);
   assert.equal(sent.length, 5, 'QR de fora não chega ao servidor');
   b.get('adminActivity').value = ''; await b.run('handleScan("S1.seis")'); assert.equal(sent.length, 5, 'sem atividade não registra');
+});
+
+const signedPhoto = 'https://mqparqbuhstkdpcgbbsa.supabase.co/storage/v1/object/sign/avatars/u/0123456789abcdef.webp?token=t';
+function profileApp({ saveStatus } = {}) {
+  let saved = { nickname: null, showNickname: true, headline: '', bio: '', course: '', period: '', links: {}, photoUrl: null };
+  return app({ handle: (path, options, pub) => {
+    if (path.includes('/passport/profile/photo')) return options.method === 'DELETE' ? { photoUrl: null } : { photoUrl: signedPhoto };
+    if (path.includes('/passport/profile')) {
+      if (options.method === 'POST') {
+        if (saveStatus) return { status: saveStatus, code: 'NICKNAME_TAKEN' };
+        const input = JSON.parse(options.body); saved = { ...input, photoUrl: saved.photoUrl };
+      }
+      return { name: 'Ana Oficial', profile: saved };
+    }
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+}
+
+test('perfil: carrega, valida apelido e links, salva e limpa ao sair', async () => {
+  const a = profileApp(); await a.start();
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  a.click('profileTab'); await a.run('loadProfile()');
+  assert.equal(a.get('profilePanel').hidden, false); assert.equal(a.get('profileForm').hidden, false);
+  assert.equal(a.get('profileOfficialName').textContent, 'Ana Oficial');
+  a.get('profileNickname').value = 'a b'; await a.submit('profileForm');
+  assert.match(a.get('profileMessage').textContent, /Apelido: de 3 a 20/);
+  a.get('profileNickname').value = '@Ana.Dev'; a.get('profileLinkedin').value = 'linkedin.com.evil.test/in/ana';
+  await a.submit('profileForm'); assert.match(a.get('profileMessage').textContent, /LinkedIn precisa ser/);
+  a.get('profileLinkedin').value = 'br.linkedin.com/in/ana'; a.get('profileHeadline').value = ' Estagiária · Empresa X ';
+  a.get('profilePeriod').value = '5'; a.get('profileShowNickname').checked = false; a.get('profileBio').value = 'Oi!';
+  await a.submit('profileForm');
+  const sent = JSON.parse(a.calls.filter(c => c.path === '/functions/v1/passport/profile' && c.options.method === 'POST').at(-1).options.body);
+  assert.deepEqual(sent, { nickname: 'ana.dev', showNickname: false, headline: 'Estagiária · Empresa X', bio: 'Oi!', course: '', period: '5',
+    links: { linkedin: 'https://br.linkedin.com/in/ana' } });
+  assert.match(a.get('profileMessage').textContent, /Perfil salvo/);
+  assert.equal(a.get('profileAvatar').children[0].textContent, 'A', 'sem foto mostra a inicial');
+  a.click('logoutButton');
+  assert.equal(a.get('profileForm').hidden, true); assert.equal(a.get('profileNickname').value, ''); assert.equal(a.get('profilePanel').hidden, true);
+});
+
+test('perfil: apelido em uso avisa sem perder o que foi digitado', async () => {
+  const a = profileApp({ saveStatus: 409 }); await a.start();
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()'); await a.run('loadProfile()');
+  a.get('profileNickname').value = 'ocupado'; await a.submit('profileForm');
+  assert.match(a.get('profileMessage').textContent, /já está em uso/); assert.equal(a.get('profileNickname').value, 'ocupado');
+});
+
+test('foto de perfil: envia a imagem reduzida com o token e mostra só links assinados do Storage', async () => {
+  const a = profileApp(); await a.start();
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()'); await a.run('loadProfile()');
+  a.run('globalThis.__blob = new Blob([new Uint8Array([1,2,3])], { type: "image/webp" })');
+  a.run('prepareAvatar = async () => __blob');
+  await a.run('changeProfilePhoto({ type: "image/jpeg", size: 1000 })');
+  const upload = a.calls.find(c => c.path === '/functions/v1/passport/profile/photo' && c.options.method === 'PUT');
+  assert.equal(upload.options.headers.Authorization, 'Bearer jwt'); assert.equal(upload.options.headers['Content-Type'], 'image/webp');
+  assert.equal(upload.options.body, a.run('__blob'));
+  assert.equal(a.get('profileAvatar').children[0].children[0].src, signedPhoto); assert.equal(a.get('profilePhotoRemove').hidden, false);
+  assert.equal(a.run('avatarNode("X", "https://evil.test/a.png")').children.length, 0, 'link de fora não vira imagem');
+  assert.equal(a.run('avatarNode("Ana Souza", "javascript:alert(1)")').textContent, 'AS');
+  await a.click('profilePhotoRemove');
+  assert(a.calls.some(c => c.path === '/functions/v1/passport/profile/photo' && c.options.method === 'DELETE'));
+  assert.equal(a.get('profilePhotoRemove').hidden, true);
+});
+
+test('leitor de QR mostra a foto do perfil e a moderação remove foto pela organização', async () => {
+  const sent = [];
+  const b = app({ handle: (path, options, pub) => {
+    if (path.includes('/admin/attendance/qr')) return { result: 'registered', person: { id: 'p', name: 'Ana', nickname: 'ana', photoUrl: signedPhoto } };
+    if (path.includes('/admin/profiles')) {
+      if (options.method === 'POST') { sent.push(JSON.parse(options.body)); return { ok: true }; }
+      return { profiles: [{ participantId: '11111111-1111-4111-8111-111111111111', name: 'Ana', nickname: 'ana', headline: '', photoUrl: signedPhoto }] };
+    }
+    if (path.includes('/admin/sponsors')) return { sponsor: null, sponsors: [] };
+    if (path.includes('/passport/admin/attendance')) return path.includes('overview') ? overview : { participants: [], total: 0, attendees: [] };
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+  await login(b);
+  b.get('adminActivity').value = 'mesa'; b.get('adminActivity').listeners.change();
+  await b.run('handleScan("S1.foto")');
+  assert.equal(b.get('scanPerson').children[0].children[0].src, signedPhoto);
+  await b.run('handleScan("https://site.test")'); assert.equal(b.get('scanPerson').children.length, 0, 'erro limpa a foto anterior');
+  b.get('moderationSearch').value = 'ana'; await b.run('searchProfiles()');
+  const row = b.get('moderationResults').children[0];
+  assert.equal(row.children[1].children[0].textContent, 'Ana (@ana)');
+  await row.children.find(c => c.textContent === 'Remover foto').listeners.click();
+  assert.deepEqual(sent[0], { participant: '11111111-1111-4111-8111-111111111111', action: 'remove_photo' });
+  assert.match(b.get('moderationMessage').textContent, /Remover foto: feito/);
 });

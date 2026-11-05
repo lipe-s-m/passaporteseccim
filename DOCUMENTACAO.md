@@ -410,3 +410,16 @@ Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos �
 **Testes:** `tests/qr-token.test.mjs`, rotas em `tests/passport.test.mjs` e telas em `tests/frontend.test.cjs`. Teste de ponta a ponta feito com câmera falsa no Chrome (vídeo gerado a partir de um QR real): o jsQR leu o token exato, enviou uma única vez em 9 segundos com o QR parado diante da câmera, e a captura da tela "Meu QR" decodificou no mesmo token emitido pelo servidor.
 
 **Preparado para o perfil:** a resposta da leitura traz um objeto `person` (hoje `id` e `name`) que pode ganhar apelido e foto sem mudar o leitor. Com a foto, o organizador confere o rosto na leitura, o que fecha de vez o uso do QR de outra pessoa. O cartão "Meu QR" pode passar a fazer parte da futura área **Meu perfil** (apelido, foto, bio, período). O apelido e a foto devem ficar numa tabela própria ligada a `participants.id`, sem alterar o nome oficial usado em certificados.
+
+## Perfil do participante — 05/11/2026
+
+Aba **Meu perfil**: apelido (@), foto, cargo/área/empresa, bio (até 160 caracteres), curso, período, LinkedIn e GitHub. O **nome oficial não muda pelo perfil**, porque é o usado nos certificados; só a organização corrige.
+
+- **Apelido:** único, de 3 a 20 caracteres (`a-z`, `0-9`, `_` e `.`), guardado em minúsculas. Nomes que poderiam se passar pela organização (`admin`, `seccim`, `organizacao`…) ficam indisponíveis. Com a opção "Mostrar meu apelido no lugar do nome", que vem ligada, o **ranking** e o autor das perguntas no **FAQ** mostram `@apelido`; desligando, voltam ao nome. Perguntas anônimas continuam anônimas.
+- **Foto:** recortada no centro e reduzida para 400×400 no próprio aparelho (WebP; JPEG nos navegadores que não geram WebP; até 290 KB), então a foto original não sai do celular. O backend confere o tipo **pelos bytes do arquivo**, aceitando só WebP, JPEG e PNG (SVG/HTML recusados), e grava com nome aleatório em `avatars/<id-do-participante>/`. A foto anterior é apagada. O bucket `avatars` é **privado**: as fotos só são entregues por links assinados que expiram em 1 hora, para participantes logados (ranking, perfil) e para a organização (leitor de QR, moderação). O perfil avisa que menores de 18 anos não devem publicar foto.
+- **Leitor de QR:** mostra a foto da pessoa lida, para o organizador conferir o rosto.
+- **Moderação:** em Organização → Perfis (moderação), busca por nome, e-mail ou apelido e remove foto ou apelido, apagando o arquivo do Storage. Fica registrada a data da moderação.
+
+**Banco** (`20261105090000_profiles.sql`): tabela `public.participant_profiles` (RLS, sem acesso de clientes), `private.display_name`, RPCs `manage_profile`, `set_profile_photo`, `profile_card` (somente organização) e `admin_profiles`. `get_badge_ranking` e `manage_faq` passam a usar o apelido. A migração cria o bucket privado `avatars`.
+**Rotas:** `GET|POST /passport/profile`, `PUT|DELETE /passport/profile/photo` (corpo = bytes da imagem), `GET|POST /passport/admin/profiles`. Validação em `profile-content.mjs`.
+**Testes:** `supabase/tests/profiles.sql` e 74 testes Node. O recorte da foto foi conferido no Chrome real: 1200×800 (166 KB) virou 400×400 WebP (51 KB).

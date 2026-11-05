@@ -278,8 +278,8 @@ test('leitor de QR: registra pela organização, informa repetição e recusa QR
   assert.equal((await app().send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr })).status, 503);
   const r = await a.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr, participant: 'outro' });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { result: 'registered', person: { id: participantId, name: 'Ana' } });
-  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body), { p_uid: 'user-a', p_participant: participantId, p_add: ['mesa'], p_remove: [] });
+  assert.deepEqual(await r.json(), { result: 'registered', person: { id: participantId, name: 'Ana', nickname: null, photoUrl: null } });
+  assert.deepEqual(JSON.parse(a.calls.find(c => c.url.endsWith('/admin_person_attendances')).options.body), { p_uid: 'user-a', p_participant: participantId, p_add: ['mesa'], p_remove: [] });
   const again = app({ qrSecret, rpcs: { admin_person_attendances: { ...ok, added: 0 } } });
   assert.equal((await (await again.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr })).json()).result, 'already');
   const old = (await issueQrToken(qrSecret, participantId, (time - 120) * 1000)).token;
@@ -301,7 +301,7 @@ test('ranking usa identidade validada, filtra campos privados e bloqueia escrita
   assert.equal((await a.send(token(),url,'POST')).status,405);
   const response=await a.send(token(),url);
   assert.equal(response.status,200);
-  assert.deepEqual(await response.json(),{entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true}],mine:{position:1,badgeCount:2}});
+  assert.deepEqual(await response.json(),{entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,photoUrl:null}],mine:{position:1,badgeCount:2}});
   assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a'});
   assert.equal((await app({user:{...account,emailVerified:false},ranking}).send(token(),url)).status,403);
   assert.equal((await app({ranking:{entries:[],mine:{position:null,badgeCount:0}}}).send(token(),url)).status,200);
@@ -367,4 +367,84 @@ test('FAQ valida escrita, ignora UID forjado e oculta autor anônimo', async () 
   assert.equal(result.questions[0].author,'Anônimo');
   assert(!JSON.stringify(result).includes('privado'));
   assert.equal((await send('GET',undefined,token({aud:'outro'}))).status,401);
+});
+
+// Perfil: Storage simulado para conferir envio, assinatura e exclusão de fotos.
+function profileApp({ rpc = {}, rpcStatus = {}, signFails = false } = {}) {
+  const calls = [];
+  const handler = createHandler({ projectId:'seccim-test', apiKey:'AIza_test_key', supabaseUrl:'https://db.supabase.co', serviceKey:'ADMIN_SECRET',
+    now:() => time * 1000, fetcher: async (url, options) => {
+      calls.push({ url, options });
+      if (url.includes('identitytoolkit')) return Response.json({ users:[account] });
+      if (url.includes('/storage/v1/object/sign/avatars')) {
+        if (signFails) return new Response('x', { status:500 });
+        return Response.json(JSON.parse(options.body).paths.map(path => ({ path, signedURL:`/object/sign/avatars/${path}?token=t`, error:null })));
+      }
+      if (url.includes('/storage/v1/')) return Response.json({ Key:'ok' });
+      const name = url.split('/rpc/')[1];
+      return Response.json(rpc[name] ?? { participant:{ id:participantId, full_name:'Ana Oficial' }, earnedBadges:[] }, { status:rpcStatus[name] ?? 200 });
+    } });
+  const send = (method, path, body, contentType = 'application/json') => handler(new Request('https://edge.test/passport' + path, { method,
+    headers:{ Authorization:`Bearer ${token()}`, 'Content-Type':contentType }, ...(body ? { body: contentType === 'application/json' ? JSON.stringify(body) : body } : {}) }));
+  return { calls, send };
+}
+const profileInput = { nickname:' Ana.Dev ', showNickname:true, headline:' Estagiária de dados · Empresa X ', bio:'Oi', course:'Ciência da Computação', period:'5',
+  links:{ linkedin:'https://br.linkedin.com/in/ana', github:'https://github.com/ana' } };
+const savedProfile = { name:'Ana Oficial', profile:{ nickname:'ana.dev', showNickname:true, headline:'Estagiária', bio:'Oi', course:'CC', period:'5',
+  links:{}, photoPath:`${participantId}/0123456789abcdef.webp` } };
+
+test('perfil: valida antes do banco, normaliza apelido e devolve foto por link assinado', async () => {
+  const a = profileApp({ rpc:{ manage_profile:savedProfile } });
+  for (const changes of [{ nickname:'a' }, { nickname:'com espaço' }, { period:'11' }, { bio:'x'.repeat(161) }, { headline:'x'.repeat(121) },
+    { links:{ linkedin:'https://evil.test/in/ana' } }, { links:{ twitter:'https://x.com/a' } }, { links:{ github:'http://github.com/a' } },
+    { showNickname:'sim' }, { extra:1 }]) {
+    assert.equal((await a.send('POST', '/profile', { ...profileInput, ...changes })).status, 400, JSON.stringify(changes));
+  }
+  assert(!a.calls.some(c => c.url.includes('/manage_profile')));
+  const saved = await a.send('POST', '/profile', { ...profileInput, p_uid:'outro' }.p_uid ? profileInput : profileInput);
+  assert.equal(saved.status, 200);
+  const body = JSON.parse(a.calls.find(c => c.url.includes('/manage_profile')).options.body);
+  assert.equal(body.p_uid, 'user-a'); assert.equal(body.p_profile.nickname, 'ana.dev'); assert.equal(body.p_profile.headline, 'Estagiária de dados · Empresa X');
+  const data = await saved.json();
+  assert.equal(data.profile.photoUrl, `https://db.supabase.co/storage/v1/object/sign/avatars/${participantId}/0123456789abcdef.webp?token=t`);
+  assert(!JSON.stringify(data).includes('photoPath'));
+  const read = await a.send('GET', '/profile'); assert.equal(JSON.parse(a.calls.at(-2).options.body).p_profile, null); assert.equal(read.status, 200);
+  const taken = profileApp({ rpc:{ manage_profile:{ code:'23505' } }, rpcStatus:{ manage_profile:409 } });
+  const conflict = await taken.send('POST', '/profile', profileInput);
+  assert.equal(conflict.status, 409); assert.equal((await conflict.json()).code, 'NICKNAME_TAKEN');
+  assert.equal((await profileApp({ signFails:true, rpc:{ manage_profile:savedProfile } }).send('GET', '/profile')).status, 200, 'sem assinatura, perfil continua sem foto');
+});
+
+test('foto de perfil: aceita só imagem de verdade, sobe com nome aleatório e apaga a anterior', async () => {
+  const webp = new Uint8Array([...Buffer.from('RIFF'), 1, 0, 0, 0, ...Buffer.from('WEBPVP8 '), ...new Array(200).fill(7)]);
+  const previous = `${participantId}/aaaaaaaaaaaaaaaa.png`;
+  const a = profileApp({ rpc:{ set_profile_photo:{ previous } } });
+  assert.equal((await a.send('PUT', '/profile/photo', new Uint8Array([60, 115, 118, 103, ...new Array(200).fill(32)]), 'image/webp')).status, 400, 'SVG/HTML recusado');
+  assert.equal((await a.send('PUT', '/profile/photo', new Uint8Array(301 * 1024).fill(0xff), 'image/jpeg')).status, 413);
+  assert(!a.calls.some(c => c.url.includes('/storage/v1/object/avatars/')));
+  const r = await a.send('PUT', '/profile/photo', webp, 'image/png');
+  assert.equal(r.status, 200);
+  const upload = a.calls.find(c => c.url.includes('/storage/v1/object/avatars/'));
+  assert.match(upload.url, new RegExp(`/object/avatars/${participantId}/[0-9a-f]{16}\\.webp$`));
+  assert.equal(upload.options.headers['Content-Type'], 'image/webp', 'tipo pelo conteúdo, não pelo cabeçalho enviado');
+  assert.equal(upload.options.headers.Authorization, 'Bearer ADMIN_SECRET');
+  const removed = a.calls.find(c => c.options.method === 'DELETE' && c.url.endsWith('/object/avatars'));
+  assert.deepEqual(JSON.parse(removed.options.body), { prefixes:[previous] });
+  assert.match((await r.json()).photoUrl, /^https:\/\/db\.supabase\.co\/storage\/v1\/object\/sign\/avatars\//);
+  assert.equal((await a.send('GET', '/profile/photo')).status, 405);
+  const del = await a.send('DELETE', '/profile/photo');
+  assert.equal(del.status, 200); assert.equal(JSON.parse(a.calls.filter(c => c.url.includes('/set_profile_photo')).at(-1).options.body).p_path, null);
+});
+
+test('moderação de perfis: busca e remove pela organização, apagando a foto do Storage', async () => {
+  const path = `${participantId}/0123456789abcdef.jpg`;
+  const a = profileApp({ rpc:{ admin_profiles:{ profiles:[{ participantId, name:'Ana', nickname:'ana', headline:'', photoPath:path, email:'privado' }], removedPhoto:path } } });
+  assert.equal((await a.send('GET', '/admin/profiles?q=a')).status, 400);
+  const list = await (await a.send('GET', '/admin/profiles?q=ana')).json();
+  assert.equal(list.profiles[0].nickname, 'ana'); assert.match(list.profiles[0].photoUrl, /sign\/avatars/); assert(!JSON.stringify(list).includes('privado'));
+  assert.equal((await a.send('POST', '/admin/profiles', { participant:participantId, action:'apagar_tudo' })).status, 400);
+  assert.equal((await a.send('POST', '/admin/profiles', { participant:participantId, action:'remove_photo' })).status, 200);
+  assert.deepEqual(JSON.parse(a.calls.find(c => c.options.method === 'DELETE').options.body), { prefixes:[path] });
+  const denied = profileApp({ rpc:{ admin_profiles:{ code:'42501' } }, rpcStatus:{ admin_profiles:403 } });
+  assert.equal((await denied.send('GET', '/admin/profiles?q=ana')).status, 403);
 });

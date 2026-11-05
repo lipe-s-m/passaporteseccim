@@ -348,7 +348,15 @@ main{padding:32px 0 64px}
 .scan-view video{width:100%;height:100%;object-fit:cover;display:block}
 .scan-frame{position:absolute;inset:18%;border:3px solid rgba(34,227,154,.9);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
 .scan-result{min-height:64px;margin:8px 0;padding:14px 16px;border-radius:14px;font-size:19px;font-weight:700;line-height:1.35;text-align:center;background:rgba(255,255,255,.06)}
-.scan-result.ok{background:rgba(34,227,154,.18);color:#c9ffe8}.scan-result.warn{background:rgba(255,209,102,.16);color:#ffe7ad}.scan-result.error{background:rgba(255,120,120,.16);color:#ffd0cf}
+.scan-result.ok{background:rgba(34,227,154,.18);color:#c9ffe8}
+/* Perfil: avatar, cartão e formulário */
+.avatar{flex:0 0 auto;display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;overflow:hidden;background:linear-gradient(145deg,#5340b5,#22a37a);color:#fff;font-weight:750;font-size:16px}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}.avatar-large{width:112px;height:112px;font-size:36px;border:3px solid rgba(185,170,255,.6)}
+.profile-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:8px}.profile-head p{margin:4px 0 0;color:var(--muted);font-size:15px}
+.profile-photo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.profile-note{margin:14px 0;padding:12px 14px;border-radius:12px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);color:#ffe7ad;font-size:14px;line-height:1.5}
+.scan-person{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}.scan-person .avatar{width:84px;height:84px;font-size:28px}
+.ranking-row .avatar{width:40px;height:40px;font-size:15px}.scan-result.warn{background:rgba(255,209,102,.16);color:#ffe7ad}.scan-result.error{background:rgba(255,120,120,.16);color:#ffd0cf}
 </style>
 </head>
 <body>
@@ -391,6 +399,7 @@ main{padding:32px 0 64px}
     <button id="passportTab" class="action-button" type="button" aria-pressed="true" aria-controls="passportPanel">Meu passaporte</button>
     <button id="faqTab" class="action-button" type="button" aria-pressed="false" aria-controls="faqPanel">FAQ · Perguntas</button>
     <button id="rankingTab" class="action-button" type="button" aria-pressed="false" aria-controls="rankingPanel">Ranking</button>
+    <button id="profileTab" class="action-button" type="button" aria-pressed="false" aria-controls="profilePanel">Meu perfil</button>
     <button id="adminTab" class="action-button" type="button" aria-pressed="false" aria-controls="adminPanel" hidden>Organização</button>
   </nav>
   <div id="passportPanel" hidden>
@@ -437,6 +446,37 @@ main{padding:32px 0 64px}
     <div id="faqList" aria-label="Perguntas da atividade"></div>
     <button id="faqMore" class="action-button" type="button" hidden>Carregar mais perguntas</button>
   </section>
+  <section id="profilePanel" aria-labelledby="profileTitle" hidden>
+    <div class="section-head"><div><div class="eyebrow">Do seu jeito</div><h2 id="profileTitle">Meu perfil</h2><p>Escolha como aparecer para os outros participantes no ranking e no FAQ.</p></div></div>
+    <p id="profileMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+    <form id="profileForm" class="faq-card" hidden>
+      <div class="profile-head">
+        <div id="profileAvatar"></div>
+        <div>
+          <strong id="profileOfficialName"></strong>
+          <p>Nome oficial, usado nos certificados. Para corrigir, fale com a organização.</p>
+          <div class="profile-photo-actions">
+            <label class="action-button secondary" for="profilePhotoInput">📷 Escolher foto</label>
+            <input id="profilePhotoInput" type="file" accept="image/*" class="sr-only">
+            <button id="profilePhotoRemove" class="action-button secondary danger" type="button" hidden>Remover foto</button>
+          </div>
+        </div>
+      </div>
+      <p class="profile-note">A foto aparece só para participantes logados no passaporte e para a organização, que pode removê-la. Se você tem menos de 18 anos, não publique foto.</p>
+      <div class="editor-grid">
+        <label class="faq-field" for="profileNickname">Apelido<input id="profileNickname" type="text" maxlength="21" autocomplete="nickname" autocapitalize="none" spellcheck="false" placeholder="@seu.apelido"></label>
+        <label class="faq-field" for="profileHeadline">Cargo / área / empresa<input id="profileHeadline" type="text" maxlength="120" placeholder="Ex.: Estagiária de dados · Empresa X"></label>
+        <label class="faq-field" for="profileCourse">Curso<input id="profileCourse" type="text" maxlength="80" list="profileCourses"></label>
+        <label class="faq-field" for="profilePeriod">Período<select id="profilePeriod"><option value="">Prefiro não informar</option><option value="1">1º período</option><option value="2">2º período</option><option value="3">3º período</option><option value="4">4º período</option><option value="5">5º período</option><option value="6">6º período</option><option value="7">7º período</option><option value="8">8º período</option><option value="9">9º período</option><option value="10">10º período</option><option value="formado">Formado(a)</option><option value="nao-aluno">Não sou aluno(a) da UFRRJ</option></select></label>
+        <label class="faq-field" for="profileBio">Bio<textarea id="profileBio" rows="3" maxlength="160" aria-describedby="profileBioCount"></textarea><span id="profileBioCount" class="faq-hint">0 / 160 caracteres</span></label>
+        <label class="faq-field" for="profileLinkedin">LinkedIn<input id="profileLinkedin" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="profileGithub">GitHub<input id="profileGithub" type="url" maxlength="2048"></label>
+      </div>
+      <datalist id="profileCourses"><option value="Ciência da Computação"><option value="Sistemas de Informação"><option value="Matemática"><option value="Engenharia"><option value="Direito"><option value="Administração"></datalist>
+      <label class="multi-option"><input id="profileShowNickname" type="checkbox" checked><span>Mostrar meu apelido no lugar do nome no ranking e no FAQ</span></label>
+      <div class="faq-controls"><button id="profileSave" class="action-button" type="submit">Salvar perfil</button></div>
+    </form>
+  </section>
   <section id="rankingPanel" aria-labelledby="rankingTitle" hidden>
     <div class="section-head"><div><div class="eyebrow">Cada presença conta</div><h2 id="rankingTitle">Ranking de selos</h2><p>Quem está colecionando mais experiências na SECCIM?</p></div></div>
     <p id="rankingSummary" class="ranking-summary"></p>
@@ -481,6 +521,13 @@ main{padding:32px 0 64px}
       </form>
       <iframe id="editorPreviewFrame" class="editor-preview" title="Pré-visualização da palestra" hidden></iframe>
     </details>
+    <details class="faq-card editor-section" id="moderationSection">
+      <summary>Perfis (moderação)</summary>
+      <p class="faq-hint">Busque por nome, e-mail ou apelido para remover uma foto ou um apelido inadequado.</p>
+      <label class="faq-field" for="moderationSearch">Buscar perfil<input id="moderationSearch" type="search" autocomplete="off" maxlength="120"></label>
+      <p id="moderationMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+      <ul id="moderationResults" class="admin-list" aria-label="Perfis encontrados"></ul>
+    </details>
     <details class="faq-card editor-section" id="sponsorSection">
       <summary>Patrocinadores</summary>
       <p class="faq-hint">Cadastre ou edite um patrocinador. Ele só aparece no site depois de marcado como publicado: use a prévia para mandar ao patrocinador antes.</p>
@@ -522,6 +569,7 @@ main{padding:32px 0 64px}
       <p id="scanActivity" class="faq-hint"></p>
       <div class="scan-view"><video id="scanVideo" playsinline muted></video><div class="scan-frame" aria-hidden="true"></div></div>
       <p id="scanResult" class="scan-result idle" role="status" aria-live="assertive"></p>
+      <div id="scanPerson" class="scan-person" aria-hidden="true"></div>
       <p id="scanCount" class="faq-hint"></p>
       <button id="scanClose" class="action-button secondary" type="button">Parar leitor</button>
     </section>
@@ -831,6 +879,8 @@ function clearPassport() {
   $("rankingRefresh").disabled = false;
   message("rankingMessage", "");
   closeMyQr();
+  resetProfile();
+  $("profilePanel").hidden = true;
   resetFaq();
   resetAdmin();
   closeModal();
@@ -1135,19 +1185,20 @@ document.addEventListener("keydown", event => {
 });
 
 function switchSection(faq) {
-  let section = faq === "ranking" || faq === "admin" ? faq : faq ? "faq" : "passport";
+  let section = ["ranking","admin","profile"].includes(faq) ? faq : faq ? "faq" : "passport";
   if (section === "admin" && $("adminTab").hidden) section = "passport";
   if (!faqState.ready) {
-    $("passportPanel").hidden = true; $("faqPanel").hidden = true; $("rankingPanel").hidden = true; $("adminPanel").hidden = true;
+    $("passportPanel").hidden = true; $("faqPanel").hidden = true; $("rankingPanel").hidden = true; $("adminPanel").hidden = true; $("profilePanel").hidden = true;
     return;
   }
   if (section !== "admin") closeScanner();
-  for (const name of ["passport","faq","ranking","admin"]) {
+  for (const name of ["passport","faq","ranking","admin","profile"]) {
     $(name + "Panel").hidden = section !== name;
     $(name + "Tab").setAttribute("aria-pressed", String(section === name));
   }
   if (section === "faq" && !faqState.busy) loadQuestions();
   if (section === "ranking") loadRanking();
+  if (section === "profile") loadProfile();
   if (section === "admin") { loadAdmin(); loadAttendees(); loadDraws(); }
 }
 
@@ -1169,7 +1220,7 @@ async function loadRanking() {
       const position = document.createElement("span"); position.className = "ranking-position"; position.textContent = `${entry.position}º`;
       const name = document.createElement("span"); name.className = "ranking-name"; name.textContent = entry.name + (entry.isMe ? " (você)" : "");
       const count = document.createElement("span"); count.className = "ranking-count"; count.textContent = `${entry.badgeCount} ${entry.badgeCount === 1 ? "selo" : "selos"}`;
-      row.append(position,name,count); $("rankingList").append(row);
+      row.append(position,avatarNode(entry.name,entry.photoUrl),name,count); $("rankingList").append(row);
     }
     $("rankingSummary").textContent = data.mine?.position
       ? `Sua posição: ${data.mine.position}º · ${data.mine.badgeCount} ${data.mine.badgeCount === 1 ? "selo" : "selos"}`
@@ -1602,6 +1653,8 @@ function closeMyQr() {
 const scanState = { version:0, stream:null, detector:null, timer:null, busy:false, seen:new Map(), count:0, canvas:null };
 
 function scanResult(kind, text) {
+  // Sem leitura válida, não deixa na tela a foto da pessoa anterior.
+  if (kind === "error" || kind === "idle") $("scanPerson").replaceChildren();
   $("scanResult").textContent = text;
   $("scanResult").className = `scan-result ${kind}`;
   globalThis.navigator?.vibrate?.(kind === "ok" ? 80 : kind === "warn" ? [40, 40, 40] : [120, 60, 120]);
@@ -1637,6 +1690,8 @@ async function handleScan(value) {
     const data = await request("/functions/v1/passport/admin/attendance/qr", { method: "POST", token, body: { activity, token: value } });
     if (version !== scanState.version) return;
     const name = data?.person?.name || "Participante";
+    // Foto do perfil para o organizador conferir se é a mesma pessoa que mostrou o QR.
+    $("scanPerson").replaceChildren(avatarNode(name, data?.person?.photoUrl));
     if (data?.result === "registered") { scanState.count++; scanResult("ok", `✅ ${name} — presença registrada`); }
     else scanResult("warn", `🔁 ${name} já estava presente`);
     $("scanCount").textContent = `${scanState.count} ${scanState.count === 1 ? "presença registrada" : "presenças registradas"} por QR nesta sessão`;
@@ -1691,7 +1746,201 @@ function closeScanner() {
   scanState.version++; clearTimeout(scanState.timer);
   scanState.stream?.getTracks?.().forEach(track => track.stop());
   Object.assign(scanState, { stream:null, detector:null, busy:false }); scanState.seen.clear();
-  $("scanVideo").srcObject = null; $("scanPanel").hidden = true; $("scanOpen").hidden = false;
+  $("scanVideo").srcObject = null; $("scanPanel").hidden = true; $("scanPerson").replaceChildren(); $("scanOpen").hidden = false;
+}
+
+// ---- Meu perfil ----
+// Apelido, foto, cargo/área/empresa, bio, curso, período e links. O nome oficial (certificados) não muda aqui.
+const profilePath = "/functions/v1/passport/profile";
+const profileState = { version:0, loaded:false, busy:false, photoUrl:null };
+const profileLinkHosts = { linkedin:"linkedin.com", github:"github.com" };
+
+// Foto pequena ou iniciais: usada no perfil, no ranking, no leitor de QR e na moderação.
+function avatarNode(name, photoUrl, className = "avatar") {
+  const box = document.createElement("span"); box.className = className;
+  const safe = typeof photoUrl === "string" && /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/sign\/avatars\//.test(photoUrl);
+  if (safe) {
+    const img = document.createElement("img"); img.src = photoUrl; img.alt = ""; img.loading = "lazy";
+    img.addEventListener?.("error", () => { img.remove?.(); box.textContent = initials(name); });
+    box.append(img);
+  } else box.textContent = initials(name);
+  return box;
+}
+const initials = name => (name || "?").replace(/^@/, "").split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "?";
+
+function fillProfile(data) {
+  const p = data.profile;
+  $("profileOfficialName").textContent = data.name;
+  $("profileNickname").value = p.nickname ?? ""; $("profileShowNickname").checked = p.showNickname !== false;
+  $("profileHeadline").value = p.headline ?? ""; $("profileBio").value = p.bio ?? ""; $("profileCourse").value = p.course ?? "";
+  $("profilePeriod").value = p.period ?? ""; $("profileLinkedin").value = p.links?.linkedin ?? ""; $("profileGithub").value = p.links?.github ?? "";
+  profileBioCount(); renderProfilePhoto(p.photoUrl ?? null);
+}
+
+function renderProfilePhoto(url) {
+  profileState.photoUrl = url;
+  $("profileAvatar").replaceChildren(avatarNode($("profileNickname").value || $("profileOfficialName").textContent, url, "avatar avatar-large"));
+  $("profilePhotoRemove").hidden = !url;
+}
+
+function profileBioCount() { $("profileBioCount").textContent = `${$("profileBio").value.length} / 160 caracteres`; }
+
+async function loadProfile() {
+  if (!state.session || !faqState.ready) return;
+  const version = ++profileState.version;
+  message("profileMessage", "Carregando seu perfil...");
+  try {
+    const token = await accessToken();
+    if (version !== profileState.version) return;
+    const data = await request(profilePath, { token });
+    if (version !== profileState.version) return;
+    if (typeof data?.name !== "string" || !data.profile) throw Error();
+    fillProfile(data); profileState.loaded = true; $("profileForm").hidden = false;
+    message("profileMessage", "");
+  } catch {
+    if (version === profileState.version) message("profileMessage", "Não foi possível carregar seu perfil. Tente novamente.", true);
+  }
+}
+
+function readProfile() {
+  const nickname = $("profileNickname").value.trim().replace(/^@/, "").toLowerCase();
+  if (nickname && !/^[a-z0-9_.]{3,20}$/.test(nickname)) throw Error("Apelido: de 3 a 20 caracteres, só letras minúsculas, números, ponto e sublinhado.");
+  const links = {};
+  for (const [key, field] of [["linkedin", "profileLinkedin"], ["github", "profileGithub"]]) {
+    const url = editorLink($(field).value); if (!url) continue;
+    let valid = false; try { const u = new URL(url); valid = u.protocol === "https:" && !u.username && !u.password &&
+      (u.hostname === profileLinkHosts[key] || u.hostname.endsWith("." + profileLinkHosts[key])); } catch {}
+    if (!valid) throw Error(`O link do ${key === "linkedin" ? "LinkedIn" : "GitHub"} precisa ser um endereço https do ${profileLinkHosts[key]}.`);
+    $(field).value = url; links[key] = url;
+  }
+  return { nickname: nickname || null, showNickname: $("profileShowNickname").checked, headline: $("profileHeadline").value.trim(),
+    bio: $("profileBio").value.trim(), course: $("profileCourse").value.trim(), period: $("profilePeriod").value, links };
+}
+
+async function saveProfile(event) {
+  event.preventDefault();
+  if (profileState.busy || !state.session) return;
+  let input; try { input = readProfile(); } catch (error) { message("profileMessage", error.message, true); return; }
+  const version = profileState.version;
+  profileState.busy = true; $("profileSave").disabled = true; message("profileMessage", "Salvando...");
+  try {
+    const token = await accessToken();
+    const data = await request(profilePath, { method: "POST", token, body: input });
+    if (version !== profileState.version) return;
+    fillProfile(data); message("profileMessage", "Perfil salvo! ✨");
+  } catch (error) {
+    if (version !== profileState.version) return;
+    message("profileMessage", error.status === 409 ? "Esse apelido já está em uso. Escolha outro."
+      : error.status === 400 ? "Confira os campos antes de salvar." : "Não foi possível salvar. Tente novamente.", true);
+  } finally { if (version === profileState.version) { profileState.busy = false; $("profileSave").disabled = false; } }
+}
+
+// Recorta no centro e reduz para 400×400 no próprio aparelho: a foto original nunca sai do celular.
+async function prepareAvatar(file) {
+  if (!file || !/^image\//.test(file.type)) throw Error("Escolha um arquivo de imagem.");
+  if (file.size > 15 * 1024 * 1024) throw Error("Imagem muito grande. Escolha uma de até 15 MB.");
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height), size = 400;
+  const canvas = document.createElement("canvas"); canvas.width = size; canvas.height = size;
+  canvas.getContext("2d").drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  bitmap.close?.();
+  const encode = (type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
+  // Alguns Safari não geram WebP: nesse caso o navegador devolve PNG e usamos JPEG.
+  let blob = await encode("image/webp", .85);
+  if (!blob || blob.type !== "image/webp") blob = await encode("image/jpeg", .85);
+  for (let quality = .75; blob && blob.size > 280 * 1024 && quality > .3; quality -= .15) blob = await encode("image/jpeg", quality);
+  if (!blob || blob.size > 290 * 1024) throw Error("Não foi possível reduzir a imagem. Tente outra foto.");
+  return blob;
+}
+
+async function uploadProfilePhoto(blob) {
+  const token = await accessToken();
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${SUPABASE_URL}${profilePath}/photo`, { method: "PUT", body: blob, signal: controller.signal,
+      credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}`, "Content-Type": blob.type || "application/octet-stream" } });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw Object.assign(Error(), { status: response.status });
+    return data;
+  } finally { clearTimeout(timer); }
+}
+
+async function changeProfilePhoto(file) {
+  if (profileState.busy || !state.session) return;
+  const version = profileState.version;
+  profileState.busy = true; message("profileMessage", "Enviando foto...");
+  try {
+    const blob = await prepareAvatar(file);
+    const data = await uploadProfilePhoto(blob);
+    if (version !== profileState.version) return;
+    renderProfilePhoto(data?.photoUrl ?? null); message("profileMessage", "Foto atualizada! 📸");
+  } catch (error) {
+    if (version !== profileState.version) return;
+    message("profileMessage", error.status === 413 ? "Foto muito grande mesmo depois de reduzida. Tente outra."
+      : error.status === 400 ? "Esse arquivo não é uma imagem válida." : error.message || "Não foi possível enviar a foto.", true);
+  } finally { if (version === profileState.version) { profileState.busy = false; $("profilePhotoInput").value = ""; } }
+}
+
+async function removeProfilePhoto() {
+  if (profileState.busy || !state.session || !confirm("Remover sua foto de perfil?")) return;
+  const version = profileState.version;
+  profileState.busy = true;
+  try {
+    const token = await accessToken();
+    await request(`${profilePath}/photo`, { method: "DELETE", token });
+    if (version !== profileState.version) return;
+    renderProfilePhoto(null); message("profileMessage", "Foto removida.");
+  } catch { if (version === profileState.version) message("profileMessage", "Não foi possível remover a foto.", true); }
+  finally { if (version === profileState.version) profileState.busy = false; }
+}
+
+function resetProfile() {
+  profileState.version++; Object.assign(profileState, { loaded:false, busy:false, photoUrl:null });
+  $("profileForm").hidden = true; $("profileOfficialName").textContent = ""; $("profileAvatar").replaceChildren();
+  for (const id of ["profileNickname","profileHeadline","profileBio","profileCourse","profileLinkedin","profileGithub"]) $(id).value = "";
+  $("profilePeriod").value = ""; $("profileShowNickname").checked = true; message("profileMessage", "");
+}
+
+// ---- Moderação de perfis (organização) ----
+const moderationState = { version:0, timer:null };
+async function searchProfiles() {
+  const version = ++moderationState.version;
+  const query = $("moderationSearch").value.trim();
+  $("moderationResults").replaceChildren();
+  if (query.length < 2) { message("moderationMessage", query ? "Digite pelo menos 2 letras." : ""); return; }
+  message("moderationMessage", "Buscando...");
+  try {
+    const token = await accessToken();
+    const data = await request(`/functions/v1/passport/admin/profiles?q=${encodeURIComponent(query)}`, { token });
+    if (version !== moderationState.version) return;
+    if (!Array.isArray(data?.profiles)) throw Error();
+    $("moderationResults").replaceChildren(...data.profiles.map(p => {
+      const row = document.createElement("li"); row.className = "admin-row";
+      const info = document.createElement("div"); info.className = "admin-person";
+      const name = document.createElement("strong"); name.textContent = p.nickname ? `${p.name} (@${p.nickname})` : p.name;
+      const detail = document.createElement("small"); detail.textContent = p.headline || (p.moderatedAt ? "Já moderado antes" : "");
+      info.append(name, detail);
+      row.append(avatarNode(p.nickname || p.name, p.photoUrl), info);
+      for (const [action, label, has] of [["remove_photo", "Remover foto", !!p.photoUrl], ["remove_nickname", "Remover apelido", !!p.nickname]]) {
+        if (!has) continue;
+        const button = document.createElement("button"); button.type = "button"; button.className = "action-button secondary danger"; button.textContent = label;
+        button.addEventListener("click", () => moderateProfile(p, action, label));
+        row.append(button);
+      }
+      return row;
+    }));
+    message("moderationMessage", data.profiles.length ? "" : "Nenhum perfil com foto, apelido ou bio encontrado.");
+  } catch { if (version === moderationState.version) message("moderationMessage", "Não foi possível buscar perfis.", true); }
+}
+
+async function moderateProfile(profile, action, label) {
+  if (!confirm(`${label} de ${profile.name}? A pessoa poderá escolher outro depois.`)) return;
+  try {
+    const token = await accessToken();
+    await request("/functions/v1/passport/admin/profiles", { method: "POST", token, body: { participant: profile.participantId, action } });
+    await searchProfiles(); message("moderationMessage", `${label}: feito.`);
+  } catch { message("moderationMessage", "Não foi possível moderar este perfil.", true); }
 }
 
 function resetAdmin() {
@@ -1717,6 +1966,7 @@ function resetAdmin() {
   $("raffleDraw").disabled = true;
   closeMulti();
   resetSponsors();
+  moderationState.version++; $("moderationSearch").value = ""; $("moderationResults").replaceChildren(); message("moderationMessage", "");
 }
 
 async function loadAdmin() {
@@ -2225,6 +2475,12 @@ async function deleteDraw(draw) {
 }
 
 $("walkinToggle").addEventListener("click", openWalkin);
+$("profileTab").addEventListener("click", () => switchSection("profile"));
+$("profileForm").addEventListener("submit", saveProfile);
+$("profileBio").addEventListener("input", profileBioCount);
+$("profilePhotoInput").addEventListener("change", () => { const file = $("profilePhotoInput").files?.[0]; if (file) changeProfilePhoto(file); });
+$("profilePhotoRemove").addEventListener("click", removeProfilePhoto);
+$("moderationSearch").addEventListener("input", () => { clearTimeout(moderationState.timer); moderationState.timer = setTimeout(searchProfiles, 300); });
 $("qrOpen").addEventListener("click", openMyQr);
 $("qrClose").addEventListener("click", closeMyQr);
 $("scanOpen").addEventListener("click", openScanner);
