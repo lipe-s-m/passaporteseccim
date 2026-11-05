@@ -430,7 +430,7 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="editorDescription">Descrição da palestra<textarea id="editorDescription" rows="6" maxlength="8000"></textarea></label>
         <label class="faq-field" for="editorSpeaker">Nome do palestrante<input id="editorSpeaker" type="text" maxlength="160"></label>
         <label class="faq-field" for="editorBio">Mini bio do palestrante (sobre mim)<textarea id="editorBio" rows="7" maxlength="4000" aria-describedby="editorBioCount"></textarea><span id="editorBioCount" class="faq-hint">0 / 4000 caracteres</span></label>
-        <label class="faq-field" for="editorPhoto">Link da foto no Cloudinary<input id="editorPhoto" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="editorPhoto">Foto do palestrante<input id="editorPhoto" type="text" inputmode="url" maxlength="2048" placeholder="/fotos/id-da-palestra.webp ou link do Cloudinary"></label>
         <label class="faq-field" for="editorDate">Data da palestra<input id="editorDate" type="date"></label>
         <label class="faq-field" for="editorStart">Início (horário de Brasília)<input id="editorStart" type="time"></label>
         <label class="faq-field" for="editorEnd">Término (opcional)<input id="editorEnd" type="time"></label>
@@ -441,7 +441,7 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="editorSlides">Link dos slides<input id="editorSlides" type="url" maxlength="2048"></label>
           </div>
           <img id="editorPhotoPreview" class="editor-photo" alt="Prévia da foto do palestrante" hidden>
-          <p class="faq-hint">Use o link https da imagem hospedada no Cloudinary. Os horários seguem Brasília. A data da palestra também define o dia das chances de sorteio.</p>
+          <p class="faq-hint">Foto: use o caminho de uma imagem publicada com o site (ex.: /fotos/kafka-alem-das-filas.webp) ou um link https do Cloudinary. Os horários seguem Brasília. A data da palestra também define o dia das chances de sorteio.</p>
         </fieldset>
         <div class="faq-controls">
           <button id="editorSave" class="action-button" type="submit" disabled>Salvar informações</button>
@@ -1056,9 +1056,15 @@ function resetEditor(){
   try{sessionStorage.removeItem("seccim.content.preview");}catch{}
   message("editorMessage","");
 }
+// Foto publicada com o site (/fotos/...) ou link https do Cloudinary, as mesmas regras do backend.
+function editorPhotoUrl(raw){
+  if(/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw))return raw;
+  try{const u=new URL(raw);if(u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password)return u.href;}catch{}
+  return "";
+}
 function editorPhoto(){
-  const raw=$("editorPhoto").value.trim();const img=$("editorPhotoPreview");img.hidden=true;
-  try{const u=new URL(raw);if(u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password){img.src=u.href;img.hidden=false;}}catch{}
+  const url=editorPhotoUrl($("editorPhoto").value.trim());const img=$("editorPhotoPreview");img.hidden=!url;
+  if(url)img.src=url;
 }
 function editorTime(value){
   if(!value||!Number.isFinite(Date.parse(value)))return "";
@@ -1116,7 +1122,7 @@ function readEditor(){
   data.ends_at=end?`${data.event_date}T${end}:00-03:00`:null;
   if(data.ends_at&&Date.parse(data.ends_at)<=Date.parse(data.starts_at))throw Error("O término precisa ser depois do início.");
   data.speaker_photo_url=$("editorPhoto").value.trim()||null;data.slides_url=$("editorSlides").value.trim()||null;
-  if(data.speaker_photo_url){let valid=false;try{const u=new URL(data.speaker_photo_url);valid=u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("Use um link https de imagem do Cloudinary.");}
+  if(data.speaker_photo_url&&!editorPhotoUrl(data.speaker_photo_url))throw Error("Foto: use /fotos/nome.webp (imagem publicada com o site) ou um link https do Cloudinary.");
   data.speaker_socials={};
   for(const [key,{id,label,hosts}] of Object.entries(editorSocials)){
     const url=editorLink($(id).value);if(!url)continue;

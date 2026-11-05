@@ -4,11 +4,14 @@ export function httpsUrl(value, hosts=null) {
   if (typeof value !== 'string' || value.length>2048) return false;
   try { const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&(!hosts||hosts.includes(u.hostname)); }catch{return false;}
 }
+// Foto do palestrante: link https do Cloudinary ou arquivo publicado com o site em /fotos/.
+export const localPhoto=value=>typeof value==='string'&&/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(value);
 export function validContent(data) {
   if (!data || typeof data!=='object' || Array.isArray(data) || Object.keys(data).some(k=>!contentFields.includes(k)))return false;
   for (const [key,max] of Object.entries(limits)) if(typeof data[key]!=='string'||data[key].length>max)return false;
   if(!data.name.trim()||!data.category.trim())return false;
-  for(const key of ['speaker_photo_url','slides_url'])if(data[key]!==null&&!httpsUrl(data[key],key==='speaker_photo_url'?['res.cloudinary.com']:null))return false;
+  if(data.speaker_photo_url!==null&&!localPhoto(data.speaker_photo_url)&&!httpsUrl(data.speaker_photo_url,['res.cloudinary.com']))return false;
+  if(data.slides_url!==null&&!httpsUrl(data.slides_url))return false;
   const date=data.event_date;
   if(date!==null&&(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date))return false;
   for(const key of ['starts_at','ends_at'])if(data[key]!==null&&(typeof data[key]!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(data[key])||!Number.isFinite(Date.parse(data[key]))))return false;

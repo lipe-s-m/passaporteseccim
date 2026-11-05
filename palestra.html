@@ -76,10 +76,12 @@ function render(data){
   }
   const starts=cleanText(data.starts_at),ends=cleanText(data.ends_at);
   if(starts){const startDate=new Date(starts);const endDate=ends?new Date(ends):null;if(Number.isFinite(startDate.getTime())){$("talkTime").textContent=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(startDate)+(endDate&&Number.isFinite(endDate.getTime())?` – ${new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(endDate)}`:"");$("timeCard").hidden=false;}}
-  const speaker=cleanText(data.speaker_name),bio=cleanText(data.speaker_bio),photo=safeHttps(cleanText(data.speaker_photo_url));
+  const speaker=cleanText(data.speaker_name),bio=cleanText(data.speaker_bio),rawPhoto=cleanText(data.speaker_photo_url);
+  // Foto publicada com o site (/fotos/...) ou link https do Cloudinary.
+  const photo=/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(rawPhoto)?rawPhoto:safeHttps(rawPhoto);
   if(speaker||bio||photo||Object.keys(data.speaker_socials??{}).length){$("speakerCard").hidden=false;$("speakerName").textContent=speaker||"Palestrante";$("speakerBio").textContent=bio;$("speakerBio").hidden=!bio;
     // Sem foto (ou se o link falhar), o cartão usa uma coluna só, sem espaço vazio.
-    const withPhoto=photo&&new URL(photo).hostname==="res.cloudinary.com";
+    const withPhoto=photo&&(photo.startsWith("/fotos/")||new URL(photo).hostname==="res.cloudinary.com");
     $("speakerCard").classList.toggle("no-photo",!withPhoto);
     if(withPhoto){$("speakerPhoto").src=photo;$("speakerPhoto").alt=speaker?`Foto de ${speaker}`:"Foto do palestrante";$("speakerPhotoWrap").hidden=false;}
     renderSocials(data.speaker_socials);

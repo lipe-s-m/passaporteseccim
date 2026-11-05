@@ -34,3 +34,10 @@ test('redes aceitam subdomínios oficiais e recusam domínios parecidos',()=>{
     ['tiktok','https://tiktok.com/@ana']]) assert.equal(socialUrl(key,url),false,url);
   assert(validContent({...content,speaker_socials:{linkedin:'https://br.linkedin.com/in/ana',youtube:'https://m.youtube.com/@ana'}}));
 });
+
+test('foto aceita arquivo publicado com o site em /fotos e recusa caminhos fora da pasta',()=>{
+  for(const url of ['/fotos/kafka-alem-das-filas.webp','/fotos/ana.jpg','/fotos/logo-2.png'])
+    assert(validContent({...content,speaker_photo_url:url}),url);
+  for(const url of ['/fotos/../index.html','/fotos/a.svg','fotos/a.webp','/fotos/Ana.webp','/outra/a.webp','//evil.test/fotos/a.webp','/fotos/a.webp?x=1'])
+    assert.equal(validContent({...content,speaker_photo_url:url}),false,url);
+});

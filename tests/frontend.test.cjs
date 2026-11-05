@@ -122,6 +122,13 @@ test('editor do sobre mim: bio com contador, redes completam https e erro aponta
   assert.deepEqual(sent.speaker_socials,{instagram:'https://instagram.com/ana',linkedin:'https://br.linkedin.com/in/ana',youtube:'https://m.youtube.com/@ana'});
   assert.equal(sent.slides_url,'https://docs.google.com/slides');
   assert.equal(a.get('editorLinkedin').value,'https://br.linkedin.com/in/ana');
+  a.get('editorPhoto').value='/fotos/../index.html';await a.submit('editorForm');
+  assert.match(a.get('editorMessage').textContent,/Foto: use \/fotos\/nome\.webp/);
+  a.get('editorPhoto').value='/fotos/mesa.webp';a.get('editorPhoto').listeners.input();
+  assert.equal(a.get('editorPhotoPreview').hidden,false);assert.equal(a.get('editorPhotoPreview').src,'/fotos/mesa.webp');
+  await a.submit('editorForm');
+  const withPhoto=a.calls.filter(c=>c.path.includes('/admin/activity-content')&&c.options.method==='POST').at(-1);
+  assert.equal(JSON.parse(withPhoto.options.body).content.speaker_photo_url,'/fotos/mesa.webp');
   a.click('logoutButton');assert.equal(a.get('editorBioCount').textContent,'0 / 4000 caracteres');
 });
 

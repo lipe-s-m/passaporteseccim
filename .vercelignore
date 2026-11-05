@@ -2,4 +2,6 @@
 !index.html
 !palestra.html
 !favicon.png
+!fotos
+!fotos/*.webp
 !vercel.json

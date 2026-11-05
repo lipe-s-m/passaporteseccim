@@ -366,3 +366,11 @@ O navegador envia as listas `add` e `remove`, e não a lista final, para não ap
 - **Página pública:** sem foto, ou se o link da foto falhar, o cartão do palestrante usa uma coluna só, sem espaço vazio nem ícone de imagem quebrada.
 - **Editor:** campo da mini bio maior, com contador de caracteres (limite de 4.000).
 - **Limitação conhecida:** cada palestra tem um único palestrante (nome, foto e redes). Em palestras com várias pessoas, como a mesa-redonda, os nomes e as apresentações podem ir no nome e na mini bio, mas só cabe uma foto.
+
+## Conteúdo dos palestrantes importado do Notion — 05/11/2026
+
+- Fonte: página **Captação** do Notion da organização (grade, bios, fotos e descrições). As bios foram mantidas como enviadas pelos palestrantes; só erros evidentes de digitação foram corrigidos. Bios ainda "a receber" (mesa-redonda) e a palestra sem dados ("Como é desenvolver um jogo?") ficaram sem texto.
+- Fotos publicadas com o site em `fotos/<id-da-palestra>.webp` (480×480, ~290 KB no total), recortadas a partir dos arquivos do Notion. Mesa-redonda e Iniciação Científica usam um mosaico com os participantes. `.vercelignore` publica apenas `fotos/*.webp`.
+- Migração `20261105050000_local_speaker_photos.sql`: a foto aceita link https do Cloudinary **ou** o caminho `/fotos/<nome>.webp|jpg|png`. A mesma regra vale no backend (`activity-content.mjs`), no editor e na página pública.
+- Migração `20261105051000_speaker_content.sql`: preenche descrição, palestrante, bio, foto, horários e redes das 15 palestras, incrementa a revisão do conteúdo e registra `importacao-notion` na auditoria privada. Os horários seguem a grade do Notion; a palestra da AWS fica na sexta, 06/11, 18h, como no formulário de inscrição.
+- Para trocar uma foto depois: salvar o arquivo em `fotos/`, publicar o site e informar o caminho no editor.
