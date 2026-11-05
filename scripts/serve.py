@@ -1,5 +1,6 @@
-"""Servidor de desenvolvimento: publica somente HTML e favicon, sem expor o repositório."""
+"""Servidor de desenvolvimento: publica só o que a Vercel publica (.vercelignore), sem expor o repositório."""
 import argparse
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -8,7 +9,21 @@ ROOT = Path(__file__).resolve().parents[1]
 FILES = {"/": ("index.html", "text/html; charset=utf-8"),
          "/index.html": ("index.html", "text/html; charset=utf-8"),
          "/palestra.html": ("palestra.html", "text/html; charset=utf-8"),
+         "/patrocinadores.html": ("patrocinadores.html", "text/html; charset=utf-8"),
          "/favicon.png": ("favicon.png", "image/png")}
+# Fotos e bibliotecas de QR: nomes simples, sem subir de pasta.
+PATTERNS = [(re.compile(r"^/fotos/(patrocinadores/)?[a-z0-9]+(-[a-z0-9]+)*\.(webp|png|jpg)$"), None),
+            (re.compile(r"^/vendor/[a-z0-9.-]+\.js$"), "text/javascript; charset=utf-8")]
+TYPES = {".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg"}
+
+
+def resolve(path):
+    if path in FILES:
+        return FILES[path]
+    for pattern, content_type in PATTERNS:
+        if pattern.match(path) and (ROOT / path[1:]).is_file():
+            return path[1:], content_type or TYPES[Path(path).suffix]
+    return None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -19,7 +34,7 @@ class Handler(BaseHTTPRequestHandler):
         self.serve_file(True)
 
     def serve_file(self, body):
-        file = FILES.get(urlsplit(self.path).path)
+        file = resolve(urlsplit(self.path).path)
         if not file:
             self.send_error(404)
             return
