@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHandler } from '../supabase/functions/passport/handler.mjs';
+import { issueQrToken } from '../supabase/functions/passport/qr-token.mjs';
 
 const editorial={name:'Palestra',category:'Dados',description:'Descrição',short_description:'',speaker_name:'Ana',speaker_bio:'',
   speaker_photo_url:null,event_date:'2026-11-04',starts_at:null,ends_at:null,slides_url:null,speaker_socials:{}};
@@ -13,9 +14,9 @@ const token = (changes = {}, header = {}) => [
   Buffer.from(JSON.stringify({ ...claims, ...changes })).toString('base64url'), 'signature'
 ].join('.');
 const account = { localId: 'user-a', email: 'Pessoa@Example.com', emailVerified: true, displayName: 'Pessoa teste', validSince: String(time - 100) };
-function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle, attendance, rpcs = {} } = {}) {
+function app({ user = account, googleStatus = 200, dbStatus = 200, projectId = 'seccim-test', ranking, raffle, attendance, rpcs = {}, qrSecret = '' } = {}) {
   const calls = [];
-  const handler = createHandler({ projectId, apiKey: 'AIza_test_key', supabaseUrl: 'https://db.supabase.co', serviceKey: 'ADMIN_SECRET',
+  const handler = createHandler({ projectId, apiKey: 'AIza_test_key', supabaseUrl: 'https://db.supabase.co', serviceKey: 'ADMIN_SECRET', qrSecret,
     now: () => time * 1000, fetcher: async (url, options) => {
       calls.push({ url, options });
       if (url.includes('identitytoolkit')) return Response.json({ users: user ? [user] : [] }, { status: googleStatus });
@@ -249,6 +250,48 @@ test('sorteio envia o patrocinador do brinde e recusa identificador inválido',a
   const r=await a.send(token(),drawsUrl,'POST',{date:'2026-11-05',prize:'Caneca',sponsor:'empresa'});
   assert.equal((await r.json()).draws[0].sponsor,'Empresa');
   assert.equal(JSON.parse(a.calls.at(-1).options.body).p_sponsor,'empresa');
+});
+
+const qrSecret = 'segredo-de-teste-com-mais-de-32-caracteres';
+const qrUrl = 'https://edge.test/passport/qr';
+const qrScanUrl = 'https://edge.test/passport/admin/attendance/qr';
+
+test('meu QR: exige conta confirmada e chave configurada, e identifica pelo cadastro verificado', async () => {
+  assert.equal((await app().send(token(), qrUrl)).status, 503);
+  const a = app({ qrSecret, rpcs: { get_firebase_passport: { participant: { id: participantId, full_name: 'Ana', email: 'privado' }, earnedBadges: [] } } });
+  assert.equal((await a.send('', qrUrl)).status, 401);
+  assert.equal((await a.send(token(), qrUrl, 'POST')).status, 405);
+  assert.equal((await app({ qrSecret, user: { ...account, emailVerified: false } }).send(token(), qrUrl)).status, 403);
+  const r = await a.send(token(), qrUrl + '?participant=outro');
+  assert.equal(r.status, 200); assert.equal(r.headers.get('Cache-Control'), 'no-store');
+  const data = await r.json();
+  assert(data.token.startsWith(`S1.${participantId}.`)); assert.equal(data.name, 'Ana'); assert.equal(data.periodSeconds, 30);
+  assert(!JSON.stringify(data).includes('privado'));
+  assert.equal(JSON.parse(a.calls.at(-1).options.body).p_uid, 'user-a');
+});
+
+test('leitor de QR: registra pela organização, informa repetição e recusa QR forjado ou vencido', async () => {
+  const { token: qr } = await issueQrToken(qrSecret, participantId, time * 1000);
+  const ok = { added: 1, removed: 0, participant: { id: participantId, name: 'Ana', email: 'privado@example.com' }, activities: ['mesa'] };
+  const a = app({ qrSecret, rpcs: { admin_person_attendances: ok } });
+  assert.equal((await a.send(token(), qrScanUrl, 'GET')).status, 405);
+  assert.equal((await app().send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr })).status, 503);
+  const r = await a.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr, participant: 'outro' });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { result: 'registered', person: { id: participantId, name: 'Ana' } });
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body), { p_uid: 'user-a', p_participant: participantId, p_add: ['mesa'], p_remove: [] });
+  const again = app({ qrSecret, rpcs: { admin_person_attendances: { ...ok, added: 0 } } });
+  assert.equal((await (await again.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr })).json()).result, 'already');
+  const old = (await issueQrToken(qrSecret, participantId, (time - 120) * 1000)).token;
+  const expired = await a.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: old });
+  assert.equal(expired.status, 410); assert.equal((await expired.json()).code, 'QR_EXPIRED');
+  const callsBefore = a.calls.length;
+  for (const body of [{ activity: 'mesa', token: qr.replace(participantId, '22222222-2222-4222-8222-222222222222') },
+    { activity: 'Mesa', token: qr }, { activity: 'mesa' }, { activity: 'mesa', token: 'https://evil.test' }])
+    assert.equal((await a.send(token(), qrScanUrl, 'POST', body)).status, 400, JSON.stringify(body));
+  assert(!a.calls.slice(callsBefore).some(c => c.url.includes('/admin_person_attendances')));
+  const denied = app({ qrSecret, dbStatus: 403, rpcs: { admin_person_attendances: { code: '42501' } } });
+  assert.equal((await denied.send(token(), qrScanUrl, 'POST', { activity: 'mesa', token: qr })).status, 403);
 });
 
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{

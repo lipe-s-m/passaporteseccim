@@ -9,4 +9,6 @@
 !fotos/patrocinadores/*.webp
 !fotos/patrocinadores/*.png
 !fotos/patrocinadores/*.jpg
+!vendor
+!vendor/*.js
 !vercel.json

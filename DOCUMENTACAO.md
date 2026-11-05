@@ -394,3 +394,19 @@ O botão **Inscrever-se nesta palestra**, no modal de cada selo, abre o Google F
 O mapeamento `registrationOptions`, em `index.html`, liga cada atividade à pergunta (`entry.*`) e ao texto exato da opção no formulário, inclusive travessões e espaços duplos. **Se alguém editar o texto de uma opção no Google Forms, é preciso atualizar o mapeamento**; caso contrário, o link abre sem a palestra marcada, mas o formulário continua funcionando. Na Meninas na Robótica vem marcada a Sessão 1, e o aviso no modal orienta a trocar para a Sessão 2 se for o caso.
 
 Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos × presentes por palestra), com CPF pedido apenas para o certificado, em tela própria, com armazenamento restrito e aviso de LGPD.
+
+## QR de presença — 05/11/2026
+
+**Participante:** o cartão **Meu QR de presença**, no passaporte, abre o código em tela cheia (fundo branco, nome e contagem regressiva). O QR identifica a pessoa pelo **ID do cadastro**, não pelo nome nem por apelido, e muda a cada 30 segundos. Uma captura repassada deixa de valer em até um minuto.
+
+**Organização:** em Organização, escolher a atividade e tocar em **📷 Ler QR codes**. O leitor usa a câmera traseira e lê em sequência, sem tocar na tela. A cada leitura mostra ✅ presença registrada, 🔁 já estava presente ou ❌/⏱️ inválido/expirado, com vibração. Cada QR é lido uma vez durante sua validade, para que a pessoa parada na frente da câmera não gere "já estava presente". A câmera desliga ao parar o leitor, trocar de atividade ou de aba, sair da conta ou minimizar o navegador. Quem não tiver o QR continua sendo registrado pela busca, pela lista de e-mails ou pelo cadastro na hora.
+
+**Segurança:** o token é `S1.<id>.<janela>.<assinatura>`, com HMAC-SHA256 truncado em 128 bits e comparação em tempo constante. É aceito na janela atual e na anterior, de 30 a 60 segundos. A chave `QR_SECRET` (mínimo de 32 caracteres) existe **apenas** nos secrets da Edge Function (`supabase secrets set`) e nunca no código ou no Git. Sem a chave, as rotas respondem 503 e o passaporte mostra um aviso. Trocar a chave invalida na hora todos os QRs em circulação. O registro usa a RPC `admin_person_attendances`, que confere a organização e não duplica selo nem chance no sorteio.
+
+**Rotas:** `GET /passport/qr` (conta confirmada; devolve token, expiração e nome) e `POST /passport/admin/attendance/qr` (`{activity, token}`; devolve `result` e `person`). Código em `qr-token.mjs`.
+
+**Bibliotecas** em `vendor/` (ver `vendor/README.md`): qrcode-generator 1.4.4 (MIT) para desenhar o QR e jsQR 1.4.0 (Apache-2.0) como leitor quando o navegador não tem `BarcodeDetector` (Safari/iPhone). Ambas são servidas pelo próprio site, carregadas só quando usadas e com integridade conferida no npm.
+
+**Testes:** `tests/qr-token.test.mjs`, rotas em `tests/passport.test.mjs` e telas em `tests/frontend.test.cjs`. Teste de ponta a ponta feito com câmera falsa no Chrome (vídeo gerado a partir de um QR real): o jsQR leu o token exato, enviou uma única vez em 9 segundos com o QR parado diante da câmera, e a captura da tela "Meu QR" decodificou no mesmo token emitido pelo servidor.
+
+**Preparado para o perfil:** a resposta da leitura traz um objeto `person` (hoje `id` e `name`) que pode ganhar apelido e foto sem mudar o leitor. Com a foto, o organizador confere o rosto na leitura, o que fecha de vez o uso do QR de outra pessoa. O cartão "Meu QR" pode passar a fazer parte da futura área **Meu perfil** (apelido, foto, bio, período). O apelido e a foto devem ficar numa tabela própria ligada a `participants.id`, sem alterar o nome oficial usado em certificados.

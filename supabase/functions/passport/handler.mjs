@@ -1,5 +1,6 @@
 import {validContent,publicContent} from './activity-content.mjs';
 import {validSponsor,publicSponsor,sponsorId} from './sponsor-content.mjs';
+import {issueQrToken,readQrToken,qrSecretValid,QR_PERIOD_SECONDS} from './qr-token.mjs';
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -35,7 +36,7 @@ function claimsFrom(token) {
   return decode(payload);
 }
 
-export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetcher = fetch, now = () => Date.now() }) {
+export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, qrSecret = '', fetcher = fetch, now = () => Date.now() }) {
   return async request => {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     const url = new URL(request.url);
@@ -47,7 +48,9 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     const person = url.pathname.endsWith('/passport/admin/person');
     const content = url.pathname.endsWith('/passport/admin/activity-content');
     const sponsors = url.pathname.endsWith('/passport/admin/sponsors');
-    const methods = faq ? ['GET','POST','PATCH','DELETE'] : bulkAttendance ? ['POST'] : attendance ? ['GET','POST','DELETE']
+    const myQr = url.pathname.endsWith('/passport/qr');
+    const qrScan = url.pathname.endsWith('/passport/admin/attendance/qr');
+    const methods = faq ? ['GET','POST','PATCH','DELETE'] : (bulkAttendance || qrScan) ? ['POST'] : attendance ? ['GET','POST','DELETE']
       : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content || sponsors) ? ['GET','POST'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
@@ -118,6 +121,32 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
           pendingAttendances:data.pendingAttendances
         });
       } catch { return response(503,'RAFFLE_UNAVAILABLE'); }
+    }
+
+    // Cadastro da conta verificada: cria ou vincula pelo e-mail confirmado, como no passaporte.
+    const passportRpc = async () => {
+      const result = await fetcher(`${supabaseUrl}/rest/v1/rpc/get_firebase_passport`, {
+        method: "POST", redirect: "error", signal: AbortSignal.timeout(8000),
+        headers: { "Content-Type": "application/json", apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({ p_uid: user.localId, p_email: user.email.trim().toLowerCase(),
+          p_name: typeof user.displayName === "string" ? user.displayName.slice(0, 120) : "Participante" })
+      });
+      if (!result.ok) return { error: response(result.status === 409 ? 409 : 503, "PASSPORT_UNAVAILABLE") };
+      const passport = await result.json();
+      if (!passport?.participant?.id || !passport.participant.full_name || !Array.isArray(passport.earnedBadges)) {
+        return { error: response(503, "PASSPORT_UNAVAILABLE") };
+      }
+      return { passport };
+    };
+
+    if (myQr) {
+      if (!qrSecretValid(qrSecret)) return response(503, 'QR_NOT_CONFIGURED');
+      try {
+        const { passport, error } = await passportRpc();
+        if (error) return error;
+        const { token, expiresAt } = await issueQrToken(qrSecret, passport.participant.id, now());
+        return response(200, null, { token, expiresAt, periodSeconds: QR_PERIOD_SECONDS, name: passport.participant.full_name });
+      } catch { return response(503, 'QR_UNAVAILABLE'); }
     }
 
     // Rotas administrativas novas: a permissão é sempre conferida no banco pela RPC.
@@ -210,6 +239,28 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
         return response(200,null,{ created:data.created === true, changed:data.changed === true,
           participant:{ id:p.id, name:p.name, email:p.email, linked:p.linked === true } });
       } catch { return response(503,'PARTICIPANT_UNAVAILABLE'); }
+    }
+
+    if (qrScan) {
+      if (!qrSecretValid(qrSecret)) return response(503, 'QR_NOT_CONFIGURED');
+      let input, scanned;
+      try {
+        input = await readJson(request, 2000);
+        if (!input || typeof input.activity !== 'string' || input.activity.length > 200 ||
+          !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(input.activity) || typeof input.token !== 'string' || input.token.length > 200) throw Error();
+        scanned = await readQrToken(qrSecret, input.token, now());
+      } catch { return response(400, 'QR_INVALID'); }
+      if (scanned.error) return response(scanned.error === 'QR_EXPIRED' ? 410 : 400, scanned.error);
+      try {
+        // A mesma RPC das presenças em lote: confere a organização e não duplica selo nem chance.
+        const { data, error } = await adminRpc('admin_person_attendances', { p_participant:scanned.participantId,
+          p_add:[input.activity], p_remove:[] }, 'ATTENDANCE_UNAVAILABLE');
+        if (error) return error;
+        if (!data?.participant?.id || !Array.isArray(data.activities)) return response(503, 'ATTENDANCE_UNAVAILABLE');
+        // Objeto "pessoa" pensado para crescer com o perfil (apelido, foto) sem mudar o leitor.
+        return response(200, null, { result: data.added > 0 ? 'registered' : 'already',
+          person: { id: data.participant.id, name: data.participant.name } });
+      } catch { return response(503, 'ATTENDANCE_UNAVAILABLE'); }
     }
 
     if (person) {
@@ -364,17 +415,8 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     try {
       // UID, nome e e-mail vêm exclusivamente da resposta autenticada do Google.
       // Query string, corpo e claims de papel enviados pelo cliente são ignorados.
-      const result = await fetcher(`${supabaseUrl}/rest/v1/rpc/get_firebase_passport`, {
-        method: "POST", redirect: "error", signal: AbortSignal.timeout(8000),
-        headers: { "Content-Type": "application/json", apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-        body: JSON.stringify({ p_uid: user.localId, p_email: user.email.trim().toLowerCase(),
-          p_name: typeof user.displayName === "string" ? user.displayName.slice(0, 120) : "Participante" })
-      });
-      if (!result.ok) return response(result.status === 409 ? 409 : 503, "PASSPORT_UNAVAILABLE");
-      const passport = await result.json();
-      if (!passport?.participant?.id || !passport.participant.full_name || !Array.isArray(passport.earnedBadges)) {
-        return response(503, "PASSPORT_UNAVAILABLE");
-      }
+      const { passport, error } = await passportRpc();
+      if (error) return error;
       // Resposta com campos permitidos; sem e-mail, tokens, hashes ou credenciais.
       return response(200, null, { participant: { id: passport.participant.id, full_name: passport.participant.full_name },
         earnedBadges: passport.earnedBadges.filter(id => typeof id === "string") });

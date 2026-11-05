@@ -33,7 +33,7 @@ function app({ configured = true, authConfigured = true, handle, storage = new M
   }
   const get = id => { if (!nodes.has(id)) nodes.set(id, element()); return nodes.get(id); };
   document = { body: element(), activeElement: null, title: '', listeners: {},
-    getElementById: get, createElement: element, querySelectorAll: () => [],
+    getElementById: get, createElement: element, createElementNS: (ns, tag) => element(), querySelectorAll: () => [],
     addEventListener(k, fn) { this.listeners[k] = fn; } };
   const publicData = path => path.includes('/site_content') ? [{ key: 'page_title', value: 'Evento teste' }]
     : path.includes('/activities') ? [{ id: 'mesa', name: '<img src=x onerror=alert(1)>', description: 'Descrição', category: 'Categoria' }] : [];
@@ -42,7 +42,7 @@ function app({ configured = true, authConfigured = true, handle, storage = new M
     static createObjectURL(blob){blobs.push(blob);return 'blob:'+blobs.length;}
     static revokeObjectURL(){}
   }
-  const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout,
+  const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout, setInterval, clearInterval,
     location:{hostname:'localhost'},
     sessionStorage: {getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
     confirm: () => true, Blob, atob, matchMedia: () => ({ matches: true }),
@@ -650,4 +650,72 @@ test('inscrição abre o formulário com nome, e-mail e a palestra marcados, sem
   assert.match(a.get('registrationHint').textContent, /seu nome, e-mail/);
   a.click('logoutButton');
   assert.equal(new URL(a.run('registrationUrl("kafka-alem-das-filas")')).searchParams.get('entry.157411751'), null);
+});
+
+const fakeQrLib = 'globalThis.qrcode = () => ({ addData(value) { globalThis.lastQrData = value; }, make() {}, getModuleCount: () => 3, isDark: (r, c) => r === c });';
+
+test('meu QR: mostra o código assinado pelo servidor, renova sozinho e some no logout', async () => {
+  let n = 0;
+  const a = app({ handle: (path, options, pub) => {
+    if (path.includes('/passport/qr')) { n++; return { token: `S1.11111111-1111-4111-8111-111111111111.${n}.AAAAAAAAAAAAAAAAAAAAAA`, expiresAt: Date.now() + 1500, periodSeconds: 30, name: 'Ana <b>' }; }
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+  await a.start(); a.run(fakeQrLib);
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  await a.click('qrOpen');
+  assert.equal(a.get('qrBackdrop').hidden, false); assert.equal(a.get('pageContent').inert, true);
+  assert.equal(a.get('qrName').textContent, 'Ana <b>');
+  assert.equal(a.run('lastQrData'), 'S1.11111111-1111-4111-8111-111111111111.1.AAAAAAAAAAAAAAAAAAAAAA');
+  const svg = a.get('qrCode').children[0]; assert.equal(svg.children.length, 2);
+  assert.equal(svg.children[1].attributes.d, 'M4 4h1v1h-1zM5 5h1v1h-1zM6 6h1v1h-1z');
+  assert.match(a.get('qrTimer').textContent, /Atualiza sozinho em \d s/);
+  assert.equal(a.calls.find(c => c.path === '/functions/v1/passport/qr').options.headers.Authorization, 'Bearer jwt');
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  assert.equal(a.run('lastQrData').split('.')[2], '2', 'renovou depois de expirar');
+  a.click('logoutButton');
+  assert.equal(a.get('qrBackdrop').hidden, true); assert.equal(a.get('qrCode').children.length, 0);
+  const before = n; await new Promise(resolve => setTimeout(resolve, 1800)); assert.equal(n, before, 'parou de renovar após sair');
+});
+
+test('meu QR: avisa quando o servidor ainda não tem a chave configurada', async () => {
+  const a = app({ handle: (path, options, pub) => path.includes('/passport/qr') ? { status: 503, code: 'QR_NOT_CONFIGURED' }
+    : path.includes('/functions/v1/passport') ? passport : pub(path) });
+  await a.start(); a.run(fakeQrLib);
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  await a.click('qrOpen');
+  assert.match(a.get('qrMessage').textContent, /ainda não está disponível/); assert.equal(a.get('qrCode').children.length, 0);
+  a.click('qrClose'); assert.equal(a.get('qrBackdrop').hidden, true); assert.equal(a.get('pageContent').inert, false);
+});
+
+test('leitor de QR: registra, avisa repetição, ignora a mesma leitura seguida e explica erros', async () => {
+  const replies = [{ result: 'registered', person: { id: 'p', name: 'Ana' } }, { result: 'already', person: { id: 'p', name: 'Ana' } },
+    { status: 410, code: 'QR_EXPIRED' }, { status: 400, code: 'QR_INVALID' }, { status: 500 }];
+  const sent = [];
+  const b = app({ handle: (path, options, pub) => {
+    if (path.includes('/admin/attendance/qr')) { sent.push(JSON.parse(options.body)); return replies.shift(); }
+    if (path.includes('/admin/sponsors')) return { sponsor: null, sponsors: [] };
+    if (path.includes('/passport/admin/attendance')) return path.includes('overview') ? overview : { participants: [], total: 0, attendees: [] };
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+  await login(b);
+  b.get('adminActivity').value = 'mesa'; b.get('adminActivity').listeners.change();
+  assert.equal(b.get('scanOpen').disabled, false);
+  await b.run('handleScan("S1.um")');
+  assert.deepEqual(sent[0], { activity: 'mesa', token: 'S1.um' });
+  assert.equal(b.get('scanResult').textContent, '✅ Ana — presença registrada'); assert.match(b.get('scanResult').className, /ok/);
+  assert.match(b.get('scanCount').textContent, /^1 presença registrada/);
+  await b.run('handleScan("S1.um")'); assert.equal(sent.length, 1, 'mesma leitura em seguida é ignorada');
+  await b.run('handleScan("S1.dois")'); assert.equal(b.get('scanResult').textContent, '🔁 Ana já estava presente');
+  await b.run('handleScan("S1.tres")'); assert.match(b.get('scanResult').textContent, /expirado/);
+  await b.run('handleScan("S1.quatro")'); assert.match(b.get('scanResult').textContent, /inválido/);
+  await b.run('handleScan("S1.cinco")'); assert.match(b.get('scanResult').textContent, /Falha de conexão/);
+  assert.equal(b.run('scanState.seen.has("S1.cinco")'), false, 'falha de rede permite tentar a mesma leitura de novo');
+  b.run('scanState.seen.set("S1.velho", Date.now() - 61000)'); await b.run('handleScan("S1.um")');
+  assert.equal(sent.length, 5, 'QR lido há menos de 60 s continua ignorado');
+  assert.equal(b.run('scanState.seen.has("S1.velho")'), false, 'leituras antigas são esquecidas');
+  await b.run('handleScan("https://site-qualquer.test")'); assert.match(b.get('scanResult').textContent, /não é do passaporte/);
+  assert.equal(sent.length, 5, 'QR de fora não chega ao servidor');
+  b.get('adminActivity').value = ''; await b.run('handleScan("S1.seis")'); assert.equal(sent.length, 5, 'sem atividade não registra');
 });

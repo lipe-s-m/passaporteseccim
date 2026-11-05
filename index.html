@@ -332,6 +332,23 @@ main{padding:32px 0 64px}
 .sponsor-logo{display:flex;align-items:center;justify-content:center;width:150px;height:76px;padding:12px;border-radius:14px;background:#f4f5f7;border:2px solid transparent;transition:transform .2s,border-color .2s}
 .sponsor-logo:hover,.sponsor-logo:focus-visible{transform:translateY(-2px);border-color:#b9aaff;outline:none}
 .sponsor-logo img{max-width:100%;max-height:100%;object-fit:contain}.sponsor-logo span{color:#1b1d24;font-weight:700;font-size:14px}
+/* QR de presença: cartão do participante, tela cheia com o código e leitor da organização */
+.qr-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-top:20px;padding:20px 22px;border-radius:20px;border:1px solid rgba(34,227,154,.35);background:linear-gradient(135deg,rgba(34,227,154,.12),rgba(121,100,245,.12))}
+.qr-card h2{margin:0 0 6px;font-size:22px}.qr-card p{margin:0;color:var(--muted);font-size:15px;line-height:1.5;max-width:52ch}
+.qr-open{min-height:52px;font-size:17px;font-weight:700;flex:1 1 220px;max-width:320px}
+.qr-backdrop{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,10,14,.92)}
+.qr-sheet{position:relative;width:min(420px,100%);padding:22px 20px 20px;border-radius:24px;background:#fff;color:#111a20;text-align:center}
+.qr-sheet h2{margin:4px 44px 12px;font-size:22px;line-height:1.3;overflow-wrap:anywhere;color:#111a20}
+.qr-code{width:100%;aspect-ratio:1;display:grid;place-items:center}.qr-code svg{width:100%;height:100%;display:block}
+.qr-timer{margin:10px 0 0;font-size:15px;color:#3d4b55;font-weight:600}.qr-tip{margin:6px 0 0;font-size:14px;color:#55636c}
+.qr-sheet .page-message{color:#3d4b55;margin:12px 0 0}.qr-sheet .page-message.error{color:#b42318}
+.qr-close{position:absolute;right:12px;top:12px;width:44px;height:44px;border:0;border-radius:12px;background:#eef1f3;color:#111a20;font-size:24px;cursor:pointer}
+.qr-close:focus-visible{outline:3px solid #7964f5;outline-offset:2px}
+.scan-card{border-color:rgba(34,227,154,.4)}.scan-view{position:relative;overflow:hidden;border-radius:16px;background:#000;aspect-ratio:1;max-width:440px;margin:12px auto}
+.scan-view video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-frame{position:absolute;inset:18%;border:3px solid rgba(34,227,154,.9);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+.scan-result{min-height:64px;margin:8px 0;padding:14px 16px;border-radius:14px;font-size:19px;font-weight:700;line-height:1.35;text-align:center;background:rgba(255,255,255,.06)}
+.scan-result.ok{background:rgba(34,227,154,.18);color:#c9ffe8}.scan-result.warn{background:rgba(255,209,102,.16);color:#ffe7ad}.scan-result.error{background:rgba(255,120,120,.16);color:#ffd0cf}
 </style>
 </head>
 <body>
@@ -393,6 +410,10 @@ main{padding:32px 0 64px}
         <div class="progress-bottom"><span id="progressCount"></span></div>
       </section>
     </article>
+  </section>
+  <section id="qrCard" class="qr-card" aria-labelledby="qrCardTitle">
+    <div><h2 id="qrCardTitle">Meu QR de presença</h2><p>Mostre este código na entrada de cada palestra para a organização registrar sua presença na hora.</p></div>
+    <button id="qrOpen" class="action-button qr-open" type="button">Mostrar meu QR</button>
   </section>
   <section id="colecao" class="badge-collection">
     <div class="section-head"><div><div class="eyebrow" data-copy="collection_eyebrow"></div><h2 data-copy="collection_title">Coleção de Selos</h2><p data-copy="collection_description"></p></div><span class="collection-meta" id="collectionMeta"></span></div>
@@ -495,6 +516,15 @@ main{padding:32px 0 64px}
     </details>
     <div class="section-head"><div><div class="eyebrow">Organização</div><h2 id="adminTitle">Registro de presenças</h2><p>Escolha a atividade em andamento, busque a pessoa pelo nome ou e-mail e registre a presença.</p></div><span class="collection-meta" id="adminCount"></span></div>
     <label class="faq-field" for="adminActivity">Atividade<select id="adminActivity"><option value="">Selecione uma atividade</option></select></label>
+    <div class="faq-controls"><button id="scanOpen" class="action-button" type="button" disabled>📷 Ler QR codes</button></div>
+    <section id="scanPanel" class="faq-card scan-card" aria-labelledby="scanTitle" hidden>
+      <h3 id="scanTitle">Leitor de QR</h3>
+      <p id="scanActivity" class="faq-hint"></p>
+      <div class="scan-view"><video id="scanVideo" playsinline muted></video><div class="scan-frame" aria-hidden="true"></div></div>
+      <p id="scanResult" class="scan-result idle" role="status" aria-live="assertive"></p>
+      <p id="scanCount" class="faq-hint"></p>
+      <button id="scanClose" class="action-button secondary" type="button">Parar leitor</button>
+    </section>
     <form id="bulkAttendanceForm" class="faq-card bulk-attendance">
       <h3>Registrar lista de e-mails</h3>
       <p class="faq-hint">Cole até 100 e-mails, separados por espaço, vírgula, ponto e vírgula ou quebra de linha. Só serão registrados e-mails já cadastrados no passaporte.</p>
@@ -563,6 +593,16 @@ main{padding:32px 0 64px}
     <a class="social-link" href="https://www.linkedin.com/in/seccim/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v6M8 7.5v.01M12 17v-6M12 13.5a2.5 2.5 0 0 1 5 0V17"/></svg><span>LinkedIn · SECCIM</span></a>
   </div>
 </footer>
+</div>
+<div id="qrBackdrop" class="qr-backdrop" role="dialog" aria-modal="true" aria-labelledby="qrName" hidden>
+  <div class="qr-sheet">
+    <button id="qrClose" class="qr-close" type="button" aria-label="Fechar">×</button>
+    <h2 id="qrName">Participante</h2>
+    <div id="qrCode" class="qr-code"></div>
+    <p id="qrTimer" class="qr-timer" aria-live="off"></p>
+    <p id="qrMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+    <p class="qr-tip">Aumente o brilho da tela para a leitura ser mais rápida. O código muda sozinho: não vale enviar print.</p>
+  </div>
 </div>
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
   <div class="modal">
@@ -790,6 +830,7 @@ function clearPassport() {
   $("rankingSummary").textContent = "";
   $("rankingRefresh").disabled = false;
   message("rankingMessage", "");
+  closeMyQr();
   resetFaq();
   resetAdmin();
   closeModal();
@@ -1083,6 +1124,7 @@ $("modalBackdrop").addEventListener("click", event => {
   if (event.target === $("modalBackdrop")) closeModal();
 });
 document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !$("qrBackdrop").hidden) { closeMyQr(); return; }
   if (!$("modalBackdrop").classList.contains("open")) return;
   if (event.key === "Escape") closeModal();
   if (event.key === "Tab") {
@@ -1099,6 +1141,7 @@ function switchSection(faq) {
     $("passportPanel").hidden = true; $("faqPanel").hidden = true; $("rankingPanel").hidden = true; $("adminPanel").hidden = true;
     return;
   }
+  if (section !== "admin") closeScanner();
   for (const name of ["passport","faq","ranking","admin"]) {
     $(name + "Panel").hidden = section !== name;
     $(name + "Tab").setAttribute("aria-pressed", String(section === name));
@@ -1465,8 +1508,195 @@ async function saveSponsor(event) {
   }
 }
 
+// Bibliotecas de QR ficam em vendor/ e só carregam quando alguém usa o QR (ver vendor/README.md).
+const scriptLoads = new Map();
+function loadScript(src, globalName) {
+  if (globalThis[globalName]) return Promise.resolve();
+  if (!scriptLoads.has(src)) scriptLoads.set(src, new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src; script.async = true;
+    script.onload = () => globalThis[globalName] ? resolve() : reject(Error("Biblioteca indisponível."));
+    script.onerror = () => { scriptLoads.delete(src); reject(Error("Biblioteca indisponível.")); };
+    document.head.append(script);
+  }));
+  return scriptLoads.get(src);
+}
+
+// ---- Meu QR (participante) ----
+// O QR identifica a pessoa pelo cadastro e é assinado pelo servidor; renova a cada 30 s
+// para que uma captura de tela repassada deixe de valer rapidamente.
+const qrState = { version:0, refresh:null, tick:null, expiresAt:0, focus:null };
+
+function drawQr(token) {
+  const qr = qrcode(0, "M"); qr.addData(token); qr.make();
+  const size = qr.getModuleCount(), margin = 4, ns = "http://www.w3.org/2000/svg";
+  let path = "";
+  for (let row = 0; row < size; row++) for (let col = 0; col < size; col++)
+    if (qr.isDark(row, col)) path += `M${col + margin} ${row + margin}h1v1h-1z`;
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size + margin * 2} ${size + margin * 2}`);
+  svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "QR de presença");
+  svg.setAttribute("shape-rendering", "crispEdges");
+  const background = document.createElementNS(ns, "rect");
+  background.setAttribute("width", "100%"); background.setAttribute("height", "100%"); background.setAttribute("fill", "#fff");
+  const dark = document.createElementNS(ns, "path"); dark.setAttribute("d", path); dark.setAttribute("fill", "#000");
+  svg.append(background, dark);
+  $("qrCode").replaceChildren(svg);
+}
+
+function qrCountdown() {
+  const seconds = Math.max(0, Math.ceil((qrState.expiresAt - Date.now()) / 1000));
+  $("qrTimer").textContent = seconds ? `Atualiza sozinho em ${seconds} s` : "Atualizando...";
+}
+
+async function refreshQr() {
+  const version = ++qrState.version;
+  clearTimeout(qrState.refresh);
+  try {
+    const token = await accessToken();
+    if (version !== qrState.version) return;
+    const data = await request("/functions/v1/passport/qr", { token });
+    if (version !== qrState.version) return;
+    if (typeof data?.token !== "string" || !data.token.startsWith("S1.")) throw Error();
+    await loadScript("vendor/qrcode-generator-1.4.4.js", "qrcode");
+    if (version !== qrState.version) return;
+    drawQr(data.token);
+    $("qrName").textContent = data.name || $("participantName").textContent;
+    message("qrMessage", "");
+    // Relógio do celular pode estar adiantado ou atrasado: sem prazo plausível, renova em 25 s.
+    const remaining = Number(data.expiresAt) - Date.now();
+    const wait = remaining > 1000 && remaining <= 60000 ? remaining + 300 : 25000;
+    qrState.expiresAt = Date.now() + wait;
+    qrState.refresh = setTimeout(refreshQr, wait);
+    qrCountdown();
+  } catch (error) {
+    if (version !== qrState.version) return;
+    $("qrCode").replaceChildren();
+    message("qrMessage", error.status === 503 ? "O QR de presença ainda não está disponível. Procure a organização para registrar pelo nome."
+      : "Não foi possível gerar seu QR. Confira a internet; tentando de novo em instantes.", true);
+    qrState.expiresAt = 0; $("qrTimer").textContent = "";
+    qrState.refresh = setTimeout(refreshQr, 5000);
+  }
+}
+
+function openMyQr() {
+  if (!state.session || !faqState.ready) return;
+  qrState.focus = document.activeElement;
+  $("qrBackdrop").hidden = false; $("pageContent").inert = true; document.body.style.overflow = "hidden";
+  $("qrName").textContent = $("participantName").textContent; $("qrCode").replaceChildren();
+  $("qrTimer").textContent = ""; message("qrMessage", "Gerando seu QR...");
+  clearInterval(qrState.tick); qrState.tick = setInterval(qrCountdown, 1000);
+  $("qrClose").focus();
+  return refreshQr();
+}
+
+function closeMyQr() {
+  qrState.version++; clearTimeout(qrState.refresh); clearInterval(qrState.tick);
+  const wasOpen = !$("qrBackdrop").hidden;
+  $("qrBackdrop").hidden = true; $("qrCode").replaceChildren(); $("qrTimer").textContent = ""; message("qrMessage", "");
+  if (wasOpen) { $("pageContent").inert = false; document.body.style.overflow = ""; if (qrState.focus?.isConnected) qrState.focus.focus(); }
+  qrState.focus = null;
+}
+
+// ---- Leitor de QR (organização) ----
+const scanState = { version:0, stream:null, detector:null, timer:null, busy:false, seen:new Map(), count:0, canvas:null };
+
+function scanResult(kind, text) {
+  $("scanResult").textContent = text;
+  $("scanResult").className = `scan-result ${kind}`;
+  globalThis.navigator?.vibrate?.(kind === "ok" ? 80 : kind === "warn" ? [40, 40, 40] : [120, 60, 120]);
+}
+
+async function readFrame() {
+  const video = $("scanVideo");
+  if (!video.videoWidth) return "";
+  if (scanState.detector) return (await scanState.detector.detect(video))[0]?.rawValue ?? "";
+  // Reserva para navegadores sem BarcodeDetector (Safari no iPhone): jsQR sobre um quadro reduzido.
+  const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+  const width = Math.round(video.videoWidth * scale), height = Math.round(video.videoHeight * scale);
+  scanState.canvas ??= document.createElement("canvas");
+  scanState.canvas.width = width; scanState.canvas.height = height;
+  const context = scanState.canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(video, 0, 0, width, height);
+  return jsQR(context.getImageData(0, 0, width, height).data, width, height, { inversionAttempts: "dontInvert" })?.data ?? "";
+}
+
+async function handleScan(value) {
+  const activity = $("adminActivity").value;
+  // A pessoa costuma ficar parada na frente da câmera: cada QR é lido uma vez durante a sua
+  // validade (até 60 s), para não aparecer "já estava presente" logo depois do registro.
+  const now = Date.now();
+  for (const [seen, at] of scanState.seen) if (now - at > 60000) scanState.seen.delete(seen);
+  if (!value || scanState.busy || !activity || scanState.seen.has(value)) return;
+  scanState.seen.set(value, now);
+  if (!value.startsWith("S1.")) { scanResult("error", "❌ Esse QR não é do passaporte da SECCIM."); return; }
+  const version = scanState.version;
+  scanState.busy = true;
+  try {
+    const token = await accessToken();
+    const data = await request("/functions/v1/passport/admin/attendance/qr", { method: "POST", token, body: { activity, token: value } });
+    if (version !== scanState.version) return;
+    const name = data?.person?.name || "Participante";
+    if (data?.result === "registered") { scanState.count++; scanResult("ok", `✅ ${name} — presença registrada`); }
+    else scanResult("warn", `🔁 ${name} já estava presente`);
+    $("scanCount").textContent = `${scanState.count} ${scanState.count === 1 ? "presença registrada" : "presenças registradas"} por QR nesta sessão`;
+    loadAttendees();
+  } catch (error) {
+    if (version !== scanState.version) return;
+    if (error.status === 410) scanResult("error", "⏱️ QR expirado: peça para a pessoa fechar e abrir “Meu QR” de novo.");
+    else if (error.status === 400) scanResult("error", "❌ QR inválido. Registre pela busca por nome.");
+    else if (error.status === 403) scanResult("error", "Sua conta não tem permissão para registrar presenças.");
+    else { scanState.seen.delete(value); scanResult("error", "⚠️ Falha de conexão. Aponte de novo para tentar."); }
+  } finally { if (version === scanState.version) scanState.busy = false; }
+}
+
+function scanLoop(version) {
+  scanState.timer = setTimeout(async () => {
+    if (version !== scanState.version) return;
+    try { const value = await readFrame(); if (version === scanState.version && value) await handleScan(value); } catch {}
+    if (version === scanState.version) scanLoop(version);
+  }, 200);
+}
+
+async function openScanner() {
+  const activity = adminState.activities.find(a => a.id === $("adminActivity").value);
+  if (!activity || !state.session) return;
+  closeScanner();
+  const version = scanState.version;
+  $("scanPanel").hidden = false; $("scanOpen").hidden = true;
+  $("scanActivity").textContent = `Registrando presença em: ${activity.name}`;
+  scanState.count = 0; $("scanCount").textContent = "";
+  scanResult("idle", "Abrindo a câmera...");
+  try {
+    if (!globalThis.navigator?.mediaDevices?.getUserMedia) throw Object.assign(Error(), { code: "unsupported" });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    if (version !== scanState.version) { stream.getTracks().forEach(track => track.stop()); return; }
+    scanState.stream = stream;
+    $("scanVideo").srcObject = stream; await $("scanVideo").play();
+    const nativeQr = "BarcodeDetector" in globalThis && (await BarcodeDetector.getSupportedFormats?.().catch(() => []))?.includes("qr_code");
+    if (nativeQr) scanState.detector = new BarcodeDetector({ formats: ["qr_code"] });
+    else await loadScript("vendor/jsqr-1.4.0.js", "jsQR");
+    if (version !== scanState.version) return;
+    scanResult("idle", "Aponte para o QR na tela do participante.");
+    scanLoop(version);
+  } catch (error) {
+    if (version !== scanState.version) return;
+    scanResult("error", error?.name === "NotAllowedError" ? "Permita o uso da câmera nas configurações do navegador e tente de novo."
+      : error?.code === "unsupported" ? "Este navegador não permite usar a câmera. Use a busca por nome."
+      : "Não foi possível abrir a câmera. Use a busca por nome.");
+  }
+}
+
+function closeScanner() {
+  scanState.version++; clearTimeout(scanState.timer);
+  scanState.stream?.getTracks?.().forEach(track => track.stop());
+  Object.assign(scanState, { stream:null, detector:null, busy:false }); scanState.seen.clear();
+  $("scanVideo").srcObject = null; $("scanPanel").hidden = true; $("scanOpen").hidden = false;
+}
+
 function resetAdmin() {
   resetEditor();
+  closeScanner();
   adminState.version++; adminState.listVersion++; adminState.searchVersion++;
   adminState.activities = []; adminState.busy = false;
   clearTimeout(adminState.timer);
@@ -1523,6 +1753,7 @@ function renderAdminActivities() {
   $("adminActivity").value = adminState.activities.some(a => a.id === selected) ? selected : "";
   $("adminSearch").disabled = !$("adminActivity").value;
   $("walkinToggle").disabled = !$("adminActivity").value;
+  $("scanOpen").disabled = !$("adminActivity").value;
   const dates = [...new Set(adminState.activities.filter(a => a.raffleEligible && a.eventDate).map(a => a.eventDate))].sort();
   const day = $("raffleDate").value;
   $("raffleDate").replaceChildren(...dates.map(date => option(date, dayLabel(date))));
@@ -1994,6 +2225,12 @@ async function deleteDraw(draw) {
 }
 
 $("walkinToggle").addEventListener("click", openWalkin);
+$("qrOpen").addEventListener("click", openMyQr);
+$("qrClose").addEventListener("click", closeMyQr);
+$("scanOpen").addEventListener("click", openScanner);
+$("scanClose").addEventListener("click", closeScanner);
+// Câmera desligada ao minimizar ou trocar de aplicativo: privacidade e bateria.
+document.addEventListener("visibilitychange", () => { if (document.hidden) closeScanner(); });
 $("sponsorSelect").addEventListener("change", () => {
   if (sponsorState.dirty && !confirm("Descartar as alterações ainda não salvas?")) { $("sponsorSelect").value = sponsorState.current ?? "__new"; return; }
   const id = $("sponsorSelect").value;
@@ -2031,12 +2268,14 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 $("adminActivity").addEventListener("change", () => {
+  closeScanner();
   closeWalkin();
   clearBulkAttendance();
   $("bulkAttendanceEmails").disabled=!$("adminActivity").value;
   $("bulkAttendanceSubmit").disabled=!$("adminActivity").value;
   $("adminSearch").disabled = !$("adminActivity").value;
   $("walkinToggle").disabled = !$("adminActivity").value;
+  $("scanOpen").disabled = !$("adminActivity").value;
   $("adminSearch").value = ""; $("adminResults").replaceChildren(); message("adminMessage", "");
   loadAttendees();
   if ($("adminActivity").value) $("adminSearch").focus();
