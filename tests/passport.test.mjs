@@ -448,3 +448,23 @@ test('moderação de perfis: busca e remove pela organização, apagando a foto 
   const denied = profileApp({ rpc:{ admin_profiles:{ code:'42501' } }, rpcStatus:{ admin_profiles:403 } });
   assert.equal((await denied.send('GET', '/admin/profiles?q=ana')).status, 403);
 });
+
+test('imagens do site: só a organização envia, tipo pelo conteúdo e link público do bucket site-images', async () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(300).fill(1)]);
+  const a = profileApp({ rpc:{ admin_check:true } });
+  assert.equal((await a.send('PUT', '/admin/images?kind=avatars', png, 'image/png')).status, 400, 'pasta fora da lista');
+  assert.equal((await a.send('PUT', '/admin/images?kind=speakers', new TextEncoder().encode('<svg onload=alert(1)>'.padEnd(300)), 'image/svg+xml')).status, 400);
+  assert.equal((await a.send('PUT', '/admin/images?kind=sponsors', new Uint8Array(1537 * 1024).fill(0xff), 'image/jpeg')).status, 413);
+  assert.equal((await a.send('GET', '/admin/images?kind=speakers')).status, 405);
+  assert(!a.calls.some(c => c.url.includes('/object/site-images/')));
+  const r = await a.send('PUT', '/admin/images?kind=sponsors', png, 'image/webp');
+  assert.equal(r.status, 200);
+  const { url } = await r.json();
+  assert.match(url, /^https:\/\/db\.supabase\.co\/storage\/v1\/object\/public\/site-images\/sponsors\/[0-9a-f]{16}\.png$/);
+  const upload = a.calls.find(c => c.url.includes('/object/site-images/'));
+  assert.equal(upload.options.headers['Content-Type'], 'image/png'); assert.equal(upload.options.headers.Authorization, 'Bearer ADMIN_SECRET');
+  assert(a.calls.findIndex(c => c.url.endsWith('/admin_check')) < a.calls.indexOf(upload), 'confere a organização antes de enviar');
+  const denied = profileApp({ rpc:{ admin_check:{ code:'42501' } }, rpcStatus:{ admin_check:403 } });
+  assert.equal((await denied.send('PUT', '/admin/images?kind=speakers', png, 'image/png')).status, 403);
+  assert(!denied.calls.some(c => c.url.includes('/object/site-images/')));
+});

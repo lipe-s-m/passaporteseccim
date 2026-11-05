@@ -356,7 +356,15 @@ main{padding:32px 0 64px}
 .profile-photo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .profile-note{margin:14px 0;padding:12px 14px;border-radius:12px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);color:#ffe7ad;font-size:14px;line-height:1.5}
 .scan-person{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}.scan-person .avatar{width:84px;height:84px;font-size:28px}
-.ranking-row .avatar{width:40px;height:40px;font-size:15px}.scan-result.warn{background:rgba(255,209,102,.16);color:#ffe7ad}.scan-result.error{background:rgba(255,120,120,.16);color:#ffd0cf}
+.ranking-row .avatar{width:40px;height:40px;font-size:15px}
+/* Envio de imagens no painel */
+.image-field{display:flex;flex-direction:column;gap:10px;margin:16px 0;font-size:16px}.image-field .faq-controls{margin:0}
+.logo-preview{max-width:220px;max-height:110px;object-fit:contain;padding:12px;border-radius:14px;background:#f4f5f7}
+.photo-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:12px}
+.photo-item{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px 12px;align-items:center;padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(17,26,32,.6)}
+.photo-item img{width:96px;height:72px;object-fit:cover;border-radius:10px;grid-row:span 2}
+.photo-item input{width:100%;min-width:0;padding:10px;border:1px solid #687780;border-radius:10px;background:#111a20;color:var(--ink);font:inherit;font-size:16px}
+.photo-controls{display:flex;gap:8px;flex-wrap:wrap}.photo-controls .action-button{min-height:40px;padding:6px 12px}.scan-result.warn{background:rgba(255,209,102,.16);color:#ffe7ad}.scan-result.error{background:rgba(255,120,120,.16);color:#ffd0cf}
 </style>
 </head>
 <body>
@@ -500,7 +508,8 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="editorDescription">Descrição da palestra<textarea id="editorDescription" rows="6" maxlength="8000"></textarea></label>
         <label class="faq-field" for="editorSpeaker">Nome do palestrante<input id="editorSpeaker" type="text" maxlength="160"></label>
         <label class="faq-field" for="editorBio">Mini bio do palestrante (sobre mim)<textarea id="editorBio" rows="7" maxlength="4000" aria-describedby="editorBioCount"></textarea><span id="editorBioCount" class="faq-hint">0 / 4000 caracteres</span></label>
-        <label class="faq-field" for="editorPhoto">Foto do palestrante<input id="editorPhoto" type="text" inputmode="url" maxlength="2048" placeholder="/fotos/id-da-palestra.webp ou link do Cloudinary"></label>
+        <div class="image-field"><span>Foto do palestrante</span><input id="editorPhoto" type="hidden">
+          <div class="faq-controls"><label class="action-button secondary" for="editorPhotoFile">📷 Enviar foto</label><input id="editorPhotoFile" type="file" accept="image/*" class="sr-only"><button id="editorPhotoClear" class="action-button secondary danger" type="button">Remover foto</button></div></div>
         <label class="faq-field" for="editorDate">Data da palestra<input id="editorDate" type="date"></label>
         <label class="faq-field" for="editorStart">Início (horário de Brasília)<input id="editorStart" type="time"></label>
         <label class="faq-field" for="editorEnd">Término (opcional)<input id="editorEnd" type="time"></label>
@@ -511,7 +520,7 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="editorSlides">Link dos slides<input id="editorSlides" type="url" maxlength="2048"></label>
           </div>
           <img id="editorPhotoPreview" class="editor-photo" alt="Prévia da foto do palestrante" hidden>
-          <p class="faq-hint">Foto: use o caminho de uma imagem publicada com o site (ex.: /fotos/kafka-alem-das-filas.webp) ou um link https do Cloudinary. Os horários seguem Brasília. A data da palestra também define o dia das chances de sorteio.</p>
+          <p class="faq-hint">Foto: escolha a imagem no aparelho; ela é recortada em quadrado e reduzida antes de enviar. Os horários seguem Brasília. A data da palestra também define o dia das chances de sorteio.</p>
         </fieldset>
         <div class="faq-controls">
           <button id="editorSave" class="action-button" type="submit" disabled>Salvar informações</button>
@@ -540,10 +549,13 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="sponsorName">Nome<input id="sponsorName" type="text" maxlength="120" required></label>
         <label class="faq-field" for="sponsorId">Identificador no link (sem acentos)<input id="sponsorId" type="text" maxlength="60" pattern="[a-z0-9]+(-[a-z0-9]+)*" required></label>
         <label class="faq-field" for="sponsorTagline">Frase curta<input id="sponsorTagline" type="text" maxlength="240"></label>
-        <label class="faq-field" for="sponsorLogo">Logo<input id="sponsorLogo" type="text" inputmode="url" maxlength="2048" placeholder="/fotos/patrocinadores/nome.png"></label>
+        <div class="image-field"><span>Logo</span><input id="sponsorLogo" type="hidden"><img id="sponsorLogoPreview" class="logo-preview" alt="Prévia do logo" hidden>
+          <div class="faq-controls"><label class="action-button secondary" for="sponsorLogoFile">🖼️ Enviar logo</label><input id="sponsorLogoFile" type="file" accept="image/*" class="sr-only"><button id="sponsorLogoClear" class="action-button secondary danger" type="button" hidden>Remover logo</button></div></div>
         <label class="faq-field" for="sponsorAbout">Sobre a empresa<textarea id="sponsorAbout" rows="4" maxlength="2000"></textarea></label>
         <label class="faq-field" for="sponsorContributions">O que trouxeram para a SECCIM (um item por linha)<textarea id="sponsorContributions" rows="4" placeholder="Coffee break da quinta&#10;Canecas para o sorteio"></textarea></label>
-        <label class="faq-field" for="sponsorPhotos">Fotos do carrossel (uma por linha: caminho | legenda)<textarea id="sponsorPhotos" rows="4" placeholder="/fotos/patrocinadores/nome-1.webp | Estande no hall"></textarea></label>
+        <div class="image-field"><span>Fotos do carrossel <small id="sponsorPhotoCount" class="faq-hint">0 / 12 fotos</small></span>
+          <ul id="sponsorPhotoList" class="photo-list" aria-label="Fotos do carrossel"></ul>
+          <div class="faq-controls"><label class="action-button secondary" for="sponsorPhotoFiles">📷 Adicionar fotos</label><input id="sponsorPhotoFiles" type="file" accept="image/*" multiple class="sr-only"></div></div>
         <label class="faq-field" for="sponsorVagas">Vagas e estágios<input id="sponsorVagas" type="url" maxlength="2048"></label>
         <label class="faq-field" for="sponsorSite">Site<input id="sponsorSite" type="url" maxlength="2048"></label>
         <label class="faq-field" for="sponsorLinkedin">LinkedIn<input id="sponsorLinkedin" type="url" maxlength="2048"></label>
@@ -551,7 +563,7 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="sponsorYoutube">YouTube<input id="sponsorYoutube" type="url" maxlength="2048"></label>
           </div>
           <label class="multi-option"><input id="sponsorPublished" type="checkbox"><span>Publicado no site</span></label>
-          <p class="faq-hint">Logo e fotos: imagens publicadas com o site em /fotos/patrocinadores/ ou links https do Cloudinary. Até 12 fotos e 20 itens de entrega.</p>
+          <p class="faq-hint">Logo e fotos são reduzidos no aparelho antes de enviar (logo com fundo transparente preservado). Até 12 fotos e 20 itens de entrega.</p>
         </fieldset>
         <div class="faq-controls">
           <button id="sponsorSave" class="action-button" type="submit">Salvar patrocinador</button>
@@ -1250,7 +1262,7 @@ function resetEditor(){
 }
 // Foto publicada com o site (/fotos/...) ou link https do Cloudinary, as mesmas regras do backend.
 function editorPhotoUrl(raw){
-  if(/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw))return raw;
+  if(/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw)||siteImagePattern.test(raw))return raw;
   try{const u=new URL(raw);if(u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password)return u.href;}catch{}
   return "";
 }
@@ -1424,13 +1436,13 @@ async function registerBulkAttendance(event) {
 $("bulkAttendanceForm").addEventListener("submit",registerBulkAttendance);
 
 const sponsorsPath = "/functions/v1/passport/admin/sponsors";
-const sponsorState = { version:0, list:[], current:null, revision:null, busy:false, dirty:false, loaded:false };
+const sponsorState = { version:0, list:[], current:null, revision:null, busy:false, dirty:false, loaded:false, photos:[] };
 const sponsorLinkFields = { vagas:"sponsorVagas", site:"sponsorSite", linkedin:"sponsorLinkedin", instagram:"sponsorInstagram", youtube:"sponsorYoutube" };
 const sponsorLinkLabels = { vagas:"Vagas e estágios", site:"Site", linkedin:"LinkedIn", instagram:"Instagram", youtube:"YouTube" };
-const sponsorTextFields = ["sponsorName","sponsorId","sponsorTagline","sponsorLogo","sponsorAbout","sponsorContributions","sponsorPhotos",...Object.values(sponsorLinkFields)];
+const sponsorTextFields = ["sponsorName","sponsorId","sponsorTagline","sponsorLogo","sponsorAbout","sponsorContributions",...Object.values(sponsorLinkFields)];
 // Mesmas regras do banco: imagens do site em /fotos/patrocinadores/ ou do Cloudinary.
 function sponsorImage(raw) {
-  if (/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw)) return raw;
+  if (/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw) || siteImagePattern.test(raw)) return raw;
   try { const u = new URL(raw); return u.protocol === "https:" && u.hostname === "res.cloudinary.com" && !u.username && !u.password ? u.href : ""; } catch { return ""; }
 }
 const slugify = name => name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
@@ -1459,7 +1471,8 @@ async function loadSponsorStrip() {
 }
 
 function resetSponsors() {
-  sponsorState.version++; Object.assign(sponsorState, { list:[], current:null, revision:null, busy:false, dirty:false, loaded:false });
+  sponsorState.version++; Object.assign(sponsorState, { list:[], current:null, revision:null, busy:false, dirty:false, loaded:false, photos:[] });
+  renderSponsorPhotos(); renderSponsorLogo();
   $("sponsorForm").hidden = true; $("sponsorPreviewFrame").hidden = true; $("sponsorFields").disabled = false;
   for (const id of sponsorTextFields) $(id).value = "";
   $("sponsorPublished").checked = false; $("sponsorSelect").value = "";
@@ -1502,7 +1515,8 @@ function fillSponsor(sponsor) {
   $("sponsorTagline").value = sponsor?.tagline ?? ""; $("sponsorAbout").value = sponsor?.about ?? "";
   $("sponsorLogo").value = sponsor?.logo_url ?? "";
   $("sponsorContributions").value = (sponsor?.contributions ?? []).join("\n");
-  $("sponsorPhotos").value = (sponsor?.photos ?? []).map(p => p.caption ? `${p.url} | ${p.caption}` : p.url).join("\n");
+  sponsorState.photos = (sponsor?.photos ?? []).map(p => ({ url: p.url, caption: p.caption ?? "" }));
+  renderSponsorPhotos(); renderSponsorLogo();
   for (const [key, id] of Object.entries(sponsorLinkFields)) $(id).value = sponsor?.links?.[key] ?? "";
   $("sponsorPublished").checked = sponsor?.published === true;
   $("sponsorForm").hidden = false; $("sponsorPreviewFrame").hidden = true; message("sponsorMessage", "");
@@ -1513,12 +1527,12 @@ function readSponsor() {
   if (!name) throw Error("Informe o nome do patrocinador.");
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id) || id.length > 60) throw Error("Identificador: use letras minúsculas, números e hífens (ex.: empresa-x).");
   const logo = $("sponsorLogo").value.trim();
-  if (logo && !sponsorImage(logo)) throw Error("Logo: use /fotos/patrocinadores/nome.png (publicado com o site) ou um link https do Cloudinary.");
+  if (logo && !sponsorImage(logo)) throw Error("Envie o logo de novo pelo botão “Enviar logo”.");
   const contributions = $("sponsorContributions").value.split("\n").map(line => line.trim()).filter(Boolean);
   if (contributions.length > 20 || contributions.some(line => line.length > 200)) throw Error("Entregas: até 20 itens, com até 200 caracteres cada.");
-  const photos = $("sponsorPhotos").value.split("\n").map(line => line.trim()).filter(Boolean).map(line => {
-    const cut = line.indexOf("|"); const url = (cut < 0 ? line : line.slice(0, cut)).trim(); const caption = cut < 0 ? "" : line.slice(cut + 1).trim();
-    if (!sponsorImage(url)) throw Error(`Foto inválida: ${url}. Use /fotos/patrocinadores/... ou um link do Cloudinary.`);
+  const photos = sponsorState.photos.map(photo => {
+    const url = photo.url, caption = (photo.caption ?? "").trim();
+    if (!sponsorImage(url)) throw Error("Uma das fotos não é válida: remova e envie de novo.");
     if (caption.length > 160) throw Error("Legendas: até 160 caracteres.");
     return caption ? { url, caption } : { url };
   });
@@ -1836,21 +1850,117 @@ async function saveProfile(event) {
 }
 
 // Recorta no centro e reduz para 400×400 no próprio aparelho: a foto original nunca sai do celular.
-async function prepareAvatar(file) {
+// ---- Envio de imagens pelo painel (palestrantes e patrocinadores) ----
+// A imagem é reduzida no aparelho e enviada ao bucket público "site-images" pelo backend da organização.
+const siteImagePattern = /^https:\/\/mqparqbuhstkdpcgbbsa\.supabase\.co\/storage\/v1\/object\/public\/site-images\/(speakers|sponsors)\/[0-9a-f]{16}\.(webp|jpg|png)$/;
+
+// Reduz a imagem: quadrada (recorte no centro) ou mantendo a proporção; logos preservam a transparência.
+async function prepareImage(file, { maxSide, square = false, transparent = false, maxBytes }) {
   if (!file || !/^image\//.test(file.type)) throw Error("Escolha um arquivo de imagem.");
-  if (file.size > 15 * 1024 * 1024) throw Error("Imagem muito grande. Escolha uma de até 15 MB.");
+  if (file.size > 25 * 1024 * 1024) throw Error("Imagem muito grande. Escolha uma de até 25 MB.");
   const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height), size = 400;
-  const canvas = document.createElement("canvas"); canvas.width = size; canvas.height = size;
-  canvas.getContext("2d").drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const scale = Math.min(1, maxSide / (square ? side : Math.max(bitmap.width, bitmap.height)));
+  const width = Math.max(1, Math.round((square ? side : bitmap.width) * scale)), height = Math.max(1, Math.round((square ? side : bitmap.height) * scale));
+  const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (square) context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, width, height);
+  else context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close?.();
   const encode = (type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
-  // Alguns Safari não geram WebP: nesse caso o navegador devolve PNG e usamos JPEG.
+  // Alguns Safari não geram WebP e devolvem PNG: aí usamos JPEG, ou PNG quando a transparência importa (logos).
   let blob = await encode("image/webp", .85);
-  if (!blob || blob.type !== "image/webp") blob = await encode("image/jpeg", .85);
-  for (let quality = .75; blob && blob.size > 280 * 1024 && quality > .3; quality -= .15) blob = await encode("image/jpeg", quality);
-  if (!blob || blob.size > 290 * 1024) throw Error("Não foi possível reduzir a imagem. Tente outra foto.");
+  if (!blob || blob.type !== "image/webp") blob = await encode(transparent ? "image/png" : "image/jpeg", .85);
+  for (let quality = .75; blob && blob.size > maxBytes && quality > .3; quality -= .15)
+    blob = await encode(blob.type === "image/png" ? "image/png" : blob.type, quality);
+  if (!blob || blob.size > maxBytes) throw Error("Não foi possível reduzir a imagem o suficiente. Tente outra.");
   return blob;
+}
+
+async function prepareAvatar(file) {
+  return prepareImage(file, { maxSide: 400, square: true, maxBytes: 290 * 1024 });
+}
+
+async function uploadSiteImage(blob, kind) {
+  const token = await accessToken();
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 60000);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/passport/admin/images?kind=${kind}`, { method: "PUT", body: blob,
+      signal: controller.signal, credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}`, "Content-Type": blob.type || "application/octet-stream" } });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || typeof data?.url !== "string") throw Object.assign(Error(), { status: response.status });
+    return data.url;
+  } finally { clearTimeout(timer); }
+}
+
+const imageError = error => error.status === 413 ? "Imagem grande demais mesmo depois de reduzida. Tente outra."
+  : error.status === 400 ? "Esse arquivo não é uma imagem válida (use JPG, PNG ou WebP)."
+  : error.status === 403 ? "Sua conta não tem permissão para enviar imagens." : error.message || "Não foi possível enviar a imagem.";
+
+async function uploadSpeakerPhoto(file) {
+  message("editorMessage", "Enviando foto...");
+  try {
+    const url = await uploadSiteImage(await prepareImage(file, { maxSide: 480, square: true, maxBytes: 400 * 1024 }), "speakers");
+    $("editorPhoto").value = url; editorPhoto(); editorState.dirty = true;
+    message("editorMessage", "Foto enviada. Salve as informações para publicar.");
+  } catch (error) { message("editorMessage", imageError(error), true); }
+  finally { $("editorPhotoFile").value = ""; }
+}
+
+function renderSponsorLogo() {
+  const url = $("sponsorLogo").value;
+  $("sponsorLogoPreview").hidden = !url; if (url) $("sponsorLogoPreview").src = url;
+  $("sponsorLogoClear").hidden = !url;
+}
+
+async function uploadSponsorLogo(file) {
+  message("sponsorMessage", "Enviando logo...");
+  try {
+    const url = await uploadSiteImage(await prepareImage(file, { maxSide: 800, transparent: true, maxBytes: 700 * 1024 }), "sponsors");
+    $("sponsorLogo").value = url; renderSponsorLogo(); sponsorState.dirty = true;
+    message("sponsorMessage", "Logo enviado. Salve o patrocinador para publicar.");
+  } catch (error) { message("sponsorMessage", imageError(error), true); }
+  finally { $("sponsorLogoFile").value = ""; }
+}
+
+// Fotos do carrossel: lista com miniatura, legenda, ordem e remoção.
+function renderSponsorPhotos() {
+  const photos = sponsorState.photos;
+  $("sponsorPhotoList").replaceChildren(...photos.map((photo, index) => {
+    const item = document.createElement("li"); item.className = "photo-item";
+    const img = document.createElement("img"); img.src = photo.url; img.alt = ""; img.loading = "lazy";
+    const caption = document.createElement("input"); caption.type = "text"; caption.maxLength = 160; caption.value = photo.caption ?? "";
+    caption.placeholder = "Legenda (opcional)"; caption.setAttribute("aria-label", `Legenda da foto ${index + 1}`);
+    caption.addEventListener("input", () => { photo.caption = caption.value; sponsorState.dirty = true; });
+    const controls = document.createElement("div"); controls.className = "photo-controls";
+    for (const [label, text, step] of [["Mover para cima", "↑", -1], ["Mover para baixo", "↓", 1]]) {
+      const move = document.createElement("button"); move.type = "button"; move.className = "action-button secondary"; move.textContent = text;
+      move.setAttribute("aria-label", `${label}: foto ${index + 1}`); move.disabled = index + step < 0 || index + step >= photos.length;
+      move.addEventListener("click", () => { photos.splice(index + step, 0, photos.splice(index, 1)[0]); sponsorState.dirty = true; renderSponsorPhotos(); });
+      controls.append(move);
+    }
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "action-button secondary danger"; remove.textContent = "Remover";
+    remove.addEventListener("click", () => { photos.splice(index, 1); sponsorState.dirty = true; renderSponsorPhotos(); });
+    controls.append(remove);
+    item.append(img, caption, controls);
+    return item;
+  }));
+  $("sponsorPhotoCount").textContent = `${photos.length} / 12 fotos`;
+}
+
+async function uploadSponsorPhotos(files) {
+  const list = [...files];
+  if (sponsorState.photos.length + list.length > 12) { message("sponsorMessage", "O carrossel aceita até 12 fotos.", true); $("sponsorPhotoFiles").value = ""; return; }
+  try {
+    for (const [index, file] of list.entries()) {
+      message("sponsorMessage", `Enviando foto ${index + 1} de ${list.length}...`);
+      const url = await uploadSiteImage(await prepareImage(file, { maxSide: 1600, maxBytes: 1400 * 1024 }), "sponsors");
+      sponsorState.photos.push({ url, caption: "" }); sponsorState.dirty = true; renderSponsorPhotos();
+    }
+    message("sponsorMessage", "Fotos enviadas. Escreva as legendas e salve o patrocinador.");
+  } catch (error) { message("sponsorMessage", imageError(error), true); }
+  finally { $("sponsorPhotoFiles").value = ""; }
 }
 
 async function uploadProfilePhoto(blob) {
@@ -2475,6 +2585,11 @@ async function deleteDraw(draw) {
 }
 
 $("walkinToggle").addEventListener("click", openWalkin);
+$("editorPhotoFile").addEventListener("change", () => { const file = $("editorPhotoFile").files?.[0]; if (file) uploadSpeakerPhoto(file); });
+$("editorPhotoClear").addEventListener("click", () => { $("editorPhoto").value = ""; editorPhoto(); editorState.dirty = true; });
+$("sponsorLogoFile").addEventListener("change", () => { const file = $("sponsorLogoFile").files?.[0]; if (file) uploadSponsorLogo(file); });
+$("sponsorLogoClear").addEventListener("click", () => { $("sponsorLogo").value = ""; renderSponsorLogo(); sponsorState.dirty = true; });
+$("sponsorPhotoFiles").addEventListener("change", () => { if ($("sponsorPhotoFiles").files?.length) uploadSponsorPhotos($("sponsorPhotoFiles").files); });
 $("profileTab").addEventListener("click", () => switchSection("profile"));
 $("profileForm").addEventListener("submit", saveProfile);
 $("profileBio").addEventListener("input", profileBioCount);

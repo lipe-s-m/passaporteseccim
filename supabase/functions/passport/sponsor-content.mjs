@@ -1,10 +1,11 @@
+import {siteImage} from './site-images.mjs';
 // Mesmas regras de admin_sponsors: o backend recusa antes de chamar o banco.
 export const sponsorFields=['name','tagline','about','contributions','logo_url','photos','links','published'];
 export const sponsorLinkKeys=['site','linkedin','instagram','youtube','vagas'];
 export const sponsorId=value=>typeof value==='string'&&value.length<=60&&/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value);
 export function sponsorImage(value){
   if(typeof value!=='string'||value.length>2048)return false;
-  if(/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(value))return true;
+  if(/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(value)||siteImage(value))return true;
   try{const u=new URL(value);return u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password;}catch{return false;}
 }
 const httpsLink=value=>{

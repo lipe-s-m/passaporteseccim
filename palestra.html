@@ -50,6 +50,8 @@ const SUPABASE_URL="https://mqparqbuhstkdpcgbbsa.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_MMrwKTyjB6oNno3hWrYCwQ_JyKDnbl_";
 const $=id=>document.getElementById(id);
 const cleanText=value=>typeof value==="string"?value.trim():"";
+// Foto enviada pelo painel da organização (bucket público site-images).
+const siteImagePattern=/^https:\/\/mqparqbuhstkdpcgbbsa\.supabase\.co\/storage\/v1\/object\/public\/site-images\/(speakers|sponsors)\/[0-9a-f]{16}\.(webp|jpg|png)$/;
 const safeHttps=value=>{try{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password?url.href:"";}catch{return "";}};
 // Mesmas regras do backend: domínio oficial ou subdomínio dele (br.linkedin.com, m.youtube.com).
 const allowedSocialHosts={instagram:["instagram.com"],linkedin:["linkedin.com"],youtube:["youtube.com","youtu.be"],website:null};
@@ -78,10 +80,10 @@ function render(data){
   if(starts){const startDate=new Date(starts);const endDate=ends?new Date(ends):null;if(Number.isFinite(startDate.getTime())){$("talkTime").textContent=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(startDate)+(endDate&&Number.isFinite(endDate.getTime())?` – ${new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(endDate)}`:"");$("timeCard").hidden=false;}}
   const speaker=cleanText(data.speaker_name),bio=cleanText(data.speaker_bio),rawPhoto=cleanText(data.speaker_photo_url);
   // Foto publicada com o site (/fotos/...) ou link https do Cloudinary.
-  const photo=/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(rawPhoto)?rawPhoto:safeHttps(rawPhoto);
+  const photo=/^\/fotos\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(rawPhoto)||siteImagePattern.test(rawPhoto)?rawPhoto:safeHttps(rawPhoto);
   if(speaker||bio||photo||Object.keys(data.speaker_socials??{}).length){$("speakerCard").hidden=false;$("speakerName").textContent=speaker||"Palestrante";$("speakerBio").textContent=bio;$("speakerBio").hidden=!bio;
     // Sem foto (ou se o link falhar), o cartão usa uma coluna só, sem espaço vazio.
-    const withPhoto=photo&&(photo.startsWith("/fotos/")||new URL(photo).hostname==="res.cloudinary.com");
+    const withPhoto=photo&&(photo.startsWith("/fotos/")||siteImagePattern.test(photo)||new URL(photo).hostname==="res.cloudinary.com");
     $("speakerCard").classList.toggle("no-photo",!withPhoto);
     if(withPhoto){$("speakerPhoto").src=photo;$("speakerPhoto").alt=speaker?`Foto de ${speaker}`:"Foto do palestrante";$("speakerPhotoWrap").hidden=false;}
     renderSocials(data.speaker_socials);

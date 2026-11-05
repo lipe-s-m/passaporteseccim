@@ -1,3 +1,4 @@
+import {siteImage} from './site-images.mjs';
 export const contentFields = ['name','category','description','short_description','speaker_name','speaker_photo_url','speaker_bio','event_date','starts_at','ends_at','speaker_socials','slides_url'];
 const limits={name:200,category:120,description:8000,short_description:800,speaker_name:160,speaker_bio:4000};
 export function httpsUrl(value, hosts=null) {
@@ -10,7 +11,7 @@ export function validContent(data) {
   if (!data || typeof data!=='object' || Array.isArray(data) || Object.keys(data).some(k=>!contentFields.includes(k)))return false;
   for (const [key,max] of Object.entries(limits)) if(typeof data[key]!=='string'||data[key].length>max)return false;
   if(!data.name.trim()||!data.category.trim())return false;
-  if(data.speaker_photo_url!==null&&!localPhoto(data.speaker_photo_url)&&!httpsUrl(data.speaker_photo_url,['res.cloudinary.com']))return false;
+  if(data.speaker_photo_url!==null&&!localPhoto(data.speaker_photo_url)&&!siteImage(data.speaker_photo_url)&&!httpsUrl(data.speaker_photo_url,['res.cloudinary.com']))return false;
   if(data.slides_url!==null&&!httpsUrl(data.slides_url))return false;
   const date=data.event_date;
   if(date!==null&&(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date))return false;

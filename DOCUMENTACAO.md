@@ -423,3 +423,14 @@ Aba **Meu perfil**: apelido (@), foto, cargo/área/empresa, bio (até 160 caract
 **Banco** (`20261105090000_profiles.sql`): tabela `public.participant_profiles` (RLS, sem acesso de clientes), `private.display_name`, RPCs `manage_profile`, `set_profile_photo`, `profile_card` (somente organização) e `admin_profiles`. `get_badge_ranking` e `manage_faq` passam a usar o apelido. A migração cria o bucket privado `avatars`.
 **Rotas:** `GET|POST /passport/profile`, `PUT|DELETE /passport/profile/photo` (corpo = bytes da imagem), `GET|POST /passport/admin/profiles`. Validação em `profile-content.mjs`.
 **Testes:** `supabase/tests/profiles.sql` e 74 testes Node. O recorte da foto foi conferido no Chrome real: 1200×800 (166 KB) virou 400×400 WebP (51 KB).
+
+## Envio de imagens pelo painel — 05/11/2026
+
+A foto do palestrante, o logo e as fotos dos patrocinadores são **enviados como arquivo**; não é mais preciso informar caminho ou link.
+
+- **Foto do palestrante:** recortada em quadrado, 480×480.
+- **Logo:** até 800 px no maior lado, **mantendo a transparência** (WebP; PNG nos navegadores sem WebP).
+- **Fotos do carrossel:** até 1600 px, em lista com miniatura, legenda, setas de ordem e botão de remover (até 12).
+- A redução acontece no aparelho. O backend (`PUT /passport/admin/images?kind=speakers|sponsors`) confere a organização (`admin_check`), o tipo pelos bytes (WebP, JPEG ou PNG; até 1,5 MB) e grava com nome aleatório no bucket **público** `site-images`, porque são imagens do site público. O link é salvo no editor e só vai ao ar quando a palestra ou o patrocinador é salvo.
+- Imagens antigas (`/fotos/...` e Cloudinary) continuam aceitas. Imagens substituídas ficam no bucket, já que não são apagadas automaticamente para não quebrar páginas.
+- Migração `20261105100000_site_images.sql`: bucket `site-images`, `private.site_image_ok` (o padrão do link inclui o ref do projeto `mqparqbuhstkdpcgbbsa`; trocar de projeto exige atualizar esse padrão e o de `site-images.mjs`), constraints de `activities.speaker_photo_url` e `sponsors.logo_url`, `private.sponsor_photo_ok`, `admin_activity_content` e `admin_check`. Testes: `supabase/tests/site_images.sql` e 77 testes Node.

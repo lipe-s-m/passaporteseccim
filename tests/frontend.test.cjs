@@ -592,9 +592,9 @@ test('patrocinadores: painel cria rascunho, valida links e imagens e edita com r
   a.get('sponsorSelect').value = '__new'; a.get('sponsorSelect').listeners.change();
   a.get('sponsorName').value = 'Ação & Tecnologia Ltda'; a.get('sponsorName').listeners.input();
   assert.equal(a.get('sponsorId').value, 'acao-tecnologia-ltda');
-  a.get('sponsorPhotos').value = '/fotos/a.webp | fora da pasta';
-  await a.submit('sponsorForm'); assert.match(a.get('sponsorMessage').textContent, /Foto inválida/);
-  a.get('sponsorPhotos').value = '/fotos/patrocinadores/acao-1.webp | Estande no hall\n\n/fotos/patrocinadores/acao-2.webp';
+  a.run('sponsorState.photos = [{ url: "/fotos/a.webp", caption: "fora da pasta" }]');
+  await a.submit('sponsorForm'); assert.match(a.get('sponsorMessage').textContent, /fotos não é válida/);
+  a.run('sponsorState.photos = [{ url: "/fotos/patrocinadores/acao-1.webp", caption: " Estande no hall " }, { url: "/fotos/patrocinadores/acao-2.webp", caption: "" }]');
   a.get('sponsorContributions').value = ' Coffee break \n\nCanecas ';
   a.get('sponsorVagas').value = 'acao.example/vagas'; a.get('sponsorLogo').value = '/fotos/patrocinadores/acao.png';
   await a.submit('sponsorForm');
@@ -807,4 +807,31 @@ test('leitor de QR mostra a foto do perfil e a moderação remove foto pela orga
   await row.children.find(c => c.textContent === 'Remover foto').listeners.click();
   assert.deepEqual(sent[0], { participant: '11111111-1111-4111-8111-111111111111', action: 'remove_photo' });
   assert.match(b.get('moderationMessage').textContent, /Remover foto: feito/);
+});
+
+test('envio de imagens: foto do palestrante e fotos do carrossel vão pelo backend e entram na lista', async () => {
+  const uploaded = [];
+  const a = adminApp(); await login(a);
+  a.run(`globalThis.fetchOriginal = fetch; fetch = async (url, options) => {
+    if (String(url).includes('/admin/images')) { const kind = new URL(url).searchParams.get('kind');
+      return { ok: true, status: 200, json: async () => ({ url: 'https://mqparqbuhstkdpcgbbsa.supabase.co/storage/v1/object/public/site-images/' + kind + '/0123456789abcdef.webp' }) }; }
+    return fetchOriginal(url, options); }`);
+  a.run('prepareImage = async () => new Blob([new Uint8Array([1])], { type: "image/webp" })');
+  await a.run('loadSponsorsAdmin()');
+  a.get('sponsorSelect').value = '__new'; a.get('sponsorSelect').listeners.change();
+  await a.run('uploadSponsorPhotos([{ type: "image/jpeg" }, { type: "image/png" }])');
+  assert.equal(a.run('sponsorState.photos.length'), 2); assert.equal(a.get('sponsorPhotoCount').textContent, '2 / 12 fotos');
+  const first = a.get('sponsorPhotoList').children[0];
+  first.children[1].value = 'Estande'; first.children[1].listeners.input();
+  first.children[2].children[1].listeners.click();
+  assert.equal(a.run('sponsorState.photos[1].caption'), 'Estande', 'mover para baixo troca a ordem');
+  a.get('sponsorPhotoList').children[0].children[2].children[2].listeners.click();
+  assert.equal(a.run('sponsorState.photos.length'), 1);
+  await a.run('uploadSponsorLogo({ type: "image/png" })');
+  assert.match(a.get('sponsorLogo').value, /site-images\/sponsors\//); assert.equal(a.get('sponsorLogoPreview').hidden, false);
+  a.run('sponsorState.photos = Array.from({ length: 12 }, () => ({ url: "x", caption: "" }))');
+  await a.run('uploadSponsorPhotos([{ type: "image/png" }])'); assert.match(a.get('sponsorMessage').textContent, /até 12 fotos/);
+  await a.run('uploadSpeakerPhoto({ type: "image/jpeg" })');
+  assert.match(a.get('editorPhoto').value, /site-images\/speakers\//);
+  assert.match(a.get('editorMessage').textContent, /Salve as informações/);
 });

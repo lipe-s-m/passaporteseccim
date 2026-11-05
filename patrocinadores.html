@@ -53,7 +53,7 @@ const cleanText=value=>typeof value==="string"?value.trim():"";
 // Mesmas regras do banco: imagens do site em /fotos/patrocinadores/ ou do Cloudinary; links sempre https.
 function safeImage(value){
   const raw=cleanText(value);
-  if(/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw))return raw;
+  if(/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw)||/^https:\/\/mqparqbuhstkdpcgbbsa\.supabase\.co\/storage\/v1\/object\/public\/site-images\/(speakers|sponsors)\/[0-9a-f]{16}\.(webp|jpg|png)$/.test(raw))return raw;
   try{const u=new URL(raw);return u.protocol==="https:"&&u.hostname==="res.cloudinary.com"&&!u.username&&!u.password?u.href:"";}catch{return "";}
 }
 function safeHttps(value){try{const u=new URL(cleanText(value));return u.protocol==="https:"&&!u.username&&!u.password?u.href:"";}catch{return "";}}

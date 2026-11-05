@@ -41,3 +41,10 @@ test('foto aceita arquivo publicado com o site em /fotos e recusa caminhos fora 
   for(const url of ['/fotos/../index.html','/fotos/a.svg','fotos/a.webp','/fotos/Ana.webp','/outra/a.webp','//evil.test/fotos/a.webp','/fotos/a.webp?x=1'])
     assert.equal(validContent({...content,speaker_photo_url:url}),false,url);
 });
+
+test('foto do palestrante aceita imagem enviada pelo painel e recusa outros endereços do Storage',async()=>{
+  const sent='https://mqparqbuhstkdpcgbbsa.supabase.co/storage/v1/object/public/site-images/speakers/0123456789abcdef.webp';
+  assert(validContent({...content,speaker_photo_url:sent}));
+  for(const url of [sent.replace('public/site-images','public/avatars'),sent.replace('mqparqbuhstkdpcgbbsa','outro'),sent.replace('.webp','.svg')])
+    assert.equal(validContent({...content,speaker_photo_url:url}),false,url);
+});

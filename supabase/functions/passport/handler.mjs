@@ -2,6 +2,7 @@ import {validContent,publicContent} from './activity-content.mjs';
 import {validSponsor,publicSponsor,sponsorId} from './sponsor-content.mjs';
 import {issueQrToken,readQrToken,qrSecretValid,QR_PERIOD_SECONDS} from './qr-token.mjs';
 import {validProfile,imageType,MAX_PHOTO_BYTES} from './profile-content.mjs';
+import {SITE_IMAGE_KINDS,MAX_SITE_IMAGE_BYTES,siteImageUrl} from './site-images.mjs';
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -54,8 +55,9 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, qrSe
     const profile = url.pathname.endsWith('/passport/profile');
     const profilePhoto = url.pathname.endsWith('/passport/profile/photo');
     const adminProfiles = url.pathname.endsWith('/passport/admin/profiles');
+    const siteImages = url.pathname.endsWith('/passport/admin/images');
     const methods = faq ? ['GET','POST','PATCH','DELETE'] : (bulkAttendance || qrScan) ? ['POST'] : attendance ? ['GET','POST','DELETE']
-      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content || sponsors || profile || adminProfiles) ? ['GET','POST'] : profilePhoto ? ['PUT','DELETE'] : ['GET'];
+      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content || sponsors || profile || adminProfiles) ? ['GET','POST'] : profilePhoto ? ['PUT','DELETE'] : siteImages ? ['PUT'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
     }
@@ -230,6 +232,26 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, qrSe
         const photos = await signPhotos([path]);
         return response(200, null, { photoUrl:photos[path] ?? null });
       } catch { return response(503, 'PHOTO_UNAVAILABLE'); }
+    }
+
+    if (siteImages) {
+      const kind = url.searchParams.get('kind');
+      if (!SITE_IMAGE_KINDS.includes(kind)) return response(400, 'INVALID_IMAGE');
+      try {
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        if (bytes.length > MAX_SITE_IMAGE_BYTES) return response(413, 'IMAGE_TOO_LARGE');
+        const type = imageType(bytes);
+        if (!type) return response(400, 'INVALID_IMAGE');
+        // Só a organização envia imagens públicas do site.
+        const { error } = await adminRpc('admin_check', {}, 'IMAGE_UNAVAILABLE');
+        if (error) return error;
+        const name = [...crypto.getRandomValues(new Uint8Array(8))].map(v => v.toString(16).padStart(2, '0')).join('');
+        const path = `${kind}/${name}.${type}`;
+        const uploaded = await storage(`object/site-images/${path}`, { method:'POST',
+          headers:{ 'Content-Type':{ webp:'image/webp', jpg:'image/jpeg', png:'image/png' }[type], 'x-upsert':'false', 'Cache-Control':'31536000' }, body:bytes });
+        if (!uploaded.ok) return response(503, 'IMAGE_UNAVAILABLE');
+        return response(200, null, { url:siteImageUrl(supabaseUrl, path) });
+      } catch { return response(503, 'IMAGE_UNAVAILABLE'); }
     }
 
     if (adminProfiles) {
