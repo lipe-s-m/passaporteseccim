@@ -17,7 +17,7 @@
     main{padding:22px 0 64px}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:13px;font-weight:700;color:var(--green)}h1,h2,h3{font-family:"Manrope",sans-serif;line-height:1.2}h1{font-size:clamp(32px,8vw,58px);letter-spacing:-.04em;margin:10px 0 14px}h2{font-size:25px;margin:0 0 14px}p{margin:0 0 16px}.category{display:inline-flex;border:1px solid var(--line);border-radius:99px;padding:5px 12px;color:var(--muted);font-size:14px}
     .lead{font-size:18px;color:#e0e6e9;line-height:1.7;max-width:70ch}.meta{display:grid;gap:12px;margin:28px 0 36px}.meta-card,.content-card,.speaker-card{border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));padding:20px}.meta-label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:650}.meta-value{font-size:17px;font-weight:650;overflow-wrap:anywhere}.content-grid{display:grid;gap:18px}.speaker{display:grid;gap:18px;align-items:start}.portrait{width:112px;height:112px;object-fit:cover;border-radius:50%;border:2px solid rgba(185,170,255,.55);background:var(--panel)}.bio{color:#d7dfe3;white-space:pre-line}.socials{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.social{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:9px 15px;border:1px solid rgba(185,170,255,.38);border-radius:99px;text-decoration:none;font-weight:600}.social:hover,.social:focus-visible{border-color:var(--purple);outline:2px solid transparent;background:rgba(121,100,245,.14)}.materials{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}.button{display:inline-flex;justify-content:center;align-items:center;min-height:50px;padding:11px 19px;border-radius:13px;background:#7964f5;color:white;text-decoration:none;font-weight:700}.button:hover{background:#6752dc}.status{margin:30px 0;padding:20px;border-radius:16px;background:var(--panel);color:var(--muted)}[hidden]{display:none!important}
     footer{padding:24px 0 40px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
-    @media(min-width:620px){.shell{width:min(100% - 56px,880px)}main{padding-top:44px}.meta{grid-template-columns:1fr 1fr}.meta-card,.content-card,.speaker-card{padding:28px}.speaker{grid-template-columns:150px minmax(0,1fr)}.portrait{width:136px;height:136px}}
+    @media(min-width:620px){.shell{width:min(100% - 56px,880px)}main{padding-top:44px}.meta{grid-template-columns:1fr 1fr}.meta-card,.content-card,.speaker-card{padding:28px}.speaker{grid-template-columns:150px minmax(0,1fr)}.speaker.no-photo{grid-template-columns:minmax(0,1fr)}.portrait{width:136px;height:136px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
@@ -37,7 +37,7 @@
       <div class="content-grid">
         <section id="descriptionCard" class="content-card" hidden><h2>Sobre a palestra</h2><p id="talkDescription" class="bio"></p></section>
         <section id="speakerCard" class="speaker-card speaker" hidden>
-          <div><img id="speakerPhoto" class="portrait" alt="" hidden></div>
+          <div id="speakerPhotoWrap" hidden><img id="speakerPhoto" class="portrait" alt=""></div>
           <div><p class="eyebrow">Quem apresenta</p><h2 id="speakerName"></h2><p id="speakerBio" class="bio" hidden></p><nav id="speakerSocials" class="socials" aria-label="Redes do palestrante"></nav></div>
         </section>
         <section id="slidesCard" class="content-card" hidden><h2>Materiais</h2><p>Confira os slides e materiais compartilhados para esta palestra.</p><div class="materials"><a id="slidesLink" class="button" target="_blank" rel="noopener noreferrer">Acessar slides</a></div></section>
@@ -51,7 +51,9 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_MMrwKTyjB6oNno3hWrYCwQ_JyKDnbl_";
 const $=id=>document.getElementById(id);
 const cleanText=value=>typeof value==="string"?value.trim():"";
 const safeHttps=value=>{try{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password?url.href:"";}catch{return "";}};
-const allowedSocialHosts={instagram:["instagram.com","www.instagram.com"],linkedin:["linkedin.com","www.linkedin.com"],youtube:["youtube.com","www.youtube.com","youtu.be"],website:null};
+// Mesmas regras do backend: domínio oficial ou subdomínio dele (br.linkedin.com, m.youtube.com).
+const allowedSocialHosts={instagram:["instagram.com"],linkedin:["linkedin.com"],youtube:["youtube.com","youtu.be"],website:null};
+const hostAllowed=(host,hosts)=>!hosts||hosts.some(domain=>host===domain||host.endsWith("."+domain));
 function showStatus(value,error=false){$("detailStatus").textContent=value;$("detailStatus").hidden=!value;$("detailStatus").style.color=error?"#ffaaa8":"";}
 function renderSocials(socials){
   const labels={instagram:"Instagram",linkedin:"LinkedIn",youtube:"YouTube",website:"Site"};
@@ -59,7 +61,7 @@ function renderSocials(socials){
   for(const key of Object.keys(labels)){
     const raw=cleanText(socials[key]);if(!raw)continue;
     const href=safeHttps(raw);if(!href)continue;
-    const url=new URL(href);const hosts=allowedSocialHosts[key];if(hosts&&!hosts.includes(url.hostname.toLowerCase()))continue;
+    if(!hostAllowed(new URL(href).hostname,allowedSocialHosts[key]))continue;
     const link=document.createElement("a");link.className="social";link.href=href;link.target="_blank";link.rel="noopener noreferrer";link.textContent=labels[key];$("speakerSocials").append(link);
   }
 }
@@ -76,7 +78,10 @@ function render(data){
   if(starts){const startDate=new Date(starts);const endDate=ends?new Date(ends):null;if(Number.isFinite(startDate.getTime())){$("talkTime").textContent=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(startDate)+(endDate&&Number.isFinite(endDate.getTime())?` – ${new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}).format(endDate)}`:"");$("timeCard").hidden=false;}}
   const speaker=cleanText(data.speaker_name),bio=cleanText(data.speaker_bio),photo=safeHttps(cleanText(data.speaker_photo_url));
   if(speaker||bio||photo||Object.keys(data.speaker_socials??{}).length){$("speakerCard").hidden=false;$("speakerName").textContent=speaker||"Palestrante";$("speakerBio").textContent=bio;$("speakerBio").hidden=!bio;
-    if(photo){const parsed=new URL(photo);if(parsed.hostname.toLowerCase()==="res.cloudinary.com"){$("speakerPhoto").src=photo;$("speakerPhoto").alt=speaker?`Foto de ${speaker}`:"Foto do palestrante";$("speakerPhoto").hidden=false;}}
+    // Sem foto (ou se o link falhar), o cartão usa uma coluna só, sem espaço vazio.
+    const withPhoto=photo&&new URL(photo).hostname==="res.cloudinary.com";
+    $("speakerCard").classList.toggle("no-photo",!withPhoto);
+    if(withPhoto){$("speakerPhoto").src=photo;$("speakerPhoto").alt=speaker?`Foto de ${speaker}`:"Foto do palestrante";$("speakerPhotoWrap").hidden=false;}
     renderSocials(data.speaker_socials);
   }
   const slides=safeHttps(cleanText(data.slides_url));if(slides){$("slidesLink").href=slides;$("slidesCard").hidden=false;}
@@ -104,6 +109,7 @@ async function loadTalk(){
     if(!Array.isArray(rows)||!rows.length){showStatus("Essa palestra ainda não está disponível.",true);return;}render(rows[0]);
   }catch{showStatus("Não foi possível carregar as informações. Tente novamente mais tarde.",true);}
 }
+$("speakerPhoto").addEventListener("error",()=>{$("speakerPhotoWrap").hidden=true;$("speakerCard").classList.add("no-photo");});
 loadTalk();
 </script>
 </body>

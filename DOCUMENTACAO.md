@@ -358,3 +358,11 @@ O painel de Organização também permite colar até 100 e-mails para uma ativid
 Cada resultado da busca no painel tem o botão **Várias palestras**. Ele abre a lista de atividades agrupada por dia, com **Marcar todas** por dia: as presenças já registradas vêm marcadas (indicadas como "registrada"), e a atividade selecionada no painel vem pré-marcada. **Salvar** aplica só a diferença numa única chamada: marca o que foi adicionado e remove o que foi desmarcado (com confirmação antes de remover). O **cadastro na hora** abre essa lista em seguida, para registrar as outras palestras do dia de quem chegou sem conta.
 
 O navegador envia as listas `add` e `remove`, e não a lista final, para não apagar uma presença registrada por outro organizador ao mesmo tempo. Rota `GET|POST /passport/admin/person` → RPC `admin_person_attendances` (`SECURITY DEFINER`, autorização em `private.admins`, no máximo 50 atividades por chamada, lote inválido não é aplicado pela metade). As chances do sorteio acompanham automaticamente pelos triggers existentes. Migração `20261104221329_person_attendances.sql`; teste `supabase/tests/person_attendances.sql`.
+
+## Revisão do "sobre mim" dos palestrantes — 05/11/2026
+
+- **Prévia do editor:** `palestra.html` agora é servida com `X-Frame-Options: SAMEORIGIN` e `frame-ancestors 'self'`, para a prévia em iframe do painel funcionar. As demais páginas continuam com `DENY` (`vercel.json`).
+- **Redes sociais:** backend (`activity-content.mjs`), editor e página pública aceitam o domínio oficial e seus subdomínios (`br.linkedin.com`, `m.youtube.com`, `youtu.be`) e recusam domínios parecidos (`linkedin.com.evil.test`). O editor completa `https://` quando o link é colado sem ele e indica qual rede está com o link errado, em vez da mensagem genérica.
+- **Página pública:** sem foto, ou se o link da foto falhar, o cartão do palestrante usa uma coluna só, sem espaço vazio nem ícone de imagem quebrada.
+- **Editor:** campo da mini bio maior, com contador de caracteres (limite de 4.000).
+- **Limitação conhecida:** cada palestra tem um único palestrante (nome, foto e redes). Em palestras com várias pessoas, como a mesa-redonda, os nomes e as apresentações podem ir no nome e na mini bio, mas só cabe uma foto.

@@ -15,8 +15,14 @@ export function validContent(data) {
   if(data.starts_at && (!date || new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(data.starts_at))!==date))return false;
   if(data.ends_at&&(!data.starts_at||Date.parse(data.ends_at)<=Date.parse(data.starts_at)))return false;
   if(!data.speaker_socials||typeof data.speaker_socials!=='object'||Array.isArray(data.speaker_socials)||JSON.stringify(data.speaker_socials).length>2000)return false;
-  const hosts={instagram:['instagram.com','www.instagram.com'],linkedin:['linkedin.com','www.linkedin.com'],youtube:['youtube.com','www.youtube.com','youtu.be'],website:null};
-  return Object.entries(data.speaker_socials).every(([key,url])=>Object.hasOwn(hosts,key)&&httpsUrl(url,hosts[key]));
+  return Object.entries(data.speaker_socials).every(([key,url])=>socialUrl(key,url));
+}
+// Domínios oficiais de cada rede, incluindo subdomínios como br.linkedin.com e m.youtube.com.
+export const socialHosts={instagram:['instagram.com'],linkedin:['linkedin.com'],youtube:['youtube.com','youtu.be'],website:null};
+export function socialUrl(key,value) {
+  if(!Object.hasOwn(socialHosts,key)||!httpsUrl(value))return false;
+  const host=new URL(value).hostname,hosts=socialHosts[key];
+  return !hosts||hosts.some(domain=>host===domain||host.endsWith('.'+domain));
 }
 export function publicContent(data) {
   return Object.fromEntries(['id',...contentFields,'content_revision'].map(key=>[key,data[key]]));

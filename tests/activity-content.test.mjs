@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validContent,publicContent} from '../supabase/functions/passport/activity-content.mjs';
+import {validContent,publicContent,socialUrl} from '../supabase/functions/passport/activity-content.mjs';
 
 export const content={name:'Palestra',category:'Dados',description:'Descrição',short_description:'Resumo',
   speaker_name:'Ana',speaker_bio:'Mini bio',speaker_photo_url:'https://res.cloudinary.com/demo/image/upload/ana.jpg',
@@ -23,4 +23,14 @@ test('resposta editorial não devolve campos extras do banco',()=>{
   const result=publicContent({...content,id:'palestra',content_revision:2,content_updated_by:'uid-privado',email:'privado'});
   assert.equal(result.content_revision,2);assert.equal(result.name,'Palestra');
   assert(!('content_updated_by' in result));assert(!('email' in result));
+});
+
+test('redes aceitam subdomínios oficiais e recusam domínios parecidos',()=>{
+  for(const [key,url] of [['linkedin','https://br.linkedin.com/in/ana'],['linkedin','https://www.LinkedIn.com/in/ana'],
+    ['youtube','https://m.youtube.com/@ana'],['youtube','https://youtu.be/abc'],['instagram','https://instagram.com/ana?igsh=1'],
+    ['website','https://ana.dev']]) assert(socialUrl(key,url),url);
+  for(const [key,url] of [['linkedin','https://linkedin.com.evil.test/in/ana'],['linkedin','https://evillinkedin.com/in/ana'],
+    ['instagram','http://instagram.com/ana'],['instagram','instagram.com/ana'],['youtube','https://user:x@youtube.com/'],
+    ['tiktok','https://tiktok.com/@ana']]) assert.equal(socialUrl(key,url),false,url);
+  assert(validContent({...content,speaker_socials:{linkedin:'https://br.linkedin.com/in/ana',youtube:'https://m.youtube.com/@ana'}}));
 });

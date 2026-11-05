@@ -429,7 +429,7 @@ main{padding:32px 0 64px}
         <label class="faq-field" for="editorSummary">Resumo curto<textarea id="editorSummary" rows="3" maxlength="800"></textarea></label>
         <label class="faq-field" for="editorDescription">Descrição da palestra<textarea id="editorDescription" rows="6" maxlength="8000"></textarea></label>
         <label class="faq-field" for="editorSpeaker">Nome do palestrante<input id="editorSpeaker" type="text" maxlength="160"></label>
-        <label class="faq-field" for="editorBio">Mini bio do palestrante<textarea id="editorBio" rows="3" maxlength="4000"></textarea></label>
+        <label class="faq-field" for="editorBio">Mini bio do palestrante (sobre mim)<textarea id="editorBio" rows="7" maxlength="4000" aria-describedby="editorBioCount"></textarea><span id="editorBioCount" class="faq-hint">0 / 4000 caracteres</span></label>
         <label class="faq-field" for="editorPhoto">Link da foto no Cloudinary<input id="editorPhoto" type="url" maxlength="2048"></label>
         <label class="faq-field" for="editorDate">Data da palestra<input id="editorDate" type="date"></label>
         <label class="faq-field" for="editorStart">Início (horário de Brasília)<input id="editorStart" type="time"></label>
@@ -1052,7 +1052,7 @@ function resetEditor(){
   $("editorPreview").disabled=false;
   $("editorActivity").value="";$("editorPreviewFrame").hidden=true;$("editorPreviewFrame").removeAttribute?.("src");
   $("editorPhotoPreview").hidden=true;
-  for(const id of [...Object.values(editorTextFields),"editorDate","editorStart","editorEnd","editorPhoto","editorSlides","editorInstagram","editorLinkedin","editorYoutube","editorWebsite"])$(id).value="";
+  for(const id of [...Object.values(editorTextFields),"editorDate","editorStart","editorEnd","editorPhoto","editorSlides","editorInstagram","editorLinkedin","editorYoutube","editorWebsite"])$(id).value="";editorBioCount();
   try{sessionStorage.removeItem("seccim.content.preview");}catch{}
   message("editorMessage","");
 }
@@ -1069,7 +1069,7 @@ function fillEditor(data){
   $("editorDate").value=data.event_date??"";$("editorStart").value=editorTime(data.starts_at);$("editorEnd").value=editorTime(data.ends_at);
   $("editorPhoto").value=data.speaker_photo_url??"";$("editorSlides").value=data.slides_url??"";
   for(const [key,id] of Object.entries({instagram:"editorInstagram",linkedin:"editorLinkedin",youtube:"editorYoutube",website:"editorWebsite"}))$(id).value=data.speaker_socials?.[key]??"";
-  editorPhoto();$("editorForm").hidden=false;editorState.dirty=false;
+  editorPhoto();editorBioCount();$("editorForm").hidden=false;editorState.dirty=false;
 }
 async function loadEditor(){
   const activity=$("editorActivity").value;const version=++editorState.version;
@@ -1095,6 +1095,17 @@ async function loadEditor(){
     else message("editorMessage","Não foi possível carregar o editor. Tente recarregar as informações.",true);
   }finally{if(version===editorState.version)editorState.busy=false;}
 }
+// Mesmas regras do backend: domínio oficial ou subdomínio dele (br.linkedin.com, m.youtube.com).
+const editorSocials={instagram:{id:"editorInstagram",label:"Instagram",hosts:["instagram.com"]},
+  linkedin:{id:"editorLinkedin",label:"LinkedIn",hosts:["linkedin.com"]},
+  youtube:{id:"editorYoutube",label:"YouTube",hosts:["youtube.com","youtu.be"]},
+  website:{id:"editorWebsite",label:"Site",hosts:null}};
+function editorLink(raw){
+  // Quem cola "instagram.com/fulano" quer dizer https://instagram.com/fulano.
+  const value=raw.trim();if(!value)return "";
+  return /^[a-z][a-z0-9+.-]*:/i.test(value)?value:`https://${value}`;
+}
+function editorBioCount(){$("editorBioCount").textContent=`${$("editorBio").value.length} / 4000 caracteres`;}
 function readEditor(){
   const data=Object.fromEntries(Object.entries(editorTextFields).map(([key,id])=>[key,$(id).value.trim()]));
   data.event_date=$("editorDate").value||null;
@@ -1107,8 +1118,13 @@ function readEditor(){
   data.speaker_photo_url=$("editorPhoto").value.trim()||null;data.slides_url=$("editorSlides").value.trim()||null;
   if(data.speaker_photo_url){let valid=false;try{const u=new URL(data.speaker_photo_url);valid=u.protocol==='https:'&&u.hostname==='res.cloudinary.com'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("Use um link https de imagem do Cloudinary.");}
   data.speaker_socials={};
-  for(const [key,id] of Object.entries({instagram:"editorInstagram",linkedin:"editorLinkedin",youtube:"editorYoutube",website:"editorWebsite"}))if($(id).value.trim())data.speaker_socials[key]=$(id).value.trim();
-  for(const url of [data.slides_url,...Object.values(data.speaker_socials)])if(url){let valid=false;try{const u=new URL(url);valid=u.protocol==='https:'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("Os links de redes e slides precisam começar com https://.");}
+  for(const [key,{id,label,hosts}] of Object.entries(editorSocials)){
+    const url=editorLink($(id).value);if(!url)continue;
+    let valid=false;try{const u=new URL(url);valid=u.protocol==='https:'&&!u.username&&!u.password&&(!hosts||hosts.some(d=>u.hostname===d||u.hostname.endsWith("."+d)));}catch{}
+    if(!valid)throw Error(hosts?`O link do ${label} precisa ser um endereço https do ${hosts.join(" ou ")}.`:`O link do ${label} precisa começar com https://.`);
+    $(id).value=url;data.speaker_socials[key]=url;
+  }
+  if(data.slides_url){data.slides_url=editorLink(data.slides_url);let valid=false;try{const u=new URL(data.slides_url);valid=u.protocol==='https:'&&!u.username&&!u.password;}catch{}if(!valid)throw Error("O link dos slides precisa começar com https://.");$("editorSlides").value=data.slides_url;}
   return data;
 }
 async function saveEditor(event){
@@ -1139,6 +1155,7 @@ $("editorActivity").addEventListener("change",()=>{
 });
 $("editorReload").addEventListener("click",()=>{if(!editorState.dirty||confirm("Descartar as alterações e recarregar?"))loadEditor();});
 $("editorPhoto").addEventListener("input",editorPhoto);
+$("editorBio").addEventListener("input",editorBioCount);
 $("editorPhotoPreview").addEventListener("error",()=>{$("editorPhotoPreview").hidden=true;});
 $("editorPreview").addEventListener("click",()=>{
   if(editorState.busy||!$("editorForm").reportValidity())return;

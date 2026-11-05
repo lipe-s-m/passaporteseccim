@@ -99,6 +99,32 @@ test('editor carrega, pré-visualiza e envia dados com revisão e horário de Br
   assert.equal(a.get('editorForm').hidden,true);assert.equal(storage.get('seccim.content.preview'),undefined);
 });
 
+test('editor do sobre mim: bio com contador, redes completam https e erro aponta o campo',async()=>{
+  const a=app({handle:(path,options,pub)=>{
+    if(path.includes('/admin/activity-content'))return {activity:{...editorialActivity,...(options.method==='POST'?JSON.parse(options.body).content:{}),content_revision:options.method==='POST'?1:0}};
+    if(path.includes('/admin/attendance'))return {activities:[{id:'mesa',name:'Palestra'}],participants:1};
+    return pub(path);
+  }});
+  await a.start();a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"});faqState.ready=true');
+  a.get('editorActivity').value='mesa';await a.run('loadEditor()');
+  assert.equal(a.get('editorBio').value,'Mini bio');assert.equal(a.get('editorBioCount').textContent,'8 / 4000 caracteres');
+  a.get('editorBio').value='Linha 1\nLinha 2';a.get('editorBio').listeners.input();
+  assert.equal(a.get('editorBioCount').textContent,'15 / 4000 caracteres');
+  a.get('editorLinkedin').value='https://linkedin.com.evil.test/in/ana';
+  await a.submit('editorForm');
+  assert.match(a.get('editorMessage').textContent,/link do LinkedIn precisa ser um endereço https do linkedin\.com/);
+  assert(!a.calls.some(c=>c.path.includes('/admin/activity-content')&&c.options.method==='POST'));
+  a.get('editorLinkedin').value='br.linkedin.com/in/ana';a.get('editorYoutube').value='https://m.youtube.com/@ana';
+  a.get('editorInstagram').value='  instagram.com/ana ';a.get('editorSlides').value='docs.google.com/slides';
+  await a.submit('editorForm');
+  const sent=JSON.parse(a.calls.find(c=>c.path.includes('/admin/activity-content')&&c.options.method==='POST').options.body).content;
+  assert.equal(sent.speaker_bio,'Linha 1\nLinha 2');
+  assert.deepEqual(sent.speaker_socials,{instagram:'https://instagram.com/ana',linkedin:'https://br.linkedin.com/in/ana',youtube:'https://m.youtube.com/@ana'});
+  assert.equal(sent.slides_url,'https://docs.google.com/slides');
+  assert.equal(a.get('editorLinkedin').value,'https://br.linkedin.com/in/ana');
+  a.click('logoutButton');assert.equal(a.get('editorBioCount').textContent,'0 / 4000 caracteres');
+});
+
 test('editor local oferece prévia sem simular salvamento quando API ainda não está habilitada',async()=>{
   const a=app();await a.start();a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})');
   a.get('editorActivity').value='mesa';await a.run('loadEditor()');
