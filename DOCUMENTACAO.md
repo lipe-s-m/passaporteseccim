@@ -386,3 +386,11 @@ O navegador envia as listas `add` e `remove`, e não a lista final, para não ap
 **Sorteio**: o campo "Brinde oferecido por" registra o patrocinador do brinde (`raffle_draws.sponsor_id`). O telão mostra "🎁 Caneca · oferecido por X" e o histórico do dia mostra o patrocinador.
 
 **Banco e backend**: migração `20261105070000_sponsors.sql` (tabela `public.sponsors` com leitura pública apenas dos publicados via RLS, RPC `admin_sponsors` com `SECURITY DEFINER` e autorização em `private.admins`, e nova assinatura de `admin_raffle_draw` com `p_sponsor`). Rotas `GET|POST /passport/admin/sponsors`; validação em `sponsor-content.mjs`, com as mesmas regras do banco. Testes: `supabase/tests/sponsors.sql` e 59 testes Node.
+
+## Inscrição pelo passaporte (formulário pré-preenchido) — 05/11/2026
+
+O botão **Inscrever-se nesta palestra**, no modal de cada selo, abre o Google Forms oficial com a palestra já marcada e, para quem está logado, também com o nome e o e-mail da conta. CPF e matrícula (para os certificados) continuam sendo digitados pela própria pessoa no formulário: o passaporte não pede nem guarda esses dados. O envio acontece no Google, e o formulário continua sendo o registro oficial das inscrições.
+
+O mapeamento `registrationOptions`, em `index.html`, liga cada atividade à pergunta (`entry.*`) e ao texto exato da opção no formulário, inclusive travessões e espaços duplos. **Se alguém editar o texto de uma opção no Google Forms, é preciso atualizar o mapeamento**; caso contrário, o link abre sem a palestra marcada, mas o formulário continua funcionando. Na Meninas na Robótica vem marcada a Sessão 1, e o aviso no modal orienta a trocar para a Sessão 2 se for o caso.
+
+Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos × presentes por palestra), com CPF pedido apenas para o certificado, em tela própria, com armazenamento restrito e aviso de LGPD.

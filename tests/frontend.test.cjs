@@ -45,7 +45,7 @@ function app({ configured = true, authConfigured = true, handle, storage = new M
   const context = vm.createContext({ document, AbortController, Date, URLSearchParams, setTimeout, clearTimeout,
     location:{hostname:'localhost'},
     sessionStorage: {getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
-    confirm: () => true, Blob, matchMedia: () => ({ matches: true }),
+    confirm: () => true, Blob, atob, matchMedia: () => ({ matches: true }),
     URL: BrowserURL,
     fetch: async (url, options) => {
       const path = new URL(url).pathname + new URL(url).search;
@@ -629,4 +629,25 @@ test('sorteio mostra no telão o patrocinador do brinde', async () => {
   assert.equal(a.get('rafflePrizeLabel').textContent, '🎁 Caneca · oferecido por Empresa X');
   assert.equal(a.get('raffleSponsor').value, '');
   assert.match(a.get('raffleWinners').children[0].children[0].children[1].textContent, /Caneca \(Empresa X\)/);
+});
+
+test('inscrição abre o formulário com nome, e-mail e a palestra marcados, sem CPF', async () => {
+  const jwt = ['eyJhbGciOiJSUzI1NiJ9', Buffer.from(JSON.stringify({ email: 'ana@example.com' })).toString('base64url'), 'assinatura'].join('.');
+  const a = app({ handle: (path, options, pub) => path.includes('/functions/v1/passport') ? { participant: { id: 'uuid', full_name: 'Ana Souza' }, earnedBadges: [] } : pub(path) });
+  await a.start();
+  const anonymous = new URL(a.run('registrationUrl("equipe-robotica-shield-nig")'));
+  assert.equal(anonymous.searchParams.get('entry.1304510494'), 'SHIELD NIG: Popularizando a robótica e a tecnologia  - 14:00');
+  assert.equal(anonymous.searchParams.get('entry.157411751'), null); assert.equal(anonymous.searchParams.get('entry.1890638587'), null);
+  a.run(`saveSession({idToken:"${jwt}",refreshToken:"refresh",expiresIn:"3600"})`); await a.run('loadPassport()');
+  const url = new URL(a.run('registrationUrl("visao-sobre-ai-gateway")'));
+  assert.equal(url.origin + url.pathname, 'https://docs.google.com/forms/d/e/1FAIpQLSeUgomV8-PWdPO460JppqLMC3wEoqa-dJcnX9T7KOm7lMLtdw/viewform');
+  assert.equal(url.searchParams.get('usp'), 'pp_url');
+  assert.equal(url.searchParams.get('entry.1304510494'), 'Uma visão sobre AI Gateway – LiteLLM - 18:00');
+  assert.equal(url.searchParams.get('entry.157411751'), 'Ana Souza'); assert.equal(url.searchParams.get('entry.1890638587'), 'ana@example.com');
+  assert(![...url.searchParams.keys()].some(k => /1058176488|85211041/.test(k)), 'CPF e matrícula ficam para a pessoa digitar');
+  a.run('openBadge(0, true)');
+  assert.equal(a.get('registrationLink').textContent, 'Link para inscrição');
+  assert.match(a.get('registrationHint').textContent, /seu nome, e-mail/);
+  a.click('logoutButton');
+  assert.equal(new URL(a.run('registrationUrl("kafka-alem-das-filas")')).searchParams.get('entry.157411751'), null);
 });

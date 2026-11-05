@@ -263,6 +263,7 @@ main{padding:32px 0 64px}
 @media(min-width:768px){.shell{width:min(1160px,calc(100% - 64px))}main{padding-top:48px}.topbar{min-height:88px}.passport-content{flex-direction:row;text-align:left}.section-head{flex-direction:row;justify-content:space-between;align-items:flex-end;text-align:left}}
 @media(min-width:900px){.badge-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1120px){.badge-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.registration-hint{margin:12px 0 0;color:#aeb9c0;font-size:14px;line-height:1.55;text-align:center}
 .registration-link{display:block;margin-top:24px;padding:14px 20px;border-radius:12px;background:var(--purple,#7964f5);color:#fff;text-align:center;font-size:17px;font-weight:650;text-decoration:none}
 .registration-link:focus-visible{outline:2px solid var(--green);outline-offset:4px}
 .ranking-list{list-style:none;padding:0;display:grid;gap:12px;margin:24px 0}
@@ -571,6 +572,7 @@ main{padding:32px 0 64px}
     <p class="modal-desc" id="modalDescription"></p>
     <div class="detail-row"><span data-copy="category_label">Categoria</span><strong id="modalCategory"></strong></div>
     <a id="registrationLink" class="registration-link" href="https://docs.google.com/forms/d/e/1FAIpQLSeUgomV8-PWdPO460JppqLMC3wEoqa-dJcnX9T7KOm7lMLtdw/viewform" target="_blank" rel="noopener noreferrer">Link para inscrição</a>
+    <p id="registrationHint" class="registration-hint"></p>
   </div>
 </div>
 <script>
@@ -710,6 +712,46 @@ function renderBadges(privateLoaded = false) {
   updateProgress(privateLoaded);
 }
 
+// Formulário oficial de inscrição (Google Forms). O link abre com nome, e-mail e a palestra
+// marcados; CPF e matrícula a pessoa digita no próprio formulário e o passaporte não guarda.
+// Os textos das opções precisam ser idênticos aos do formulário, inclusive travessões e espaços.
+const registrationForm = "https://docs.google.com/forms/d/e/1FAIpQLSeUgomV8-PWdPO460JppqLMC3wEoqa-dJcnX9T7KOm7lMLtdw/viewform";
+const registrationFields = { name: "entry.157411751", email: "entry.1890638587" };
+const registrationOptions = {
+  "mesa-redonda": ["entry.303859995", "Mesa Redonda: Nossa Raíz, Nosso Futuro - 09:30"],
+  "trabalhando-com-dados": ["entry.303859995", "Trabalhando com Dados nos dias atuais - 11:00"],
+  "tecnologia-ia-oportunidades": ["entry.303859995", "Tecnologia, Inteligência Artificial e Oportunidades para o Futuro - 14:00"],
+  "iniciacao-cientifica": ["entry.303859995", "Iniciação Científica - 15:20"],
+  "linkedin-curriculo-entrevista": ["entry.303859995", "LinkedIn, currículo e entrevista: construindo sua jornada profissional - 16:00"],
+  "da-rural-ao-canada": ["entry.1964417905", "Da Rural ao Canadá: construindo uma carreira internacional em tecnologia - 16:30"],
+  "meninas-na-robotica": ["entry.1304510494", "Meninas na Robótica: descobrindo a tecnologia na prática – Sessão 1 - 09:30",
+    "A Sessão 1 (09:30) vem marcada; troque para a Sessão 2 (11:00) no formulário se preferir."],
+  "equipe-robotica-shield-nig": ["entry.1304510494", "SHIELD NIG: Popularizando a robótica e a tecnologia  - 14:00"],
+  "sua-ideia-vale-uma-startup": ["entry.1304510494", "Sua ideia vale uma startup? - 16:00"],
+  "visao-sobre-ai-gateway": ["entry.1304510494", "Uma visão sobre AI Gateway – LiteLLM - 18:00"],
+  "ciencia-computacao-alem-software": ["entry.932672977", "Ciência da Computação além das empresas de software - 09:30"],
+  "kafka-alem-das-filas": ["entry.932672977", "Kafka além das filas - 11:00"],
+  "como-iniciar-em-ia-security": ["entry.932672977", "Como iniciar em IA Security - 14:00"],
+  "como-e-desenvolver-um-jogo": ["entry.932672977", "Como é desenvolver um jogo? - 16:00"],
+  "e-se-a-aws-fosse-um-jogo": ["entry.932672977", "E se a AWS fosse um jogo, por onde você começaria? - 18:00"]
+};
+// E-mail da conta só para preencher o formulário; a identidade continua sendo verificada no servidor.
+function sessionEmail() {
+  try {
+    const payload = JSON.parse(atob(state.session.idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.email === "string" ? payload.email : "";
+  } catch { return ""; }
+}
+function registrationUrl(activityId) {
+  const params = new URLSearchParams({ usp: "pp_url" });
+  const option = registrationOptions[activityId];
+  if (option) params.append(option[0], option[1]);
+  if (state.session && state.participantName) params.append(registrationFields.name, state.participantName);
+  const email = state.session ? sessionEmail() : "";
+  if (email) params.append(registrationFields.email, email);
+  return `${registrationForm}?${params}`;
+}
+
 function openBadge(index, privateLoaded) {
   const badge = state.badges[index];
   if (!badge) return;
@@ -720,6 +762,13 @@ function openBadge(index, privateLoaded) {
   $("modalStatus").textContent = !privateLoaded ? text("status_login", "Entre para consultar")
     : badge.earned ? text("status_earned", "CONQUISTADO") : text("status_locked", "BLOQUEADO");
   $("modalStatus").classList.toggle("locked-status", !badge.earned);
+  const signedIn = !!(state.session && state.participantName);
+  $("registrationLink").href = registrationUrl(badge.id);
+  $("registrationLink").textContent = registrationOptions[badge.id] ? "Inscrever-se nesta palestra" : "Link para inscrição";
+  $("registrationHint").textContent = [signedIn
+    ? "O formulário abre com seu nome, e-mail e esta palestra marcados. Confira, informe CPF e matrícula (se for aluno da UFRRJ) e toque em Enviar."
+    : "O formulário abre com esta palestra marcada. Preencha seus dados, incluindo CPF e matrícula (se for aluno da UFRRJ), e toque em Enviar.",
+    registrationOptions[badge.id]?.[2] ?? ""].filter(Boolean).join(" ");
   $("modalBackdrop").classList.add("open");
   $("pageContent").inert = true;
   document.body.style.overflow = "hidden";
@@ -748,6 +797,7 @@ function clearPassport() {
   $("passportPanel").hidden = true;
   $("faqPanel").hidden = true;
   $("participantName").textContent = text("participant_guest", "Participante");
+  state.participantName = "";
   $("connectionStatus").textContent = text("session_signed_out", "NÃO CONECTADO");
   $("logoutButton").hidden = true;
   $("refreshButton").hidden = true;
@@ -853,6 +903,7 @@ async function loadPassport() {
     const earned = new Set(data.earnedBadges);
     state.badges.forEach(b => { b.earned = earned.has(b.id); });
     $("participantName").textContent = data.participant.full_name;
+    state.participantName = data.participant.full_name;
     $("connectionStatus").textContent = text("session_signed_in", "CONECTADO");
     $("authSection").hidden = true;
     $("logoutButton").hidden = false;
