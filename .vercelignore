@@ -1,7 +1,12 @@
 *
 !index.html
 !palestra.html
+!patrocinadores.html
 !favicon.png
 !fotos
 !fotos/*.webp
+!fotos/patrocinadores
+!fotos/patrocinadores/*.webp
+!fotos/patrocinadores/*.png
+!fotos/patrocinadores/*.jpg
 !vercel.json

@@ -1,4 +1,5 @@
 import {validContent,publicContent} from './activity-content.mjs';
+import {validSponsor,publicSponsor,sponsorId} from './sponsor-content.mjs';
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -45,8 +46,9 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
     const draws = url.pathname.endsWith('/passport/admin/draws');
     const person = url.pathname.endsWith('/passport/admin/person');
     const content = url.pathname.endsWith('/passport/admin/activity-content');
+    const sponsors = url.pathname.endsWith('/passport/admin/sponsors');
     const methods = faq ? ['GET','POST','PATCH','DELETE'] : bulkAttendance ? ['POST'] : attendance ? ['GET','POST','DELETE']
-      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content) ? ['GET','POST'] : ['GET'];
+      : walkin ? ['POST'] : draws ? ['GET','POST','PATCH','DELETE'] : (person || content || sponsors) ? ['GET','POST'] : ['GET'];
     if (!methods.includes(request.method)) {
       return response(405, "METHOD_NOT_ALLOWED");
     }
@@ -130,6 +132,27 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
       return { error: response(error.code === '42501' ? 403 : error.code === '22023' ? 400 : error.code === '40001' ? 409 : 503,
         error.code === '42501' ? 'ADMIN_REQUIRED' : error.code === '40001' ? 'CONTENT_CONFLICT' : unavailable) };
     };
+
+    if (sponsors) {
+      let input = {};
+      try {
+        if (request.method === 'POST') {
+          input = await readJson(request, 32000);
+          if (!input || !sponsorId(input.id) || !validSponsor(input.content) ||
+            !(input.revision === null || (Number.isSafeInteger(input.revision) && input.revision > 0))) throw Error();
+        }
+      } catch { return response(400, 'INVALID_SPONSOR'); }
+      try {
+        const { data, error } = await adminRpc('admin_sponsors', request.method === 'POST'
+          ? { p_id:input.id, p_content:{...input.content, name:input.content.name.trim(),
+              contributions:input.content.contributions.map(c => c.trim())}, p_revision:input.revision }
+          : {}, 'SPONSORS_UNAVAILABLE');
+        if (error) return error;
+        if (!Array.isArray(data?.sponsors)) return response(503, 'SPONSORS_UNAVAILABLE');
+        return response(200, null, { sponsor:data.sponsor ? publicSponsor(data.sponsor) : null,
+          sponsors:data.sponsors.map(publicSponsor) });
+      } catch { return response(503, 'SPONSORS_UNAVAILABLE'); }
+    }
 
     if(content){
       let input;
@@ -219,13 +242,15 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
         input = request.method === 'GET' ? Object.fromEntries(url.searchParams) : await readJson(request, 2000);
         if (!input || !validDate(input.date)) throw Error();
         if (request.method === 'POST' && input.prize !== undefined && (typeof input.prize !== 'string' || input.prize.trim().length > 120)) throw Error();
+        if (request.method === 'POST' && input.sponsor !== undefined && input.sponsor !== null && !sponsorId(input.sponsor)) throw Error();
         if (['PATCH','DELETE'].includes(request.method) && (typeof input.id !== 'string' ||
           !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id))) throw Error();
       } catch { return response(400, 'INVALID_DRAW'); }
       try {
         const { data, error } = await adminRpc('admin_raffle_draw', {
           p_action:({GET:'list',POST:'draw',PATCH:'absent',DELETE:'delete'})[request.method], p_date:input.date,
-          p_prize:request.method === 'POST' ? (input.prize ?? '').trim() : '', p_draw:['PATCH','DELETE'].includes(request.method) ? input.id : null
+          p_prize:request.method === 'POST' ? (input.prize ?? '').trim() : '', p_draw:['PATCH','DELETE'].includes(request.method) ? input.id : null,
+          p_sponsor:request.method === 'POST' ? input.sponsor ?? null : null
         }, 'DRAW_UNAVAILABLE');
         if (error) return error;
         if (!Array.isArray(data?.draws) || !Array.isArray(data.reel) ||
@@ -233,6 +258,7 @@ export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, fetc
         return response(200,null,{ date:input.date, drawnId:typeof data.drawnId === 'string' ? data.drawnId : null,
           reel:data.reel.filter(name => typeof name === 'string'),
           draws:data.draws.map(d=>({id:d.id,name:d.name,prize:d.prize,absent:d.absent === true,drawnAt:d.drawnAt,
+            sponsor:typeof d.sponsor === 'string' ? d.sponsor : null,
             chances:Number.isSafeInteger(d.chances) ? d.chances : 0})),
           remainingParticipants:data.remainingParticipants, totalEntries:data.totalEntries });
       } catch { return response(503,'DRAW_UNAVAILABLE'); }

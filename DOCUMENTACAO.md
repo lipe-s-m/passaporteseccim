@@ -374,3 +374,15 @@ O navegador envia as listas `add` e `remove`, e não a lista final, para não ap
 - Migração `20261105050000_local_speaker_photos.sql`: a foto aceita link https do Cloudinary **ou** o caminho `/fotos/<nome>.webp|jpg|png`. A mesma regra vale no backend (`activity-content.mjs`), no editor e na página pública.
 - Migração `20261105051000_speaker_content.sql`: preenche descrição, palestrante, bio, foto, horários e redes das 15 palestras, incrementa a revisão do conteúdo e registra `importacao-notion` na auditoria privada. Os horários seguem a grade do Notion; a palestra da AWS fica na sexta, 06/11, 18h, como no formulário de inscrição.
 - Para trocar uma foto depois: salvar o arquivo em `fotos/`, publicar o site e informar o caminho no editor.
+
+## Patrocinadores — 05/11/2026
+
+**Página pública** `patrocinadores.html`: todos os patrocinadores com o mesmo destaque, em ordem alfabética. Cada bloco tem logo (sobre fundo claro, para funcionar com qualquer versão do logo), frase curta, texto sobre a empresa, a lista "O que trouxeram para a SECCIM", carrossel de fotos (deslize no celular, setas e teclado no computador, sem rolagem automática; tocar amplia a foto) e links, com "Vagas e estágios" em destaque. O topo do passaporte ganha o botão **Patrocinadores** e o rodapé uma faixa com os logos, ambos visíveis só quando houver ao menos um patrocinador publicado.
+
+**Painel** (Organização → Patrocinadores): criar e editar patrocinadores. O identificador vira o endereço (`patrocinadores.html#id`) e não muda depois de criado. Entregas: um item por linha. Fotos: uma por linha, no formato `caminho | legenda`. Cada patrocinador nasce como **rascunho** e só aparece no site ao marcar "Publicado no site", o que permite mandar a prévia ao patrocinador antes. Edição simultânea é protegida por revisão, e a autoria fica em `private.sponsor_audit`.
+
+**Imagens**: em `fotos/patrocinadores/` (WebP, PNG ou JPG, publicadas com o site) ou links https do Cloudinary. SVG não é aceito, porque pode conter script.
+
+**Sorteio**: o campo "Brinde oferecido por" registra o patrocinador do brinde (`raffle_draws.sponsor_id`). O telão mostra "🎁 Caneca · oferecido por X" e o histórico do dia mostra o patrocinador.
+
+**Banco e backend**: migração `20261105070000_sponsors.sql` (tabela `public.sponsors` com leitura pública apenas dos publicados via RLS, RPC `admin_sponsors` com `SECURITY DEFINER` e autorização em `private.admins`, e nova assinatura de `admin_raffle_draw` com `p_sponsor`). Rotas `GET|POST /passport/admin/sponsors`; validação em `sponsor-content.mjs`, com as mesmas regras do banco. Testes: `supabase/tests/sponsors.sql` e 59 testes Node.

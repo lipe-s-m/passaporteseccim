@@ -136,7 +136,7 @@ begin
     end if;
   end loop;
   foreach client in array array['anon','authenticated'] loop
-    if has_function_privilege(client,'public.admin_raffle_draw(text,text,date,text,uuid)','execute')
+    if has_function_privilege(client,'public.admin_raffle_draw(text,text,date,text,uuid,text)','execute')
       or has_function_privilege(client,'public.admin_register_participant(text,text,text,text)','execute') then
       raise exception 'Cliente executa função administrativa';
     end if;

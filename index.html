@@ -323,6 +323,14 @@ main{padding:32px 0 64px}
 .social-link:hover{transform:translateY(-2px);border-color:#b9aaff;background:rgba(121,100,245,.24)}
 .social-link:focus-visible{outline:2px solid var(--green);outline-offset:3px}
 .social-link svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* Patrocinadores: botão no topo, faixa de logos no rodapé e editor no painel */
+.sponsor-nav{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1px solid rgba(185,170,255,.4);border-radius:99px;color:var(--ink);text-decoration:none;font-size:15px;white-space:nowrap}
+.sponsor-nav:hover,.sponsor-nav:focus-visible{border-color:#b9aaff;background:rgba(121,100,245,.16);outline:none}
+.sponsor-strip{margin:0 auto 36px;text-align:center}.sponsor-strip p{margin:0 0 14px;font-size:16px}
+.sponsor-logos{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;list-style:none;padding:0;margin:0 0 6px}
+.sponsor-logo{display:flex;align-items:center;justify-content:center;width:150px;height:76px;padding:12px;border-radius:14px;background:#f4f5f7;border:2px solid transparent;transition:transform .2s,border-color .2s}
+.sponsor-logo:hover,.sponsor-logo:focus-visible{transform:translateY(-2px);border-color:#b9aaff;outline:none}
+.sponsor-logo img{max-width:100%;max-height:100%;object-fit:contain}.sponsor-logo span{color:#1b1d24;font-weight:700;font-size:14px}
 </style>
 </head>
 <body>
@@ -330,7 +338,7 @@ main{padding:32px 0 64px}
 <div class="wireframe" aria-hidden="true"></div>
 <header class="shell topbar">
   <span class="event-tag" data-copy="event_name"></span>
-  <div class="top-right"><span class="event-tag" data-copy="institution"></span><button id="logoutButton" class="action-button" hidden data-copy="logout_label">Sair</button></div>
+  <div class="top-right"><a id="sponsorNav" class="sponsor-nav" href="patrocinadores.html" hidden>Patrocinadores</a><span class="event-tag" data-copy="institution"></span><button id="logoutButton" class="action-button" hidden data-copy="logout_label">Sair</button></div>
 </header>
 <main class="shell">
   <section class="welcome">
@@ -451,6 +459,39 @@ main{padding:32px 0 64px}
       </form>
       <iframe id="editorPreviewFrame" class="editor-preview" title="Pré-visualização da palestra" hidden></iframe>
     </details>
+    <details class="faq-card editor-section" id="sponsorSection">
+      <summary>Patrocinadores</summary>
+      <p class="faq-hint">Cadastre ou edite um patrocinador. Ele só aparece no site depois de marcado como publicado: use a prévia para mandar ao patrocinador antes.</p>
+      <label class="faq-field" for="sponsorSelect">Patrocinador<select id="sponsorSelect"><option value="">Selecione</option><option value="__new">+ Novo patrocinador</option></select></label>
+      <p id="sponsorMessage" class="page-message" role="status" aria-live="polite"></p>
+      <form id="sponsorForm" hidden>
+        <fieldset id="sponsorFields" class="editor-fields">
+          <legend class="sr-only">Dados do patrocinador</legend>
+          <div class="editor-grid">
+        <label class="faq-field" for="sponsorName">Nome<input id="sponsorName" type="text" maxlength="120" required></label>
+        <label class="faq-field" for="sponsorId">Identificador no link (sem acentos)<input id="sponsorId" type="text" maxlength="60" pattern="[a-z0-9]+(-[a-z0-9]+)*" required></label>
+        <label class="faq-field" for="sponsorTagline">Frase curta<input id="sponsorTagline" type="text" maxlength="240"></label>
+        <label class="faq-field" for="sponsorLogo">Logo<input id="sponsorLogo" type="text" inputmode="url" maxlength="2048" placeholder="/fotos/patrocinadores/nome.png"></label>
+        <label class="faq-field" for="sponsorAbout">Sobre a empresa<textarea id="sponsorAbout" rows="4" maxlength="2000"></textarea></label>
+        <label class="faq-field" for="sponsorContributions">O que trouxeram para a SECCIM (um item por linha)<textarea id="sponsorContributions" rows="4" placeholder="Coffee break da quinta&#10;Canecas para o sorteio"></textarea></label>
+        <label class="faq-field" for="sponsorPhotos">Fotos do carrossel (uma por linha: caminho | legenda)<textarea id="sponsorPhotos" rows="4" placeholder="/fotos/patrocinadores/nome-1.webp | Estande no hall"></textarea></label>
+        <label class="faq-field" for="sponsorVagas">Vagas e estágios<input id="sponsorVagas" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="sponsorSite">Site<input id="sponsorSite" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="sponsorLinkedin">LinkedIn<input id="sponsorLinkedin" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="sponsorInstagram">Instagram<input id="sponsorInstagram" type="url" maxlength="2048"></label>
+        <label class="faq-field" for="sponsorYoutube">YouTube<input id="sponsorYoutube" type="url" maxlength="2048"></label>
+          </div>
+          <label class="multi-option"><input id="sponsorPublished" type="checkbox"><span>Publicado no site</span></label>
+          <p class="faq-hint">Logo e fotos: imagens publicadas com o site em /fotos/patrocinadores/ ou links https do Cloudinary. Até 12 fotos e 20 itens de entrega.</p>
+        </fieldset>
+        <div class="faq-controls">
+          <button id="sponsorSave" class="action-button" type="submit">Salvar patrocinador</button>
+          <button id="sponsorPreview" class="action-button secondary" type="button">Pré-visualizar página</button>
+          <button id="sponsorReload" class="account-switch" type="button">Recarregar</button>
+        </div>
+      </form>
+      <iframe id="sponsorPreviewFrame" class="editor-preview" title="Pré-visualização do patrocinador" hidden></iframe>
+    </details>
     <div class="section-head"><div><div class="eyebrow">Organização</div><h2 id="adminTitle">Registro de presenças</h2><p>Escolha a atividade em andamento, busque a pessoa pelo nome ou e-mail e registre a presença.</p></div><span class="collection-meta" id="adminCount"></span></div>
     <label class="faq-field" for="adminActivity">Atividade<select id="adminActivity"><option value="">Selecione uma atividade</option></select></label>
     <form id="bulkAttendanceForm" class="faq-card bulk-attendance">
@@ -496,6 +537,7 @@ main{padding:32px 0 64px}
       <div class="raffle-controls">
         <label class="faq-field" for="raffleDate">Dia<select id="raffleDate"></select></label>
         <label class="faq-field" for="rafflePrize">Brinde (opcional)<input id="rafflePrize" maxlength="120" autocomplete="off" placeholder="Ex.: caneca da SECCIM"></label>
+        <label class="faq-field" for="raffleSponsor">Brinde oferecido por<select id="raffleSponsor"><option value="">Organização SECCIM</option></select></label>
       </div>
       <p id="raffleStats" class="raffle-stats"></p>
       <div id="raffleReel" class="raffle-reel"><span id="raffleName">Quem será?</span><small id="rafflePrizeLabel"></small></div>
@@ -509,6 +551,11 @@ main{padding:32px 0 64px}
   <noscript>Ative o JavaScript para acessar seu passaporte.</noscript>
 </main>
 <footer class="shell site-footer">
+  <section id="sponsorStrip" class="sponsor-strip" aria-labelledby="sponsorStripTitle" hidden>
+    <p id="sponsorStripTitle">Patrocinadores da SECCIM 2026</p>
+    <ul id="sponsorLogos" class="sponsor-logos"></ul>
+    <a class="account-switch" href="patrocinadores.html">Conheça os patrocinadores</a>
+  </section>
   <p>Acompanhe a SECCIM nas redes</p>
   <div class="social-links">
     <a class="social-link" href="https://www.instagram.com/seccim_ufrrj/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg><span>Instagram · @seccim_ufrrj</span></a>
@@ -1231,6 +1278,142 @@ async function registerBulkAttendance(event) {
 
 $("bulkAttendanceForm").addEventListener("submit",registerBulkAttendance);
 
+const sponsorsPath = "/functions/v1/passport/admin/sponsors";
+const sponsorState = { version:0, list:[], current:null, revision:null, busy:false, dirty:false, loaded:false };
+const sponsorLinkFields = { vagas:"sponsorVagas", site:"sponsorSite", linkedin:"sponsorLinkedin", instagram:"sponsorInstagram", youtube:"sponsorYoutube" };
+const sponsorLinkLabels = { vagas:"Vagas e estágios", site:"Site", linkedin:"LinkedIn", instagram:"Instagram", youtube:"YouTube" };
+const sponsorTextFields = ["sponsorName","sponsorId","sponsorTagline","sponsorLogo","sponsorAbout","sponsorContributions","sponsorPhotos",...Object.values(sponsorLinkFields)];
+// Mesmas regras do banco: imagens do site em /fotos/patrocinadores/ ou do Cloudinary.
+function sponsorImage(raw) {
+  if (/^\/fotos\/patrocinadores\/[a-z0-9]+(-[a-z0-9]+)*\.(webp|jpg|png)$/.test(raw)) return raw;
+  try { const u = new URL(raw); return u.protocol === "https:" && u.hostname === "res.cloudinary.com" && !u.username && !u.password ? u.href : ""; } catch { return ""; }
+}
+const slugify = name => name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+function sponsorLogoNode(sponsor) {
+  const src = sponsorImage(typeof sponsor.logo_url === "string" ? sponsor.logo_url.trim() : "");
+  if (!src) { const name = document.createElement("span"); name.textContent = sponsor.name; return name; }
+  const img = document.createElement("img"); img.src = src; img.alt = sponsor.name; img.loading = "lazy";
+  return img;
+}
+
+async function loadSponsorStrip() {
+  if (!configured()) return;
+  try {
+    const rows = await request("/rest/v1/sponsors?select=id,name,logo_url&published=eq.true");
+    if (!Array.isArray(rows)) return;
+    const sponsors = rows.filter(s => typeof s?.name === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s.id ?? ""))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+    $("sponsorLogos").replaceChildren(...sponsors.map(s => {
+      const link = document.createElement("a"); link.className = "sponsor-logo"; link.href = `patrocinadores.html#${s.id}`;
+      link.setAttribute("aria-label", s.name); link.append(sponsorLogoNode(s));
+      const item = document.createElement("li"); item.append(link); return item;
+    }));
+    $("sponsorStrip").hidden = !sponsors.length; $("sponsorNav").hidden = !sponsors.length;
+  } catch { /* Sem a faixa, o restante do site continua funcionando. */ }
+}
+
+function resetSponsors() {
+  sponsorState.version++; Object.assign(sponsorState, { list:[], current:null, revision:null, busy:false, dirty:false, loaded:false });
+  $("sponsorForm").hidden = true; $("sponsorPreviewFrame").hidden = true; $("sponsorFields").disabled = false;
+  for (const id of sponsorTextFields) $(id).value = "";
+  $("sponsorPublished").checked = false; $("sponsorSelect").value = "";
+  renderSponsorOptions(); message("sponsorMessage", "");
+  try { sessionStorage.removeItem("seccim.sponsor.preview"); } catch {}
+}
+
+function renderSponsorOptions() {
+  const option = (value, label) => { const node = document.createElement("option"); node.value = value; node.textContent = label; return node; };
+  const selected = $("sponsorSelect").value;
+  $("sponsorSelect").replaceChildren(option("", "Selecione"), option("__new", "+ Novo patrocinador"),
+    ...sponsorState.list.map(s => option(s.id, s.published ? s.name : `${s.name} (rascunho)`)));
+  $("sponsorSelect").value = selected === "__new" || sponsorState.list.some(s => s.id === selected) ? selected : "";
+  const raffle = $("raffleSponsor").value;
+  $("raffleSponsor").replaceChildren(option("", "Organização SECCIM"), ...sponsorState.list.map(s => option(s.id, s.name)));
+  $("raffleSponsor").value = sponsorState.list.some(s => s.id === raffle) ? raffle : "";
+}
+
+async function loadSponsorsAdmin() {
+  if (!state.session) return;
+  const version = ++sponsorState.version;
+  try {
+    const token = await accessToken();
+    if (version !== sponsorState.version) return;
+    const data = await request(sponsorsPath, { token });
+    if (version !== sponsorState.version) return;
+    if (!Array.isArray(data?.sponsors)) throw Error();
+    sponsorState.list = data.sponsors; sponsorState.loaded = true;
+    renderSponsorOptions();
+  } catch {
+    if (version === sponsorState.version) message("sponsorMessage", "Não foi possível carregar os patrocinadores.", true);
+  }
+}
+
+function fillSponsor(sponsor) {
+  sponsorState.current = sponsor?.id ?? null; sponsorState.revision = sponsor?.content_revision ?? null; sponsorState.dirty = false;
+  $("sponsorName").value = sponsor?.name ?? ""; $("sponsorId").value = sponsor?.id ?? "";
+  // O identificador vira o endereço (#id) e o vínculo dos brindes: não muda depois de criado.
+  $("sponsorId").readOnly = !!sponsor;
+  $("sponsorTagline").value = sponsor?.tagline ?? ""; $("sponsorAbout").value = sponsor?.about ?? "";
+  $("sponsorLogo").value = sponsor?.logo_url ?? "";
+  $("sponsorContributions").value = (sponsor?.contributions ?? []).join("\n");
+  $("sponsorPhotos").value = (sponsor?.photos ?? []).map(p => p.caption ? `${p.url} | ${p.caption}` : p.url).join("\n");
+  for (const [key, id] of Object.entries(sponsorLinkFields)) $(id).value = sponsor?.links?.[key] ?? "";
+  $("sponsorPublished").checked = sponsor?.published === true;
+  $("sponsorForm").hidden = false; $("sponsorPreviewFrame").hidden = true; message("sponsorMessage", "");
+}
+
+function readSponsor() {
+  const name = $("sponsorName").value.trim(), id = $("sponsorId").value.trim();
+  if (!name) throw Error("Informe o nome do patrocinador.");
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id) || id.length > 60) throw Error("Identificador: use letras minúsculas, números e hífens (ex.: empresa-x).");
+  const logo = $("sponsorLogo").value.trim();
+  if (logo && !sponsorImage(logo)) throw Error("Logo: use /fotos/patrocinadores/nome.png (publicado com o site) ou um link https do Cloudinary.");
+  const contributions = $("sponsorContributions").value.split("\n").map(line => line.trim()).filter(Boolean);
+  if (contributions.length > 20 || contributions.some(line => line.length > 200)) throw Error("Entregas: até 20 itens, com até 200 caracteres cada.");
+  const photos = $("sponsorPhotos").value.split("\n").map(line => line.trim()).filter(Boolean).map(line => {
+    const cut = line.indexOf("|"); const url = (cut < 0 ? line : line.slice(0, cut)).trim(); const caption = cut < 0 ? "" : line.slice(cut + 1).trim();
+    if (!sponsorImage(url)) throw Error(`Foto inválida: ${url}. Use /fotos/patrocinadores/... ou um link do Cloudinary.`);
+    if (caption.length > 160) throw Error("Legendas: até 160 caracteres.");
+    return caption ? { url, caption } : { url };
+  });
+  if (photos.length > 12) throw Error("Use até 12 fotos.");
+  const links = {};
+  for (const [key, field] of Object.entries(sponsorLinkFields)) {
+    const url = editorLink($(field).value); if (!url) continue;
+    let valid = false; try { const u = new URL(url); valid = u.protocol === "https:" && !u.username && !u.password; } catch {}
+    if (!valid) throw Error(`O link de ${sponsorLinkLabels[key]} precisa começar com https://.`);
+    $(field).value = url; links[key] = url;
+  }
+  return { id, content: { name, tagline: $("sponsorTagline").value.trim(), about: $("sponsorAbout").value.trim(),
+    contributions, logo_url: logo || null, photos, links, published: $("sponsorPublished").checked } };
+}
+
+async function saveSponsor(event) {
+  event.preventDefault();
+  if (sponsorState.busy || !state.session) return;
+  let input; try { input = readSponsor(); } catch (error) { message("sponsorMessage", error.message, true); return; }
+  const version = sponsorState.version;
+  sponsorState.busy = true; $("sponsorFields").disabled = true; $("sponsorSave").disabled = true;
+  message("sponsorMessage", "Salvando...");
+  try {
+    const token = await accessToken();
+    const data = await request(sponsorsPath, { method: "POST", token, body: { ...input, revision: sponsorState.current ? sponsorState.revision : null } });
+    if (version !== sponsorState.version) return;
+    if (!data?.sponsor?.id || !Array.isArray(data.sponsors)) throw Error();
+    sponsorState.list = data.sponsors; renderSponsorOptions();
+    $("sponsorSelect").value = data.sponsor.id; fillSponsor(data.sponsor);
+    message("sponsorMessage", data.sponsor.published ? "Salvo e publicado no site." : "Salvo como rascunho. Marque “Publicado no site” quando o patrocinador aprovar.");
+    loadSponsorStrip();
+  } catch (error) {
+    if (version !== sponsorState.version) return;
+    message("sponsorMessage", error.status === 409 ? "Outra pessoa alterou este patrocinador ou o identificador já existe. Recarregue antes de salvar."
+      : error.status === 400 ? "Confira os textos, imagens e links antes de salvar." : "Não foi possível salvar. Seus campos foram mantidos.", true);
+  } finally {
+    if (version === sponsorState.version) { sponsorState.busy = false; $("sponsorFields").disabled = false; $("sponsorSave").disabled = false; }
+  }
+}
+
 function resetAdmin() {
   resetEditor();
   adminState.version++; adminState.listVersion++; adminState.searchVersion++;
@@ -1247,11 +1430,12 @@ function resetAdmin() {
   $("walkinToggle").disabled = true;
   raffleState.version++; raffleState.date = ""; raffleState.remaining = 0; raffleState.spinning = false;
   $("raffleWinners").replaceChildren(); $("confetti").replaceChildren();
-  $("raffleStats").textContent = ""; $("rafflePrize").value = "";
+  $("raffleStats").textContent = ""; $("rafflePrize").value = ""; $("raffleSponsor").value = "";
   $("raffleName").textContent = "Quem será?"; $("rafflePrizeLabel").textContent = "";
   $("raffleReel").classList.remove("winner", "spinning");
   $("raffleDraw").disabled = true;
   closeMulti();
+  resetSponsors();
 }
 
 async function loadAdmin() {
@@ -1266,6 +1450,7 @@ async function loadAdmin() {
     adminState.activities = data.activities;
     $("adminTab").hidden = false;
     renderAdminActivities();
+    if (!sponsorState.loaded) loadSponsorsAdmin();
   } catch (error) {
     if (version !== adminState.version) return;
     // 403: conta sem permissão. Outras falhas mantêm a aba para nova tentativa.
@@ -1501,7 +1686,7 @@ function renderDraws(data) {
     const name = document.createElement("strong"); name.textContent = `🏆 ${number}º · ${draw.name}`;
     const time = new Date(draw.drawnAt);
     const detail = document.createElement("small");
-    detail.textContent = [draw.prize || "Brinde", `${draw.chances} ${draw.chances === 1 ? "chance" : "chances"}`,
+    detail.textContent = [(draw.prize || "Brinde") + (draw.sponsor ? ` (${draw.sponsor})` : ""), `${draw.chances} ${draw.chances === 1 ? "chance" : "chances"}`,
       Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
       draw.absent ? "ausente" : ""].filter(Boolean).join(" · ");
     info.append(name, detail); row.append(info);
@@ -1586,7 +1771,7 @@ async function drawWinner() {
   message("raffleMessage", "");
   try {
     const token = await accessToken();
-    const data = await request(drawsPath, { method: "POST", token, body: { date, prize: $("rafflePrize").value.trim() } });
+    const data = await request(drawsPath, { method: "POST", token, body: { date, prize: $("rafflePrize").value.trim(), sponsor: $("raffleSponsor").value || null } });
     if (version !== raffleState.version) return;
     const winner = data?.draws?.find(draw => draw.id === data.drawnId);
     if (!data?.drawnId || !winner) {
@@ -1599,10 +1784,11 @@ async function drawWinner() {
     await spin(data.reel, winner.name);
     if (version !== raffleState.version) return;
     $("raffleName").textContent = winner.name;
-    $("rafflePrizeLabel").textContent = winner.prize ? `🎁 ${winner.prize}` : "🎉 Parabéns!";
+    $("rafflePrizeLabel").textContent = winner.prize || winner.sponsor
+      ? `🎁 ${winner.prize || "Brinde"}${winner.sponsor ? ` · oferecido por ${winner.sponsor}` : ""}` : "🎉 Parabéns!";
     $("raffleReel").classList.add("winner");
     message("raffleMessage", `🏆 ${winner.name} ganhou${winner.prize ? ` ${winner.prize}` : ""}! Tinha ${winner.chances} ${winner.chances === 1 ? "chance" : "chances"} no dia.`);
-    $("rafflePrize").value = "";
+    $("rafflePrize").value = ""; $("raffleSponsor").value = "";
     celebrate();
     raffleState.spinning = false;
     renderDraws(data);
@@ -1757,6 +1943,27 @@ async function deleteDraw(draw) {
 }
 
 $("walkinToggle").addEventListener("click", openWalkin);
+$("sponsorSelect").addEventListener("change", () => {
+  if (sponsorState.dirty && !confirm("Descartar as alterações ainda não salvas?")) { $("sponsorSelect").value = sponsorState.current ?? "__new"; return; }
+  const id = $("sponsorSelect").value;
+  if (!id) { $("sponsorForm").hidden = true; sponsorState.current = null; return; }
+  fillSponsor(id === "__new" ? null : sponsorState.list.find(s => s.id === id));
+  if (id === "__new") $("sponsorName").focus();
+});
+$("sponsorName").addEventListener("input", () => { if (!sponsorState.current) $("sponsorId").value = slugify($("sponsorName").value); });
+$("sponsorForm").addEventListener("input", () => { sponsorState.dirty = true; });
+$("sponsorForm").addEventListener("submit", saveSponsor);
+$("sponsorReload").addEventListener("click", async () => {
+  if (sponsorState.dirty && !confirm("Descartar as alterações e recarregar?")) return;
+  await loadSponsorsAdmin(); const current = sponsorState.list.find(s => s.id === $("sponsorSelect").value); if (current) fillSponsor(current);
+});
+$("sponsorPreview").addEventListener("click", () => {
+  try {
+    const { id, content } = readSponsor();
+    sessionStorage.setItem("seccim.sponsor.preview", JSON.stringify({ id, ...content }));
+    $("sponsorPreviewFrame").src = `patrocinadores.html?preview=1&v=${Date.now()}`; $("sponsorPreviewFrame").hidden = false;
+  } catch (error) { message("sponsorMessage", error.message || "Não foi possível abrir a prévia nesta aba.", true); }
+});
 $("multiSave").addEventListener("click", saveMulti);
 $("multiCancel").addEventListener("click", closeMulti);
 $("walkinCancel").addEventListener("click", closeWalkin);
@@ -1916,6 +2123,7 @@ $("faqForm").addEventListener("submit", event => {
 restoreSession();
 clearPassport();
 loadPublicContent();
+loadSponsorStrip();
 
 </script>
 </body>

@@ -9,7 +9,7 @@ const source = html.match(/<script>([\s\S]*?)<\/script>/)[1]
   .replace(/const SUPABASE_PUBLISHABLE_KEY = "[^"]*";/, 'const SUPABASE_PUBLISHABLE_KEY = "";')
   .replace(/const FIREBASE_PROJECT_ID = "[^"]*";/, 'const FIREBASE_PROJECT_ID = "";')
   .replace(/const FIREBASE_API_KEY = "[^"]*";/, 'const FIREBASE_API_KEY = "";')
-  .replace(/clearPassport\(\);\s*loadPublicContent\(\);\s*$/, '');
+  .replace(/clearPassport\(\);\s*loadPublicContent\(\);\s*loadSponsorStrip\(\);\s*$/, '');
 
 function app({ configured = true, authConfigured = true, handle, storage = new Map() } = {}) {
   const nodes = new Map();
@@ -373,6 +373,9 @@ const person = { id: '11111111-1111-4111-8111-111111111111', name: '<b>Ana</b>',
 const drawState = { drawnId: null, reel: [], remainingParticipants: 2, totalEntries: 3, draws: [] };
 const winner = { id: '22222222-2222-4222-8222-222222222222', name: '<i>Bia</i>', prize: 'Caneca', absent: false, drawnAt: '2026-11-04T20:00:00Z', chances: 2 };
 
+const sponsorsList = [{ id: 'empresa-x', name: 'Empresa X', tagline: 'Frase', about: '', contributions: ['Coffee break'],
+  logo_url: '/fotos/patrocinadores/empresa-x.png', photos: [{ url: '/fotos/patrocinadores/empresa-x-1.webp', caption: 'Estande' }],
+  links: { vagas: 'https://x.example/vagas' }, published: false, content_revision: 2 }];
 function adminApp({ denied = false, raffle, draws = drawState, personActivities = [] } = {}) {
   return app({ handle: (path, options, pub) => {
     if (path.includes('/passport/admin/raffle')) return raffle;
@@ -386,6 +389,14 @@ function adminApp({ denied = false, raffle, draws = drawState, personActivities 
     if (path.includes('/passport/admin/participants')) {
       const input = JSON.parse(options.body);
       return { created: true, changed: true, participant: { id: person.id, name: input.name, email: input.email, linked: false } };
+    }
+    if (path.includes('/passport/admin/sponsors')) {
+      if (options.method === 'POST') {
+        const input = JSON.parse(options.body);
+        const saved = { id: input.id, ...input.content, content_revision: (input.revision ?? 0) + 1 };
+        return { sponsor: saved, sponsors: [saved] };
+      }
+      return { sponsor: null, sponsors: sponsorsList };
     }
     if (path.includes('/passport/admin/draws')) {
       if (options.method === 'POST') return { ...draws, drawnId: winner.id, reel: ['Ana', 'Bia'], remainingParticipants: 1, draws: [winner] };
@@ -485,7 +496,7 @@ test('sorteio no painel mostra o ganhador escolhido pelo servidor e permite marc
   a.get('rafflePrize').value = ' Caneca ';
   await a.click('raffleDraw');
   const draw = a.calls.find(c => c.path.includes('/admin/draws') && c.options.method === 'POST');
-  assert.deepEqual(JSON.parse(draw.options.body), { date: '2026-11-04', prize: 'Caneca' });
+  assert.deepEqual(JSON.parse(draw.options.body), { date: '2026-11-04', prize: 'Caneca', sponsor: null });
   assert.equal(a.get('raffleName').textContent, '<i>Bia</i>');
   assert.equal(a.get('rafflePrizeLabel').textContent, '🎁 Caneca');
   assert(a.get('raffleReel').classList.contains('winner'));
@@ -554,4 +565,68 @@ test('várias palestras: sem mudança não salva e logout fecha o painel', async
   assert.equal(a.get('multiSave').textContent, 'Salvar (+1)');
   a.click('logoutButton');
   assert.equal(a.get('multiPanel').hidden, true); assert.equal(a.get('multiDays').children.length, 0);
+});
+
+test('patrocinadores: rodapé mostra só publicados em ordem alfabética, como texto seguro', async () => {
+  const a = app({ handle: (path, options, pub) => path.includes('/rest/v1/sponsors')
+    ? [{ id: 'zeta', name: 'Zeta', logo_url: 'javascript:alert(1)' }, { id: 'alfa', name: '<b>Alfa</b>', logo_url: '/fotos/patrocinadores/alfa.png' }, { id: 'Ruim X', name: 'Ruim' }]
+    : pub(path) });
+  await a.start(); await a.run('loadSponsorStrip()');
+  const call = a.calls.find(c => c.path.includes('/rest/v1/sponsors'));
+  assert.match(call.path, /published=eq\.true/); assert(!call.options.headers.Authorization);
+  assert.equal(a.get('sponsorStrip').hidden, false);
+  assert.equal(a.get('sponsorNav').hidden, false);
+  const [first, second] = a.get('sponsorLogos').children.map(li => li.children[0]);
+  assert.equal(a.get('sponsorLogos').children.length, 2);
+  assert.equal(first.href, 'patrocinadores.html#alfa'); assert.equal(first.children[0].src, '/fotos/patrocinadores/alfa.png');
+  assert.equal(second.children[0].textContent, 'Zeta');
+  const empty = app(); await empty.start(); await empty.run('loadSponsorStrip()');
+  assert.equal(empty.get('sponsorStrip').hidden, true);
+  assert.equal(empty.get('sponsorNav').hidden, true);
+});
+
+test('patrocinadores: painel cria rascunho, valida links e imagens e edita com revisão', async () => {
+  const a = adminApp(); await login(a); await a.run('loadSponsorsAdmin()');
+  assert.equal(a.get('sponsorSelect').children.at(-1).textContent, 'Empresa X (rascunho)');
+  assert.equal(a.get('raffleSponsor').children.at(-1).value, 'empresa-x');
+  a.get('sponsorSelect').value = '__new'; a.get('sponsorSelect').listeners.change();
+  a.get('sponsorName').value = 'Ação & Tecnologia Ltda'; a.get('sponsorName').listeners.input();
+  assert.equal(a.get('sponsorId').value, 'acao-tecnologia-ltda');
+  a.get('sponsorPhotos').value = '/fotos/a.webp | fora da pasta';
+  await a.submit('sponsorForm'); assert.match(a.get('sponsorMessage').textContent, /Foto inválida/);
+  a.get('sponsorPhotos').value = '/fotos/patrocinadores/acao-1.webp | Estande no hall\n\n/fotos/patrocinadores/acao-2.webp';
+  a.get('sponsorContributions').value = ' Coffee break \n\nCanecas ';
+  a.get('sponsorVagas').value = 'acao.example/vagas'; a.get('sponsorLogo').value = '/fotos/patrocinadores/acao.png';
+  await a.submit('sponsorForm');
+  const created = JSON.parse(a.calls.filter(c => c.path.includes('/admin/sponsors') && c.options.method === 'POST').at(-1).options.body);
+  assert.equal(created.revision, null); assert.equal(created.id, 'acao-tecnologia-ltda');
+  assert.deepEqual(created.content.contributions, ['Coffee break', 'Canecas']);
+  assert.deepEqual(created.content.photos, [{ url: '/fotos/patrocinadores/acao-1.webp', caption: 'Estande no hall' }, { url: '/fotos/patrocinadores/acao-2.webp' }]);
+  assert.deepEqual(created.content.links, { vagas: 'https://acao.example/vagas' }); assert.equal(created.content.published, false);
+  assert.match(a.get('sponsorMessage').textContent, /rascunho/); assert.equal(a.get('sponsorId').readOnly, true);
+  a.get('sponsorPublished').checked = true; await a.submit('sponsorForm');
+  const updated = JSON.parse(a.calls.filter(c => c.path.includes('/admin/sponsors') && c.options.method === 'POST').at(-1).options.body);
+  assert.equal(updated.revision, 1); assert.equal(updated.content.published, true);
+  assert.match(a.get('sponsorMessage').textContent, /publicado/);
+  a.click('logoutButton'); assert.equal(a.get('sponsorForm').hidden, true); assert.equal(a.get('sponsorName').value, '');
+});
+
+test('sorteio mostra no telão o patrocinador do brinde', async () => {
+  const draws = { drawnId: null, reel: [], remainingParticipants: 2, totalEntries: 3, draws: [] };
+  const a = app({ handle: (path, options, pub) => {
+    if (path.includes('/admin/sponsors')) return { sponsor: null, sponsors: sponsorsList };
+    if (path.includes('/admin/draws')) return options.method === 'POST'
+      ? { ...draws, drawnId: winner.id, reel: ['Bia'], draws: [{ ...winner, sponsor: 'Empresa X' }] } : draws;
+    if (path.includes('/passport/admin/attendance')) return path.includes('overview') ? overview : { participants: [], total: 0, attendees: [] };
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+  await login(a); await a.run('loadSponsorsAdmin()'); await a.run('loadDraws()');
+  a.get('rafflePrize').value = 'Caneca'; a.get('raffleSponsor').value = 'empresa-x';
+  await a.click('raffleDraw');
+  const sent = JSON.parse(a.calls.find(c => c.path.includes('/admin/draws') && c.options.method === 'POST').options.body);
+  assert.equal(sent.sponsor, 'empresa-x');
+  assert.equal(a.get('rafflePrizeLabel').textContent, '🎁 Caneca · oferecido por Empresa X');
+  assert.equal(a.get('raffleSponsor').value, '');
+  assert.match(a.get('raffleWinners').children[0].children[0].children[1].textContent, /Caneca \(Empresa X\)/);
 });

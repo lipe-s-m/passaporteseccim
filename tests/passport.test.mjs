@@ -176,14 +176,14 @@ test('sorteio no painel lista, sorteia e marca ausente sem expor e-mail ou UID',
   const data=await drawn.json();
   assert.deepEqual(data.reel,['Ana','Bruno']); assert.equal(data.drawnId,participantId); assert.equal(data.draws[0].chances,3);
   assert(!JSON.stringify(data).includes('privado')); assert(!JSON.stringify(data).includes('segredo'));
-  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'draw',p_date:'2026-11-03',p_prize:'Caneca',p_draw:null});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'draw',p_date:'2026-11-03',p_prize:'Caneca',p_draw:null,p_sponsor:null});
   await a.send(token(),drawsUrl,'PATCH',{date:'2026-11-03',id:participantId});
   assert.equal(JSON.parse(a.calls.at(-1).options.body).p_action,'absent');
   assert.equal((await a.send(token(),drawsUrl,'DELETE',{date:'2026-11-03',id:'invalido'})).status,400);
   await a.send(token(),drawsUrl,'DELETE',{date:'2026-11-03',id:participantId});
-  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'delete',p_date:'2026-11-03',p_prize:'',p_draw:participantId});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'delete',p_date:'2026-11-03',p_prize:'',p_draw:participantId,p_sponsor:null});
   await a.send(token(),drawsUrl+'?date=2026-11-03&p_uid=outro');
-  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'list',p_date:'2026-11-03',p_prize:'',p_draw:null});
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_action:'list',p_date:'2026-11-03',p_prize:'',p_draw:null,p_sponsor:null});
   const denied=app({dbStatus:403,rpcs:{admin_raffle_draw:{code:'42501'}}});
   assert.equal((await denied.send(token(),drawsUrl,'POST',{date:'2026-11-03'})).status,403);
   assert.equal((await app({rpcs:{admin_raffle_draw:{draws:null}}}).send(token(),drawsUrl+'?date=2026-11-03')).status,503);
@@ -210,6 +210,45 @@ test('presenças em lote validam atividades, removem duplicatas e usam o UID ver
   assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a',p_participant:participantId,p_add:['mesa','kafka'],p_remove:['aws']});
   const denied=app({dbStatus:403,rpcs:{admin_person_attendances:{code:'42501'}}});
   assert.equal((await denied.send(token(),personUrl,'POST',{participant:participantId,add:['mesa']})).status,403);
+});
+
+const sponsorsUrl = 'https://edge.test/passport/admin/sponsors';
+const sponsorContent = {name:' Empresa ',tagline:'Frase',about:'Sobre',contributions:[' Coffee break '],logo_url:'/fotos/patrocinadores/empresa.png',
+  photos:[{url:'/fotos/patrocinadores/empresa-1.webp',caption:'Estande'}],links:{site:'https://empresa.example',vagas:'https://empresa.example/vagas'},published:false};
+
+test('patrocinadores: lista e salva pela organização, validando conteúdo antes do banco',async()=>{
+  const row={id:'empresa',...sponsorContent,name:'Empresa',content_revision:1,updated_at:'agora',segredo:'x'};
+  const a=app({rpcs:{admin_sponsors:{sponsor:row,sponsors:[row]}}});
+  assert.equal((await a.send('',sponsorsUrl)).status,401);
+  assert.equal((await a.send(token(),sponsorsUrl,'DELETE')).status,405);
+  for(const changes of [{logo_url:'https://evil.test/logo.png'},{logo_url:'/fotos/patrocinadores/a.svg'},{links:{site:'javascript:alert(1)'}},
+    {links:{twitter:'https://x.com/a'}},{photos:[{url:'/fotos/a.webp'}]},{contributions:['  ']},{name:''},{published:'sim'},{extra:1}]) {
+    assert.equal((await a.send(token(),sponsorsUrl,'POST',{id:'empresa',content:{...sponsorContent,...changes},revision:null})).status,400,JSON.stringify(changes));
+  }
+  assert.equal((await a.send(token(),sponsorsUrl,'POST',{id:'Empresa X',content:sponsorContent,revision:null})).status,400);
+  assert(!a.calls.some(c=>c.url.includes('/admin_sponsors')));
+  const list=await a.send(token(),sponsorsUrl);
+  assert.equal(list.status,200);
+  const listed=await list.json(); assert(!JSON.stringify(listed).includes('segredo'));
+  assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a'});
+  await a.send(token(),sponsorsUrl,'POST',{id:'empresa',content:sponsorContent,revision:3,p_uid:'outro'});
+  const sent=JSON.parse(a.calls.at(-1).options.body);
+  assert.equal(sent.p_uid,'user-a');assert.equal(sent.p_id,'empresa');assert.equal(sent.p_revision,3);
+  assert.equal(sent.p_content.name,'Empresa');assert.deepEqual(sent.p_content.contributions,['Coffee break']);
+  const conflict=app({dbStatus:409,rpcs:{admin_sponsors:{code:'40001'}}});
+  assert.equal((await conflict.send(token(),sponsorsUrl,'POST',{id:'empresa',content:sponsorContent,revision:1})).status,409);
+  const denied=app({dbStatus:403,rpcs:{admin_sponsors:{code:'42501'}}});
+  assert.equal((await denied.send(token(),sponsorsUrl)).status,403);
+});
+
+test('sorteio envia o patrocinador do brinde e recusa identificador inválido',async()=>{
+  const state={drawnId:participantId,reel:['Ana'],remainingParticipants:1,totalEntries:2,
+    draws:[{id:participantId,name:'Ana',prize:'Caneca',sponsor:'Empresa',absent:false,drawnAt:'2026-11-05T20:00:00Z',chances:2}]};
+  const a=app({rpcs:{admin_raffle_draw:state}});
+  assert.equal((await a.send(token(),drawsUrl,'POST',{date:'2026-11-05',prize:'Caneca',sponsor:'Empresa X'})).status,400);
+  const r=await a.send(token(),drawsUrl,'POST',{date:'2026-11-05',prize:'Caneca',sponsor:'empresa'});
+  assert.equal((await r.json()).draws[0].sponsor,'Empresa');
+  assert.equal(JSON.parse(a.calls.at(-1).options.body).p_sponsor,'empresa');
 });
 
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{
