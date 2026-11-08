@@ -17,7 +17,8 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 - O formulário editorial está em Organização → “Informações das palestras e palestrantes”, com foto por URL Cloudinary, horários, redes, slides e prévia em iframe. Rota `GET/POST /passport/admin/activity-content`; migration `20261105002514_admin_activity_content.sql` com allowlist `private.admins`, revisão otimista e auditoria privada. Salvar funciona pela API habilitada. Fotos são links já hospedados no Cloudinary; upload ainda não foi integrado.
 - 51 testes Node passaram. O SQL do editor foi validado no Supabase com fixtures em transação revertida: gravação/revisão, auditoria privada, recusa de conta comum, conflitos, links/datas inválidos e grants restritos. Não limpar presenças reais. Próximo passo de conteúdo: a organização preencher as informações reais pelo painel.
 
-- Frontend estático em `index.html`, publicado em https://passaporte-seccim.vercel.app.
+- Frontend estático: `index.html` + `css/` + `js/` (um arquivo por área, sem build), publicado em https://passaporte-seccim.vercel.app. Mapa dos arquivos em `DOCUMENTACAO.md` → "Estrutura do código".
+- Certificados são emitidos pelo SIGAA, não pelo passaporte.
 - Firebase Authentication autentica por e-mail e senha. Supabase armazena participantes, atividades, presenças e perguntas, protegidos por RLS.
 - A Edge Function Supabase `passport` valida tokens Firebase consultando o Google e interage com tabelas privadas pelo backend. A chave `service_role` nunca deve ir para o navegador.
 - Projeto Supabase `mqparqbuhstkdpcgbbsa`, região São Paulo. Consulte `DOCUMENTACAO.md` para o histórico.
@@ -47,7 +48,7 @@ Sortear brindes por dia entre quem assistiu às palestras. Cada presença confir
 O painel aceita até 100 e-mails colados para uma única atividade. Participantes cadastrados recebem a presença, e o administrador vê separadamente e-mails não encontrados, entradas inválidas e presenças já existentes. Não cria contas nem associa usuários por aproximação. Rota `POST /passport/admin/attendance/bulk`, RPC `admin_bulk_attendance`, mesmas permissões da organização usadas no painel.
 
 - Migração `20261103180000_admin_attendance.sql` aplicada em produção com `supabase db push --remote`. Edge Function `passport` reimplantada com a rota `GET|POST|DELETE /passport/admin/attendance`. Site publicado na Vercel pela CLI, a partir da pasta vinculada (`.vercel/`, ignorada).
-- Aba **Organização** no `index.html`: escolher a atividade, buscar por nome/e-mail, registrar/remover presença e baixar a lista do sorteio do dia. Detalhes em `DOCUMENTACAO.md` (seção "Painel da organização").
+- Aba **Organização** (`js/painel*.js`): escolher a atividade, buscar por nome/e-mail, registrar/remover presença e baixar a lista do sorteio do dia. Detalhes em `DOCUMENTACAO.md` (seção "Painel da organização").
 - Verificado em produção: rotas sem login respondem 401, método inválido 405, preflight 204; `check_api.py` OK; arquivos privados 404 na Vercel.
 - A conta administrativa escolhida pela organização ainda precisa se cadastrar, confirmar o e-mail e entrar uma vez antes de receber a permissão. O e-mail não deve ser registrado neste repositório, que é público.
 - A CLI do Supabase exige `--yes` para alterações em produção quando roda sem terminal; consultas usam `supabase db query --remote --read-only`.
@@ -67,7 +68,7 @@ O painel aceita até 100 e-mails colados para uma única atividade. Participante
 - `SORTEIOS.md`: operação, exemplo do endpoint, configuração e exportador.
 - `DOCUMENTACAO.md`: arquitetura e histórico geral.
 - `supabase/migrations/20261103055811_daily_raffle.sql`: banco e proteções.
-- `supabase/functions/passport/handler.mjs`: autenticação e rota GET.
+- `supabase/functions/passport/handler.mjs`: tabela de rotas; cada rota em `routes/`, autenticação em `auth.mjs`, banco e Storage em `services.mjs`.
 - `scripts/export_raffle.py`: exportação JSON/TXT.
 - `supabase/tests/raffle.sql`, `tests/passport.test.mjs`, `tests/test_export_raffle.py`: verificações.
 

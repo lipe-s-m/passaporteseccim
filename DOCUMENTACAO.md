@@ -10,7 +10,7 @@ Documentação atualizada em 03/11/2026. Interface e conteúdo em português.
 |---|---|---|
 | Supabase Free | `passaporte-seccim` / `mqparqbuhstkdpcgbbsa` | Banco, RLS, catálogo e Edge Function ativos; região São Paulo |
 | Firebase Spark | `passaporte-seccim-2026` | E-mail/senha habilitado, política de senha aplicada; faturamento desabilitado |
-| Frontend | `index.html` e `palestra.html` | Publicados em https://passaporte-seccim.vercel.app |
+| Frontend | `index.html` (com `css/` e `js/`), `palestra.html` e `patrocinadores.html` | Publicados em https://passaporte-seccim.vercel.app |
 
 [Abrir Supabase](https://supabase.com/dashboard/project/mqparqbuhstkdpcgbbsa) · [Abrir Firebase](https://console.firebase.google.com/project/passaporte-seccim-2026/overview)
 
@@ -20,7 +20,7 @@ O catálogo contém **15 atividades**. O banco já possui presenças reais; não
 
 ```mermaid
 flowchart TD
-    U[Participante] --> H[index.html: HTML, CSS e JavaScript]
+    U[Participante] --> H[index.html + css/ + js/]
     H --> D[palestra.html: detalhes públicos]
     H -->|E-mail e senha por HTTPS| F[Firebase Authentication]
     F -->|Confirmação e recuperação| E[E-mail padrão do Firebase]
@@ -35,7 +35,7 @@ flowchart TD
     I -->|SQL administrativo revisado| P
 ```
 
-O frontend permanece estático: não há framework, compilação ou dependências de produção para instalar. HTML, CSS e JavaScript estão em `index.html`. A fonte visual usa Google Fonts e o ícone é local. As integrações de produção usam as APIs REST oficiais e `fetch`; a Edge Function também não instala bibliotecas externas.
+O frontend permanece estático: não há framework, compilação ou dependências de produção para instalar. O `index.html` carrega os estilos de `css/` e os scripts de `js/` (ver [Estrutura do código](#estrutura-do-código)). A fonte visual usa Google Fonts e o ícone é local. As integrações de produção usam as APIs REST oficiais e `fetch`; a Edge Function também não instala bibliotecas externas.
 
 ## Página de detalhes das palestras
 
@@ -57,7 +57,7 @@ A integração foi feita pela Edge Function para permitir usar o Firebase Spark 
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `index.html` | Catálogo, cadastro, login, recuperação, confirmação, progresso e modal |
+| `index.html`, `css/`, `js/` | Página principal: HTML, estilos e scripts por área (ver Estrutura do código) |
 | `favicon.png` | Ícone original |
 | `firebase.json` | Provedor e-mail/senha; login anônimo desabilitado |
 | `.firebaserc` | Projeto Firebase deste repositório |
@@ -65,7 +65,7 @@ A integração foi feita pela Edge Function para permitir usar o Firebase Spark 
 | `supabase/migrations/20261103044459_firebase_password_auth.sql` | Transição para Firebase, bloqueio da API privada e RPC do backend |
 | `supabase/seed.sql` | 15 atividades e 48 textos atuais |
 | `supabase/functions/passport/index.ts` | Entrada da Edge Function e variáveis administrativas do ambiente |
-| `supabase/functions/passport/handler.mjs` | Validação da conta Firebase e consulta controlada ao banco |
+| `supabase/functions/passport/handler.mjs` e `routes/` | Tabela de rotas da API e uma função por rota (ver Estrutura do código) |
 | `supabase/functions/passport/firebase-config.mjs` | Projeto e chave Web públicos do Firebase usados no backend |
 | `supabase/config.toml` | Configuração da função com autenticação externa no handler |
 | `supabase/tests/security.sql` | Testes transacionais dos grants, vínculo e isolamento |
@@ -78,6 +78,47 @@ A integração foi feita pela Edge Function para permitir usar o Firebase Spark 
 | `dados-privados/` | Exportações e manifestos locais, ignorados pelo Git |
 
 As migrações históricas não devem ser reexecutadas no projeto atual. Em um projeto novo, aplicar as duas em ordem e, depois, executar o seed. Os nomes locais estão alinhados ao histórico remoto.
+
+## Estrutura do código
+
+Sem framework e sem compilação: o que está no repositório é o que vai ao ar.
+
+**Página principal.** `index.html` tem só o HTML. Os estilos ficam em `css/` e o JavaScript em `js/`, um arquivo por área. Os scripts são clássicos (não são módulos): carregam na ordem do `index.html`, compartilham o escopo global e cada arquivo pode usar o que os anteriores definiram. Funções chamadas só depois de um clique ou de uma resposta podem estar em qualquer arquivo; o que roda na hora do carregamento (por exemplo `$("x").addEventListener("click", minhaFuncao)`) precisa que `minhaFuncao` já tenha sido carregada. `js/main.js` é o último e inicia a página.
+
+| Arquivo | Área |
+|---|---|
+| `js/config.js` | URL e chaves **públicas** do Supabase e do Firebase (nunca `service_role`) |
+| `js/core.js` | Atalho `$`, estado da sessão, textos, `request`/`fetchJson`, datas, avatar, `loadScript`, `download` e validação de links |
+| `js/imagens.js` | Redução de imagens no aparelho e envio para `site-images` |
+| `js/auth.js` | Login, cadastro, verificação de e-mail e sessão |
+| `js/passaporte.js` | Progresso, selos, modal da palestra, link de inscrição, carga do passaporte |
+| `js/navegacao.js` | Abas da página |
+| `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js` | Telas do participante |
+| `js/patrocinadores.js` | Faixa de patrocinadores no rodapé |
+| `js/painel.js` | Painel da organização: atividades, busca e atualização |
+| `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-leitor-qr.js` | Seções do painel |
+| `js/main.js` | Atalhos de teclado e inicialização |
+| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, nessa ordem |
+
+Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` continuam autocontidas.
+
+**Edge Function `passport`.**
+
+| Arquivo | Papel |
+|---|---|
+| `index.ts` | Entrada no Deno, lê as variáveis do ambiente |
+| `handler.mjs` | Tabela de rotas (final do caminho → métodos aceitos → função); confere método e identidade e repassa |
+| `auth.mjs` | Verificação do token Firebase no Google (`accounts:lookup`) |
+| `services.mjs` | RPCs e Storage com a chave administrativa, sempre com o UID verificado (`adminRpc`, `passportRpc`, `profileRpc`, `signPhotos`…) |
+| `http.mjs` | Resposta JSON com CORS, `validDate`, `readJson` |
+| `routes/passaporte.mjs` | Passaporte (rota padrão), ranking e QR pessoal |
+| `routes/faq.mjs`, `routes/perfil.mjs`, `routes/moderacao.mjs` | FAQ, perfil e foto, moderação |
+| `routes/presencas.mjs` | Presenças por palestra, em lote, cadastro na hora, várias palestras e leitor de QR |
+| `routes/sorteio.mjs` | Exportação do sorteio e sorteio no painel |
+| `routes/conteudo.mjs` | Editor das palestras, patrocinadores e envio de imagens do site |
+| `*-content.mjs`, `qr-token.mjs`, `site-images.mjs` | Validações compartilhadas com os testes |
+
+Para criar uma rota: escrever a função em `routes/` (recebe `{ request, url, user, ... }` e devolve `response(...)`) e acrescentar uma linha na tabela de `handler.mjs`. A identidade já chega verificada; a permissão de organização é sempre conferida no banco pela RPC.
 
 ## Modelo de dados e administração
 
@@ -143,7 +184,7 @@ Para desenvolver localmente:
 python scripts/serve.py --host 127.0.0.1 --port 8000
 ```
 
-Abrir `http://127.0.0.1:8000`. O servidor é apenas de desenvolvimento. Para publicar, servir somente `index.html` e `favicon.png` por HTTPS; nunca disponibilizar `dados-privados/` ou scripts administrativos. Nenhuma hospedagem estática foi publicada nesta tarefa.
+Abrir `http://127.0.0.1:8000`. O servidor é apenas de desenvolvimento. Para publicar, servir somente o que o `.vercelignore` libera (páginas, `css/`, `js/`, `vendor/`, `fotos/` e `favicon.png`) por HTTPS; nunca disponibilizar `dados-privados/` ou scripts administrativos. Nenhuma hospedagem estática foi publicada nesta tarefa.
 
 O projeto Firebase usa o domínio padrão `passaporte-seccim-2026.firebaseapp.com` para confirmação e redefinição de senha. O frontend pede mensagens em pt-BR. O idioma, a aparência e a entrega efetiva dos e-mails devem ser conferidos com uma conta real da equipe. Não há SMTP externo configurado.
 
@@ -307,11 +348,11 @@ Atualização posterior: sistema de chances para brindes implementado e implanta
 
 Site público: https://passaporte-seccim.vercel.app. Projeto Vercel `passaporte-seccim`, na conta conectada. Deploy de produção realizado pela CLI Vercel 65.10.0. O domínio foi incluído nos domínios autorizados do Firebase, preservando os anteriores. Firebase e Supabase continuam responsáveis por autenticação e dados.
 
-`vercel.json` configura hospedagem estática, revalidação da página e cabeçalhos de segurança. `.vercelignore` permite enviar somente `index.html`, `favicon.png` e a configuração Vercel. Documentação, migrações, scripts e dados privados não são publicados. `.vercel/` mantém o vínculo local do projeto e é ignorado pelo Git.
+`vercel.json` configura hospedagem estática, revalidação da página e cabeçalhos de segurança. `.vercelignore` é uma lista de permissão: só as páginas, `css/`, `js/`, `vendor/`, `fotos/`, `favicon.png` e `vercel.json` são enviados. Documentação, migrações, scripts e dados privados não são publicados. `.vercel/` mantém o vínculo local do projeto e é ignorado pelo Git.
 
-**Publicação automática:** o projeto Vercel está conectado ao repositório GitHub `lipe-s-m/passaporteseccim`. Cada push no `main` publica o site em produção em poucos segundos; o `.vercelignore` continua limitando o envio a `index.html`, `favicon.png` e `vercel.json`. Pushes em outras branches geram previews protegidos por login da Vercel. O deploy manual pela CLI (`npx -y vercel@65.10.0 deploy --yes --prod`) continua possível.
+**Publicação automática:** o projeto Vercel está conectado ao repositório GitHub `lipe-s-m/passaporteseccim`. Cada push no `main` publica o site em produção em poucos segundos; o `.vercelignore` continua limitando o envio aos arquivos do site. Pushes em outras branches geram previews protegidos por login da Vercel. O deploy manual pela CLI (`npx -y vercel@65.10.0 deploy --yes --prod`) continua possível.
 
-**Ordem ao mudar backend e site juntos:** migrações e Edge Function não são publicadas pelo push. Primeiro `npx -y supabase db push --remote --yes`, depois `npx -y supabase functions deploy passport --remote --yes`, e só então o push do `index.html`, para o site novo nunca chamar rotas que ainda não existem. O helper `scripts/authorize_firebase_domain.cjs` permite autorizar novos domínios usando a sessão administrativa local da CLI Firebase, sem expor credenciais.
+**Ordem ao mudar backend e site juntos:** migrações e Edge Function não são publicadas pelo push. Primeiro `npx -y supabase db push --remote --yes`, depois `npx -y supabase functions deploy passport --remote --yes`, e só então o push do site, para o site novo nunca chamar rotas que ainda não existem. O helper `scripts/authorize_firebase_domain.cjs` permite autorizar novos domínios usando a sessão administrativa local da CLI Firebase, sem expor credenciais.
 
 Validação: domínio público respondeu HTTP 200 sem autenticação Vercel e contém ranking e link de inscrição. URLs de `dados-privados`, `.git/config`, documentação e código da Edge Function responderam HTTP 404.
 
@@ -389,11 +430,11 @@ O navegador envia as listas `add` e `remove`, e não a lista final, para não ap
 
 ## Inscrição pelo passaporte (formulário pré-preenchido) — 05/11/2026
 
-O botão **Inscrever-se nesta palestra**, no modal de cada selo, abre o Google Forms oficial com a palestra já marcada e, para quem está logado, também com o nome e o e-mail da conta. CPF e matrícula (para os certificados) continuam sendo digitados pela própria pessoa no formulário: o passaporte não pede nem guarda esses dados. O envio acontece no Google, e o formulário continua sendo o registro oficial das inscrições.
+O botão **Inscrever-se nesta palestra**, no modal de cada selo, abre o Google Forms oficial com a palestra já marcada e, para quem está logado, também com o nome e o e-mail da conta. CPF e matrícula continuam sendo digitados pela própria pessoa no formulário: o passaporte não pede nem guarda esses dados. O envio acontece no Google, e o formulário continua sendo o registro oficial das inscrições.
 
-O mapeamento `registrationOptions`, em `index.html`, liga cada atividade à pergunta (`entry.*`) e ao texto exato da opção no formulário, inclusive travessões e espaços duplos. **Se alguém editar o texto de uma opção no Google Forms, é preciso atualizar o mapeamento**; caso contrário, o link abre sem a palestra marcada, mas o formulário continua funcionando. Na Meninas na Robótica vem marcada a Sessão 1, e o aviso no modal orienta a trocar para a Sessão 2 se for o caso.
+O mapeamento `registrationOptions`, em `js/passaporte.js`, liga cada atividade à pergunta (`entry.*`) e ao texto exato da opção no formulário, inclusive travessões e espaços duplos. **Se alguém editar o texto de uma opção no Google Forms, é preciso atualizar o mapeamento**; caso contrário, o link abre sem a palestra marcada, mas o formulário continua funcionando. Na Meninas na Robótica vem marcada a Sessão 1, e o aviso no modal orienta a trocar para a Sessão 2 se for o caso.
 
-Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos × presentes por palestra), com CPF pedido apenas para o certificado, em tela própria, com armazenamento restrito e aviso de LGPD.
+Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos × presentes por palestra). **Os certificados são emitidos pelo SIGAA**, não pelo passaporte, então o passaporte não precisa de CPF.
 
 ## QR de presença — 05/11/2026
 
@@ -409,11 +450,11 @@ Próxima edição: inscrição nativa no passaporte ("Minha agenda", inscritos �
 
 **Testes:** `tests/qr-token.test.mjs`, rotas em `tests/passport.test.mjs` e telas em `tests/frontend.test.cjs`. Teste de ponta a ponta feito com câmera falsa no Chrome (vídeo gerado a partir de um QR real): o jsQR leu o token exato, enviou uma única vez em 9 segundos com o QR parado diante da câmera, e a captura da tela "Meu QR" decodificou no mesmo token emitido pelo servidor.
 
-**Preparado para o perfil:** a resposta da leitura traz um objeto `person` (hoje `id` e `name`) que pode ganhar apelido e foto sem mudar o leitor. Com a foto, o organizador confere o rosto na leitura, o que fecha de vez o uso do QR de outra pessoa. O cartão "Meu QR" pode passar a fazer parte da futura área **Meu perfil** (apelido, foto, bio, período). O apelido e a foto devem ficar numa tabela própria ligada a `participants.id`, sem alterar o nome oficial usado em certificados.
+**Preparado para o perfil:** a resposta da leitura traz um objeto `person` (hoje `id` e `name`) que pode ganhar apelido e foto sem mudar o leitor. Com a foto, o organizador confere o rosto na leitura, o que fecha de vez o uso do QR de outra pessoa. O cartão "Meu QR" pode passar a fazer parte da futura área **Meu perfil** (apelido, foto, bio, período). O apelido e a foto devem ficar numa tabela própria ligada a `participants.id`, sem alterar o nome oficial da inscrição.
 
 ## Perfil do participante — 05/11/2026
 
-Aba **Meu perfil**: apelido (@), foto, cargo/área/empresa, bio (até 160 caracteres), curso, período, LinkedIn e GitHub. O **nome oficial não muda pelo perfil**, porque é o usado nos certificados; só a organização corrige.
+Aba **Meu perfil**: apelido (@), foto, cargo/área/empresa, bio (até 160 caracteres), curso, período, LinkedIn e GitHub. O **nome oficial não muda pelo perfil**: é o da inscrição, usado pela organização para conferir presenças; só a organização corrige. (Os certificados são emitidos pelo SIGAA.)
 
 - **Apelido:** único, de 3 a 20 caracteres (`a-z`, `0-9`, `_` e `.`), guardado em minúsculas. Nomes que poderiam se passar pela organização (`admin`, `seccim`, `organizacao`…) ficam indisponíveis. Com a opção "Mostrar meu apelido no lugar do nome", que vem ligada, o **ranking** e o autor das perguntas no **FAQ** mostram `@apelido`; desligando, voltam ao nome. Perguntas anônimas continuam anônimas.
 - **Foto:** recortada no centro e reduzida para 400×400 no próprio aparelho (WebP; JPEG nos navegadores que não geram WebP; até 290 KB), então a foto original não sai do celular. O backend confere o tipo **pelos bytes do arquivo**, aceitando só WebP, JPEG e PNG (SVG/HTML recusados), e grava com nome aleatório em `avatars/<id-do-participante>/`. A foto anterior é apagada. O bucket `avatars` é **privado**: as fotos só são entregues por links assinados que expiram em 1 hora, para participantes logados (ranking, perfil) e para a organização (leitor de QR, moderação). O perfil avisa que menores de 18 anos não devem publicar foto.
@@ -438,3 +479,14 @@ A foto do palestrante, o logo e as fotos dos patrocinadores são **enviados como
 ## Testes SQL locais
 
 `scripts/test_sql.sh` aplica todas as migrações e roda `supabase/tests/*.sql` num Postgres 17 descartável (Docker), com papéis equivalentes aos do Supabase. Não toca no banco de produção.
+
+## Reorganização do código — 08/11/2026
+
+Sem mudança para quem usa o site. Os certificados **não** serão emitidos pelo passaporte, e sim pelo SIGAA; o perfil deixou de dizer que o nome oficial vai para certificados.
+
+- `index.html` (2.800 linhas) foi dividido: o HTML continua nele, os estilos foram para 10 arquivos em `css/` e o JavaScript para 19 arquivos em `js/`, por área. A divisão foi feita por script, movendo blocos inteiros sem reescrever código.
+- `handler.mjs` (550 linhas) virou a tabela de rotas; autenticação em `auth.mjs`, acesso ao banco em `services.mjs` e uma função por rota em `routes/`.
+- `scripts/export_raffle.py`, `check_api.py`, `check_auth.cjs` e `check_raffle.cjs` leem a configuração pública em `js/config.js`. `scripts/serve.py` e `.vercelignore` liberam `css/` e `js/`.
+- **Verificação:** o estilo calculado de todos os elementos (1.581 elementos e pseudo-elementos, em 390 e 1280 px, incluindo listas do ranking, painel e sorteio) é idêntico ao da versão anterior, e a captura da página inicial é igual pixel a pixel. Os testes do frontend agora rodam cada arquivo de `js/` como script separado, como o navegador. O handler antigo e o novo foram comparados em 2.268 requisições (todas as rotas, métodos, corpos, respostas do banco e com e sem login): mesmo status, mesmo corpo e as mesmas chamadas ao banco e ao Storage. 80 testes Node e 9 Python passaram.
+- A Edge Function precisa ser reimplantada (`npx -y supabase functions deploy passport --remote --yes`); o comportamento é o mesmo, então a ordem entre o deploy da função e o push do site não importa desta vez.
+
