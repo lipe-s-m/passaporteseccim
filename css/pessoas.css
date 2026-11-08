@@ -25,3 +25,16 @@
 .person-badge small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 .person-prize{background:rgba(255,209,102,.1);border-color:rgba(255,209,102,.3);font-size:15px}
 .person-empty{color:var(--muted);font-size:15px}
+/* Cabeçalho do perfil no mesmo degradê do cartão do passaporte, com nível e contadores. */
+.person-modal .modal-close{z-index:2}
+.person-hero{position:relative;margin:-25px -25px 16px;padding:30px 20px 20px;border-radius:22px 22px 0 0;background:linear-gradient(115deg,#27234e 0%,#38306e 48%,#6551d7 100%);border-bottom:1px solid rgba(255,255,255,.16)}
+.person-hero .avatar-large{box-shadow:0 0 0 4px rgba(255,255,255,.12),0 12px 30px -10px rgba(0,0,0,.6)}
+.person-hero .person-nickname{color:#e6e0ff}
+.person-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.stat-chip{padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:13px;font-weight:700;line-height:1.4}
+.stat-chip.level{background:#ffd166;border-color:transparent;color:#3a2a00}
+.person-badge,.person-prize{display:flex;align-items:center;gap:12px;animation:card-in .35s var(--ease) backwards}
+.person-badge div,.person-prize div{min-width:0}
+.person-prize strong{display:block;font-size:15px}
+.person-prize small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.prize-icon{display:grid;place-items:center;flex:0 0 auto;width:44px;height:44px;border-radius:50%;font-size:22px;background:linear-gradient(145deg,#ffe27a,#e09a00);box-shadow:0 8px 18px -10px #e09a00}

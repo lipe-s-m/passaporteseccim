@@ -44,6 +44,7 @@ async function openPerson(id) {
   if (!$("personBackdrop").classList.contains("open")) peopleState.focus = document.activeElement;
   $("personBackdrop").classList.add("open"); $("pageContent").inert = true; document.body.style.overflow = "hidden";
   $("personDetails").hidden = true; $("personAvatar").replaceChildren(); $("personName").textContent = "Carregando perfil...";
+  $("personNickname").hidden = true; $("personStats").hidden = true; $("personStats").replaceChildren();
   message("personMessage", "");
   $("personClose").focus();
   try {
@@ -63,6 +64,12 @@ function renderPerson(p) {
   $("personName").textContent = p.name;
   $("personAvatar").replaceChildren(avatarNode(p.nickname || p.name, p.photoUrl, "avatar avatar-large"));
   show("personNickname", [p.nickname ? `@${p.nickname}` : "", p.isMe ? "você" : ""].filter(Boolean).join(" · "));
+  // Nível calculado como no passaporte: proporcional ao total de selos da programação.
+  const level = levelFor(p.badges.length, state.badges.length || p.badges.length);
+  $("personStats").replaceChildren(...[[`${level.icon} Nível ${level.number} · ${level.name}`, "level"],
+    [`🏅 ${p.badges.length} ${p.badges.length === 1 ? "selo" : "selos"}`, ""], [`🎁 ${p.prizes.length} ${p.prizes.length === 1 ? "brinde" : "brindes"}`, ""]]
+    .map(([label, kind]) => Object.assign(document.createElement("span"), { className: kind ? `stat-chip ${kind}` : "stat-chip", textContent: label })));
+  $("personStats").hidden = false;
   show("personHeadline", p.headline); show("personStudy", [p.course, periodLabel(p.period)].filter(Boolean).join(" · "));
   show("personBio", p.bio);
   const links = [["linkedin", "LinkedIn"], ["github", "GitHub"]].filter(([key]) => p.links?.[key]).map(([key, label]) => {
@@ -74,16 +81,21 @@ function renderPerson(p) {
   $("personBadgesTitle").textContent = `Selos (${p.badges.length})`;
   $("personBadges").replaceChildren(...(p.badges.length ? p.badges.map(b => {
     const item = document.createElement("li"); item.className = "person-badge";
+    const info = document.createElement("div");
     const name = document.createElement("strong"); name.textContent = b.name;
     const when = document.createElement("small"); when.textContent = [b.category, b.eventDate ? shortDate(b.eventDate) : ""].filter(Boolean).join(" · ");
-    item.append(name, when);
+    info.append(name, when); item.append(miniEmblem(b.category), info);
     return item;
   }) : [Object.assign(document.createElement("li"), { className: "person-empty", textContent: "Nenhum selo ainda." })]));
   $("personPrizesTitle").textContent = `Brindes (${p.prizes.length})`;
   $("personPrizes").replaceChildren(...(p.prizes.length ? p.prizes.map(prize => {
     const item = document.createElement("li"); item.className = "person-prize";
-    item.textContent = [`🎁 ${prize.prize || "Brinde do sorteio"}`, prize.sponsor ? `oferecido por ${prize.sponsor}` : "",
-      prize.date ? `sorteio de ${shortDate(prize.date)}` : ""].filter(Boolean).join(" · ");
+    const icon = Object.assign(document.createElement("span"), { className: "prize-icon", textContent: "🎁" }); icon.setAttribute("aria-hidden", "true");
+    const info = document.createElement("div");
+    const name = Object.assign(document.createElement("strong"), { textContent: prize.prize || "Brinde do sorteio" });
+    const detail = Object.assign(document.createElement("small"), { textContent: [prize.sponsor ? `oferecido por ${prize.sponsor}` : "",
+      prize.date ? `sorteio de ${shortDate(prize.date)}` : ""].filter(Boolean).join(" · ") });
+    info.append(name, detail); item.append(icon, info);
     return item;
   }) : [Object.assign(document.createElement("li"), { className: "person-empty", textContent: "Nenhum brinde ainda." })]));
   $("personDetails").hidden = false;

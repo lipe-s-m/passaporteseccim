@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="css/rodape.css">
 <link rel="stylesheet" href="css/avaliacoes.css">
 <link rel="stylesheet" href="css/pessoas.css">
+<link rel="stylesheet" href="css/faq.css">
 <link rel="stylesheet" href="css/animacoes.css">
 </head>
 <body>
@@ -117,17 +118,18 @@
     <div class="section-head"><div><div class="eyebrow">Converse com quem apresenta</div><h2 id="faqTitle">FAQ · Perguntas das palestras</h2><p>Escolha uma atividade para acompanhar as dúvidas e enviar a sua.</p></div></div>
     <p id="faqLogin" class="faq-hint">Entre e confirme seu e-mail para participar.</p>
     <label class="faq-field" for="faqActivity">Palestra / atividade<select id="faqActivity"><option value="">Selecione uma atividade</option></select></label>
+    <div id="faqActivityHead" class="faq-activity-head" hidden></div>
     <form id="faqForm" class="faq-card" hidden>
       <h3 id="faqFormTitle">Faça sua pergunta</h3>
       <label class="faq-field" for="faqBody">Sua pergunta<textarea id="faqBody" required maxlength="2000" placeholder="O que você gostaria de perguntar?"></textarea></label>
-      <label><input id="faqAnonymous" type="checkbox"> Publicar como anônimo</label>
+      <label class="multi-option"><input id="faqAnonymous" type="checkbox"><span>Publicar como anônimo</span></label>
       <p class="faq-hint">Seu nome fica oculto para os demais participantes. A organização mantém o vínculo com sua conta. Você pode editar ou excluir sua pergunta.</p>
-      <div class="faq-controls"><button id="faqSave" class="action-button" type="submit">Enviar pergunta</button><button id="faqCancel" class="action-button" type="button" hidden>Cancelar edição</button></div>
+      <div class="faq-controls"><button id="faqSave" class="action-button" type="submit">Enviar pergunta</button><button id="faqCancel" class="action-button secondary" type="button" hidden>Cancelar edição</button></div>
     </form>
-    <div class="faq-controls"><button id="faqRefresh" class="action-button" type="button" hidden>Atualizar perguntas</button></div>
+    <div class="faq-controls"><button id="faqRefresh" class="action-button secondary" type="button" hidden>Atualizar perguntas</button></div>
     <p id="faqMessage" class="page-message" role="status" aria-live="polite"></p>
     <div id="faqList" aria-label="Perguntas da atividade"></div>
-    <button id="faqMore" class="action-button" type="button" hidden>Carregar mais perguntas</button>
+    <button id="faqMore" class="action-button secondary" type="button" hidden>Carregar mais perguntas</button>
   </section>
   <section id="profilePanel" aria-labelledby="profileTitle" hidden>
     <div class="section-head"><div><div class="eyebrow">Do seu jeito</div><h2 id="profileTitle">Meu perfil</h2><p>Escolha como aparecer para os outros participantes no ranking, no FAQ e no seu perfil.</p></div></div>
@@ -137,6 +139,7 @@
         <div id="profileAvatar"></div>
         <div>
           <strong id="profileOfficialName"></strong>
+          <p id="profileLevel" class="profile-level" hidden></p>
           <p>Nome oficial, o mesmo da inscrição. Para corrigir, fale com a organização.</p>
           <div class="profile-photo-actions">
             <label class="action-button secondary" for="profilePhotoInput">📷 Escolher foto</label>
@@ -371,11 +374,14 @@
 <div class="modal-backdrop" id="personBackdrop" role="dialog" aria-modal="true" aria-labelledby="personName">
   <div class="modal person-modal">
     <button class="modal-close" id="personClose" type="button" aria-label="Fechar">×</button>
-    <div id="personAvatar" class="person-avatar"></div>
-    <h2 id="personName">Perfil</h2>
+    <div class="person-hero">
+      <div id="personAvatar" class="person-avatar"></div>
+      <h2 id="personName">Perfil</h2>
+      <p id="personNickname" class="person-nickname" hidden></p>
+      <div id="personStats" class="person-stats" hidden></div>
+    </div>
     <p id="personMessage" class="page-message" role="status" aria-live="polite" hidden></p>
     <div id="personDetails" hidden>
-      <p id="personNickname" class="person-nickname" hidden></p>
       <p id="personHeadline" class="person-headline" hidden></p>
       <p id="personStudy" class="person-meta" hidden></p>
       <p id="personBio" class="person-bio" hidden></p>
@@ -390,6 +396,7 @@
 <!-- Scripts clássicos, em ordem: cada arquivo usa o que os anteriores definiram; main.js inicia a página. -->
 <script src="js/config.js"></script>
 <script src="js/core.js"></script>
+<script src="js/temas.js"></script>
 <script src="js/imagens.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/passaporte.js"></script>

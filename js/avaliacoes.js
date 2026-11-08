@@ -34,7 +34,7 @@ function renderFeedback() {
     : `Você assistiu ${items.length === 1 ? "1 palestra" : `${items.length} palestras`} e avaliou ${done}. Conte o que achou!`;
   feedbackState.form = null;
   $("feedbackList").replaceChildren(...items.map(item => {
-    const row = document.createElement("li"); row.className = "feedback-item";
+    const row = document.createElement("li"); row.className = item.rating ? "feedback-item rated" : "feedback-item";
     const head = document.createElement("div"); head.className = "feedback-head";
     const info = document.createElement("div");
     const name = document.createElement("strong"); name.textContent = item.name;
@@ -43,12 +43,14 @@ function renderFeedback() {
     status.textContent = item.rating ? feedbackStars(item.rating) : "Ainda não avaliada";
     if (item.rating) status.setAttribute("aria-label", `Sua nota: ${item.rating} de 5`);
     info.append(name, status);
+    const left = document.createElement("div"); left.className = "feedback-left";
+    left.append(miniEmblem(state.badges.find(b => b.id === item.activityId)?.category), info);
     const open = feedbackState.open === item.activityId;
     const button = document.createElement("button"); button.type = "button"; button.className = "action-button secondary";
     button.textContent = open ? "Fechar" : item.rating ? "Editar" : "Avaliar";
     button.setAttribute("aria-expanded", String(open));
     button.addEventListener("click", () => openFeedback(open ? null : item.activityId));
-    head.append(info, button); row.append(head);
+    head.append(left, button); row.append(head);
     if (open) row.append(feedbackForm(item));
     return row;
   }));

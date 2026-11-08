@@ -92,16 +92,17 @@ Sem framework e sem compilação: o que está no repositório é o que vai ao ar
 | `js/imagens.js` | Redução de imagens no aparelho e envio para `site-images` |
 | `js/auth.js` | Login, cadastro, verificação de e-mail e sessão |
 | `js/passaporte.js` | Progresso, selos (agrupados por dia), modal da palestra, link de inscrição, carga do passaporte |
-| `js/conquistas.js` | Gamificação: emblema por área, nível e XP, conquistas e aviso de selo novo |
+| `js/temas.js` | Ícone e cor de cada área (`badgeTheme`, `miniEmblem`); também usado por `palestra.html` |
+| `js/conquistas.js` | Gamificação: nível e XP, conquistas e aviso de selo novo |
 | `js/navegacao.js` | Abas da página |
 | `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js`, `js/avaliacoes.js`, `js/pessoas.js` | Telas do participante |
 | `js/patrocinadores.js` | Faixa de patrocinadores no rodapé |
 | `js/painel.js` | Painel da organização: atividades, busca e atualização |
 | `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-avaliacoes.js`, `js/painel-leitor-qr.js` | Seções do painel |
 | `js/main.js` | Atalhos de teclado e inicialização |
-| `css/*.css` | `base`, `passaporte`, `selos`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, `pessoas`, `animacoes`, nessa ordem |
+| `css/*.css` | `base`, `passaporte`, `selos`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, `pessoas`, `faq`, `animacoes`, nessa ordem |
 
-Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` continuam autocontidas.
+Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` têm o próprio script, mas usam `css/paginas.css` (fontes, fundo, topo, animações) e a palestra também `css/selos.css` e `js/temas.js`, para a medalha da área ser igual à do passaporte.
 
 **Edge Function `passport`.**
 
@@ -542,4 +543,12 @@ Participantes logados podem ver o perfil uns dos outros:
 - **Celular:** as abas viraram uma barra fixa embaixo, com ícones, como em um app. No computador, pílulas com ícone.
 - **Interação:** botões sobem no hover e "afundam" ao tocar; abas, cartões, linhas do ranking e resultados da busca entram com animação curta; a linha do ranking é clicável inteira, com seta e sublinhado no nome. Movimento reduzido no sistema desliga as animações.
 - **Padronização:** cantos de 12 px nos botões, área de toque mínima de 44–48 px (o fechar do modal passou de 32 para 40 px), tokens `--ease`, `--radius` e `--tap` em `css/base.css`.
+
+## Mesmo visual em todas as telas — 08/11/2026
+
+- **Perfil de outra pessoa:** cabeçalho no degradê do cartão do passaporte, chips de nível (mesmo cálculo do passaporte), selos e brindes; selos com a medalha da área e brindes em dourado.
+- **FAQ:** a atividade escolhida aparece com a medalha da área e o número de perguntas; perguntas em cartões de conversa (avatar de iniciais, "?" para anônimo, balão), as suas destacadas; Editar e Excluir como botões secundários.
+- **Avaliar palestras:** medalha da palestra ao lado do nome, avaliadas com borda dourada, estrelas que crescem no hover e "pulam" ao escolher; no celular o botão desce para a linha de baixo em vez de espremer o nome.
+- **Meu perfil:** chip com o nível e o número de selos ao lado do nome oficial.
+- **Saiba mais (`palestra.html`) e Patrocinadores:** mesmas fontes (Geist Pixel nos títulos), fundo quadriculado, botão de voltar em pílula, cartões que entram em sequência e reagem ao mouse. A palestra abre com a medalha e a cor da área, ícones nos cartões e a moldura da foto do palestrante na cor da área.
 

@@ -880,8 +880,14 @@ test('index.html carrega todos os scripts de js/, com config.js primeiro e main.
   const files = fs.readdirSync('js').filter(f => f.endsWith('.js')).map(f => `js/${f}`).sort();
   assert.deepEqual([...scriptFiles].sort(), files);
   assert.equal(scriptFiles[0], 'js/config.js'); assert.equal(scriptFiles.at(-1), 'js/main.js');
-  const styles = [...html.matchAll(/<link rel="stylesheet" href="(css\/[a-z0-9-]+\.css)">/g)].map(m => m[1]).sort();
-  assert.deepEqual(styles, fs.readdirSync('css').filter(f => f.endsWith('.css')).map(f => `css/${f}`).sort());
+  // Todo CSS de css/ é usado por alguma página, e toda página só aponta para arquivos que existem.
+  const linked = page => [...fs.readFileSync(page, 'utf8').matchAll(/<link rel="stylesheet" href="(css\/[a-z0-9-]+\.css)">/g)].map(m => m[1]);
+  const pages = ['index.html', 'palestra.html', 'patrocinadores.html'].map(linked);
+  const cssFiles = fs.readdirSync('css').filter(f => f.endsWith('.css')).map(f => `css/${f}`).sort();
+  assert.deepEqual([...new Set(pages.flat())].sort(), cssFiles);
+  for (const file of pages.flat()) assert(fs.existsSync(file), file);
+  assert(!pages[0].includes('css/paginas.css'), 'paginas.css é só das páginas avulsas');
+  assert(fs.readFileSync('palestra.html', 'utf8').includes('<script src="js/temas.js"></script>'));
   assert.doesNotMatch(html, /<script>|<style>/);
 });
 
@@ -907,9 +913,9 @@ test('pesquisa: quem teve presença avalia com estrelas e comentário, como text
   const a = feedbackApp(); await feedbackLogin(a);
   assert.equal(a.get('feedbackCard').hidden, false);
   assert.equal(a.get('feedbackSummary').textContent, 'Você assistiu 2 palestras e avaliou 1. Conte o que achou!');
-  const first = a.get('feedbackList').children[0].children[0].children[0];
+  const first = a.get('feedbackList').children[0].children[0].children[0].children[1];
   assert.equal(first.children[0].textContent, '<b>Mesa</b>'); assert.equal(first.children[1].textContent, 'Ainda não avaliada');
-  assert.equal(a.get('feedbackList').children[1].children[0].children[0].children[1].textContent, '★★★★☆');
+  assert.equal(a.get('feedbackList').children[1].children[0].children[0].children[1].children[1].textContent, '★★★★☆');
   assert.equal(feedbackButton(a, 0).textContent, 'Avaliar'); assert.equal(feedbackButton(a, 1).textContent, 'Editar');
   feedbackButton(a, 0).listeners.click();
   const form = a.run('feedbackState.form');
@@ -1013,8 +1019,11 @@ test('perfis: busca no ranking, nome do ranking abre o perfil com selos e brinde
   assert.equal(a.get('personBio').textContent, '<script>x</script>');
   assert.equal(a.get('personLinks').children[0].href, 'https://github.com/bia'); assert.equal(a.get('personLinks').children[0].rel, 'noopener noreferrer');
   assert.equal(a.get('personBadgesTitle').textContent, 'Selos (1)');
-  assert.equal(a.get('personBadges').children[0].children[1].textContent, 'Palestra · 04/11');
-  assert.equal(a.get('personPrizes').children[0].textContent, '🎁 Brinde do sorteio · oferecido por Empresa X · sorteio de 04/11');
+  assert.equal(a.get('personBadges').children[0].children[1].children[1].textContent, 'Palestra · 04/11');
+  assert.match(a.get('personBadges').children[0].children[0].className, /mini-emblem/);
+  assert.deepEqual(a.get('personStats').children.map(c => c.textContent), ['👑 Nível 2 · Lenda da SECCIM', '🏅 1 selo', '🎁 1 brinde'], 'catálogo de teste tem 1 atividade');
+  assert.equal(a.get('personPrizes').children[0].children[1].children[0].textContent, 'Brinde do sorteio');
+  assert.equal(a.get('personPrizes').children[0].children[1].children[1].textContent, 'oferecido por Empresa X · sorteio de 04/11');
   a.document.listeners.keydown({ key: 'Escape' });
   assert.equal(a.get('personBackdrop').classList.contains('open'), false); assert.equal(a.get('pageContent').inert, false);
   await a.run('loadRanking()');

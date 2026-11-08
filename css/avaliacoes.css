@@ -4,7 +4,7 @@
 .feedback-list{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
 .feedback-item{padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(17,26,32,.6)}
 .feedback-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.feedback-head strong{display:block;font-size:17px;overflow-wrap:anywhere}
+.feedback-head strong{display:block;font-size:17px;overflow-wrap:break-word}
 .feedback-status{display:block;margin-top:4px;color:#ffd166;font-size:17px;letter-spacing:.08em}
 .feedback-status.pending{color:var(--muted);font-size:15px;letter-spacing:normal}
 .feedback-form{margin-top:14px}
@@ -13,3 +13,14 @@
 .feedback-star{width:48px;height:48px;border:1px solid rgba(255,209,102,.35);border-radius:12px;background:transparent;color:#ffd166;font-size:26px;line-height:1;cursor:pointer}
 .feedback-star[aria-pressed="true"]{background:rgba(255,209,102,.16);border-color:#ffd166}
 .feedback-star:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+/* Medalha da palestra e estrelas com resposta ao toque. */
+/* Com pouco espaço, o botão desce para a linha de baixo em vez de espremer o nome. */
+.feedback-left{display:flex;align-items:center;gap:12px;flex:1 1 220px;min-width:0}
+.feedback-left div{min-width:0}
+.feedback-item{transition:border-color .2s,transform .2s var(--ease)}
+.feedback-item.rated{border-color:rgba(255,209,102,.35)}
+.feedback-star{transition:transform .15s var(--ease),background-color .2s,border-color .2s}
+.feedback-star:hover{transform:scale(1.12)}
+.feedback-star:active{transform:scale(.92)}
+.feedback-star[aria-pressed="true"]{animation:star-pop .35s var(--ease)}
+@keyframes star-pop{50%{transform:scale(1.25)}}

@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap" rel="stylesheet">
   <style>
     :root{color-scheme:dark;--bg:#10171c;--panel:#1c282f;--ink:#f2f5f7;--muted:#bdc8ce;--purple:#b9aaff;--green:#22e39a;--line:rgba(255,255,255,.12)}
     *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -10%,rgba(121,100,245,.2),transparent 45%),var(--bg);color:var(--ink);font:16px/1.65 "DM Sans",sans-serif;min-height:100vh}
@@ -20,31 +20,40 @@
     @media(min-width:620px){.shell{width:min(100% - 56px,880px)}main{padding-top:44px}.meta{grid-template-columns:1fr 1fr}.meta-card,.content-card,.speaker-card{padding:28px}.speaker{grid-template-columns:150px minmax(0,1fr)}.speaker.no-photo{grid-template-columns:minmax(0,1fr)}.portrait{width:136px;height:136px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
   </style>
+  <link rel="stylesheet" href="css/selos.css">
+  <link rel="stylesheet" href="css/paginas.css">
 </head>
 <body>
+  <div class="wireframe" aria-hidden="true"></div>
   <header class="shell top"><a class="brand" href="/">SECCIM</a><br><a class="back" href="/">← Voltar ao passaporte</a></header>
   <main class="shell">
     <p id="detailStatus" class="status" role="status" aria-live="polite">Carregando informações da palestra…</p>
     <article id="talk" hidden>
-      <p id="category" class="category" hidden></p>
-      <p class="eyebrow">Programação SECCIM</p>
-      <h1 id="talkTitle"></h1>
-      <p id="talkLead" class="lead" hidden></p>
+      <section class="hero">
+        <div class="badge-emblem hero-emblem" aria-hidden="true"><span id="talkIcon" class="badge-icon">⭐</span></div>
+        <div>
+          <p id="category" class="category" hidden></p>
+          <p class="eyebrow">Programação SECCIM</p>
+          <h1 id="talkTitle"></h1>
+          <p id="talkLead" class="lead" hidden></p>
+        </div>
+      </section>
       <section class="meta" aria-label="Data e horário">
-        <div id="dateCard" class="meta-card" hidden><span class="meta-label">Data</span><span id="talkDate" class="meta-value"></span></div>
-        <div id="timeCard" class="meta-card" hidden><span class="meta-label">Horário</span><span id="talkTime" class="meta-value"></span></div>
+        <div id="dateCard" class="meta-card" hidden><span class="meta-label">📅 Data</span><span id="talkDate" class="meta-value"></span></div>
+        <div id="timeCard" class="meta-card" hidden><span class="meta-label">⏰ Horário</span><span id="talkTime" class="meta-value"></span></div>
       </section>
       <div class="content-grid">
-        <section id="descriptionCard" class="content-card" hidden><h2>Sobre a palestra</h2><p id="talkDescription" class="bio"></p></section>
+        <section id="descriptionCard" class="content-card" hidden><h2>📖 Sobre a palestra</h2><p id="talkDescription" class="bio"></p></section>
         <section id="speakerCard" class="speaker-card speaker" hidden>
           <div id="speakerPhotoWrap" hidden><img id="speakerPhoto" class="portrait" alt=""></div>
           <div><p class="eyebrow">Quem apresenta</p><h2 id="speakerName"></h2><p id="speakerBio" class="bio" hidden></p><nav id="speakerSocials" class="socials" aria-label="Redes do palestrante"></nav></div>
         </section>
-        <section id="slidesCard" class="content-card" hidden><h2>Materiais</h2><p>Confira os slides e materiais compartilhados para esta palestra.</p><div class="materials"><a id="slidesLink" class="button" target="_blank" rel="noopener noreferrer">Ver ou baixar slides</a></div></section>
+        <section id="slidesCard" class="content-card" hidden><h2>📎 Materiais</h2><p>Confira os slides e materiais compartilhados para esta palestra.</p><div class="materials"><a id="slidesLink" class="button" target="_blank" rel="noopener noreferrer">Ver ou baixar slides</a></div></section>
       </div>
     </article>
   </main>
   <footer class="shell">SECCIM · Universidade Federal Rural do Rio de Janeiro</footer>
+<script src="js/temas.js"></script>
 <script>
 const SUPABASE_URL="https://mqparqbuhstkdpcgbbsa.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_MMrwKTyjB6oNno3hWrYCwQ_JyKDnbl_";
@@ -70,6 +79,8 @@ function renderSocials(socials){
 function render(data){
   $("talkTitle").textContent=cleanText(data.name)||"Palestra";document.title=`${$("talkTitle").textContent} · SECCIM`;
   const category=cleanText(data.category);if(category){$("category").textContent=category;$("category").hidden=false;}
+  // Mesma medalha e cor da área usadas nos selos do passaporte (js/temas.js).
+  const theme=badgeTheme(category);$("talk").classList.add(`tone-${theme.tone}`);$("talkIcon").textContent=theme.icon;
   const lead=cleanText(data.short_description);if(lead){$("talkLead").textContent=lead;$("talkLead").hidden=false;}
   const description=cleanText(data.description);if(description){$("talkDescription").textContent=description;$("descriptionCard").hidden=false;}
   const date=cleanText(data.event_date);

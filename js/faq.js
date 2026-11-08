@@ -17,6 +17,7 @@ function resetFaq() {
   for (const id of ["faqSave","faqCancel","faqActivity","faqRefresh","faqMore","faqBody","faqAnonymous"]) $(id).disabled = false;
   resetFaqForm();
   $("faqList").replaceChildren();
+  $("faqActivityHead").hidden = true; $("faqActivityHead").replaceChildren();
   $("faqForm").hidden = true;
   $("faqRefresh").hidden = true;
   $("faqMore").hidden = true;
@@ -40,27 +41,48 @@ function populateFaqActivities() {
 
 function renderQuestions() {
   $("faqList").replaceChildren();
-  faqState.questions.forEach(q => {
-    const card = document.createElement("article"); card.className = "faq-card";
-    const meta = document.createElement("p"); meta.className = "faq-meta";
+  faqState.questions.forEach((q, index) => {
+    const card = document.createElement("article"); card.className = q.mine ? "faq-card faq-question-card mine" : "faq-card faq-question-card";
+    card.style.animationDelay = `${Math.min(index, 12) * 35}ms`;
+    // Autor com avatar de iniciais (ou "?" para anônimo), data e marcação de edição.
+    const meta = document.createElement("div"); meta.className = "faq-author";
+    const name = q.anonymous ? "Anônimo" : q.author;
+    const avatar = avatarNode(q.anonymous ? "?" : name, null); if (q.anonymous) avatar.classList.add("anon");
+    const who = document.createElement("div");
+    const author = document.createElement("strong"); author.textContent = name + (q.mine ? " · Você" : "");
     const date = new Date(q.createdAt);
-    meta.textContent = `${q.anonymous ? "Anônimo" : q.author}${q.mine ? " · Você" : ""} · ${Number.isNaN(date.getTime()) ? "" : date.toLocaleString("pt-BR")}${q.updatedAt !== q.createdAt ? " · Editada" : ""}`;
+    const when = document.createElement("small");
+    when.textContent = `${Number.isNaN(date.getTime()) ? "" : date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${q.updatedAt !== q.createdAt ? " · Editada" : ""}`;
+    who.append(author, when); meta.append(avatar, who);
     const body = document.createElement("p"); body.className = "faq-question"; body.textContent = q.body;
     card.append(meta,body);
     if (q.mine) {
       const actions = document.createElement("div"); actions.className = "faq-controls";
-      const edit = document.createElement("button"); edit.type = "button"; edit.className = "action-button"; edit.textContent = "Editar"; edit.disabled = faqState.busy;
+      const edit = document.createElement("button"); edit.type = "button"; edit.className = "action-button secondary"; edit.textContent = "Editar"; edit.disabled = faqState.busy;
       edit.addEventListener("click", () => {
         faqState.editing = q.id; $("faqBody").value = q.body; $("faqAnonymous").checked = q.anonymous;
         $("faqFormTitle").textContent = "Editar sua pergunta"; $("faqSave").textContent = "Salvar alterações";
         $("faqCancel").hidden = false; $("faqBody").focus();
       });
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "action-button"; remove.textContent = "Excluir"; remove.disabled = faqState.busy;
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "action-button secondary danger"; remove.textContent = "Excluir"; remove.disabled = faqState.busy;
       remove.addEventListener("click", () => { if (confirm("Excluir esta pergunta? Esta ação não pode ser desfeita.")) mutateQuestion("DELETE", {id:q.id}); });
       actions.append(edit,remove); card.append(actions);
     }
     $("faqList").append(card);
   });
+  renderFaqActivityHead();
+}
+// Medalha e nome da atividade escolhida, com a contagem de perguntas carregadas.
+function renderFaqActivityHead() {
+  const activity = state.badges.find(b => b.id === $("faqActivity").value);
+  $("faqActivityHead").hidden = !activity;
+  if (!activity) { $("faqActivityHead").replaceChildren(); return; }
+  const info = document.createElement("div");
+  const name = Object.assign(document.createElement("strong"), { textContent: activity.name });
+  const count = faqState.questions.length;
+  const detail = Object.assign(document.createElement("small"), { textContent: `${activity.category ? `${activity.category} · ` : ""}${count}${faqState.hasMore ? "+" : ""} ${count === 1 ? "pergunta" : "perguntas"}` });
+  info.append(name, detail);
+  $("faqActivityHead").replaceChildren(miniEmblem(activity.category), info);
 }
 
 async function loadQuestions(append = false) {
@@ -82,7 +104,7 @@ async function loadQuestions(append = false) {
     if (version !== faqState.version) return;
     if (!Array.isArray(data?.questions)) throw Error();
     faqState.questions = append ? [...faqState.questions, ...data.questions.filter(q => !faqState.questions.some(old => old.id === q.id))] : data.questions;
-    renderQuestions(); $("faqMore").hidden = !data.hasMore;
+    faqState.hasMore = data.hasMore === true; renderQuestions(); $("faqMore").hidden = !data.hasMore;
     message("faqMessage", faqState.questions.length ? "" : "Ainda não há perguntas. Que tal enviar a primeira?");
   } catch {
     if (version === faqState.version) message("faqMessage", "Não foi possível carregar as perguntas. Tente atualizar ou entre novamente.", true);

@@ -4,3 +4,5 @@
 .profile-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:8px}.profile-head p{margin:4px 0 0;color:var(--muted);font-size:15px}
 .profile-photo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .profile-note{margin:14px 0;padding:12px 14px;border-radius:12px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);color:#ffe7ad;font-size:14px;line-height:1.5}
+/* Nível do jogador ao lado do nome oficial. */
+.profile-head .profile-level{display:inline-flex;margin:6px 0 2px;padding:4px 12px;border-radius:99px;background:#ffd166;color:#3a2a00;font-size:13px;font-weight:800}

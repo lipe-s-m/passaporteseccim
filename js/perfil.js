@@ -24,6 +24,9 @@ async function loadPassportIdentity() {
 function fillProfile(data) {
   const p = data.profile;
   $("profileOfficialName").textContent = data.name;
+  const earned = state.badges.filter(b => b.earned).length, level = levelFor(earned, state.badges.length);
+  $("profileLevel").textContent = `${level.icon} Nível ${level.number} · ${level.name} · ${earned} ${earned === 1 ? "selo" : "selos"}`;
+  $("profileLevel").hidden = false;
   $("profileNickname").value = p.nickname ?? ""; $("profileShowNickname").checked = p.showNickname !== false;
   $("profilePublic").checked = p.publicProfile !== false;
   $("profileHeadline").value = p.headline ?? ""; $("profileBio").value = p.bio ?? ""; $("profileCourse").value = p.course ?? "";
@@ -134,7 +137,7 @@ async function removeProfilePhoto() {
 
 function resetProfile() {
   profileState.version++; Object.assign(profileState, { loaded:false, busy:false, photoUrl:null });
-  $("profileForm").hidden = true; $("profileOfficialName").textContent = ""; $("profileAvatar").replaceChildren();
+  $("profileForm").hidden = true; $("profileOfficialName").textContent = ""; $("profileLevel").hidden = true; $("profileLevel").textContent = ""; $("profileAvatar").replaceChildren();
   for (const id of ["profileNickname","profileHeadline","profileBio","profileCourse","profileLinkedin","profileGithub"]) $(id).value = "";
   $("profilePeriod").value = ""; $("profileShowNickname").checked = true; $("profilePublic").checked = true; message("profileMessage", "");
 }

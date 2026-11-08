@@ -1,18 +1,6 @@
 // Gamificação do passaporte: emblema por área, nível e XP, conquistas e aviso de selo novo.
 // Tudo é calculado no aparelho a partir dos selos; nada disso é gravado no servidor.
 
-// Ícone e cor de cada área. Área nova cai no padrão (estrela roxa).
-const badgeThemes = [
-  [/carreira|experi/i, "🚀", "orange"], [/dado/i, "📊", "cyan"], [/intelig|\bia\b|\bai\b/i, "🤖", "purple"],
-  [/pesquisa|ci[eê]ncia/i, "🔬", "teal"], [/nuvem|cloud/i, "☁️", "blue"], [/rob[oó]/i, "🦾", "pink"],
-  [/empreend|startup/i, "💡", "yellow"], [/engenharia|software/i, "🛠️", "green"], [/seguran/i, "🛡️", "red"],
-  [/jogo|game/i, "🎮", "magenta"]
-];
-function badgeTheme(category) {
-  const found = badgeThemes.find(([pattern]) => pattern.test(category ?? ""));
-  return { icon: found?.[1] ?? "⭐", tone: found?.[2] ?? "purple" };
-}
-
 // Níveis proporcionais ao total de selos, para continuar fazendo sentido se a programação mudar.
 const levelSteps = [["🌱", "Visitante", () => 0], ["🐣", "Calouro(a)", () => 1], ["🧭", "Explorador(a)", t => Math.ceil(t * .2)],
   ["⚔️", "Veterano(a)", t => Math.ceil(t * .4)], ["🧙", "Mestre", t => Math.ceil(t * .7)], ["👑", "Lenda da SECCIM", t => t]];
