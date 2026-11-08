@@ -231,7 +231,10 @@ h1{font-size:clamp(28px,5vw,40px);line-height:1.3;letter-spacing:0;font-weight:7
 .collection-actions{display:flex;gap:10px;margin-bottom:16px}
 .badge-foot{flex-direction:column;justify-content:center;gap:8px}
 .badge-foot span{overflow-wrap:anywhere}
-.participant{min-width:0}
+.participant{min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px}
+.participant-nickname{margin:-2px 0 0!important;color:#d7d2ff!important;font-size:17px!important;font-weight:650}
+.participant-avatar .avatar{width:84px;height:84px;font-size:30px;border:3px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+@media(min-width:768px){.participant{flex-direction:row;gap:18px}}
 .participant h2,.id-block strong{overflow-wrap:anywhere}
 .page-tabs{display:flex;justify-content:center;gap:12px;margin:24px 0;flex-wrap:wrap}.page-tabs .action-button{flex:1 1 160px;max-width:260px}
 .page-tabs [aria-pressed="false"]{background:transparent;border-color:#687780}
@@ -414,7 +417,7 @@ main{padding:32px 0 64px}
   <section class="hero-grid" aria-label="Resumo do passaporte">
     <article class="passport">
       <div class="passport-content">
-        <div class="participant"><small data-copy="participant_label">Nome:</small><h2 id="participantName">Participante</h2></div>
+        <div class="participant"><span id="participantAvatar" class="participant-avatar"></span><div><small data-copy="participant_label">Nome:</small><h2 id="participantName">Participante</h2><p id="participantNickname" class="participant-nickname" hidden></p></div></div>
         <div class="passport-head"><span class="chip"><i aria-hidden="true"></i><span id="connectionStatus">NÃO CONECTADO</span></span></div>
       </div>
       <section class="progress-card" aria-label="Progresso">
@@ -901,6 +904,7 @@ function clearPassport() {
   $("faqPanel").hidden = true;
   $("participantName").textContent = text("participant_guest", "Participante");
   state.participantName = "";
+  $("participantAvatar").replaceChildren(); $("participantNickname").hidden = true; $("participantNickname").textContent = "";
   $("connectionStatus").textContent = text("session_signed_out", "NÃO CONECTADO");
   $("logoutButton").hidden = true;
   $("refreshButton").hidden = true;
@@ -1007,6 +1011,8 @@ async function loadPassport() {
     state.badges.forEach(b => { b.earned = earned.has(b.id); });
     $("participantName").textContent = data.participant.full_name;
     state.participantName = data.participant.full_name;
+    renderPassportIdentity(null);
+    loadPassportIdentity();
     $("connectionStatus").textContent = text("session_signed_in", "CONECTADO");
     $("authSection").hidden = true;
     $("logoutButton").hidden = false;
@@ -1782,13 +1788,30 @@ function avatarNode(name, photoUrl, className = "avatar") {
 }
 const initials = name => (name || "?").replace(/^@/, "").split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "?";
 
+// Foto e apelido no cartão do passaporte (página inicial), quando a pessoa definiu no perfil.
+function renderPassportIdentity(profile) {
+  const nickname = profile?.nickname || "";
+  $("participantAvatar").replaceChildren(avatarNode(nickname || state.participantName, profile?.photoUrl ?? null));
+  $("participantNickname").textContent = nickname ? `@${nickname}` : ""; $("participantNickname").hidden = !nickname;
+}
+
+async function loadPassportIdentity() {
+  const generation = state.generation;
+  try {
+    const token = await accessToken();
+    const data = await request(profilePath, { token });
+    if (generation !== state.generation || !data?.profile) return;
+    renderPassportIdentity(data.profile);
+  } catch { /* Sem perfil, o cartão fica com as iniciais. */ }
+}
+
 function fillProfile(data) {
   const p = data.profile;
   $("profileOfficialName").textContent = data.name;
   $("profileNickname").value = p.nickname ?? ""; $("profileShowNickname").checked = p.showNickname !== false;
   $("profileHeadline").value = p.headline ?? ""; $("profileBio").value = p.bio ?? ""; $("profileCourse").value = p.course ?? "";
   $("profilePeriod").value = p.period ?? ""; $("profileLinkedin").value = p.links?.linkedin ?? ""; $("profileGithub").value = p.links?.github ?? "";
-  profileBioCount(); renderProfilePhoto(p.photoUrl ?? null);
+  profileBioCount(); renderProfilePhoto(p.photoUrl ?? null); renderPassportIdentity(p);
 }
 
 function renderProfilePhoto(url) {
@@ -1984,7 +2007,7 @@ async function changeProfilePhoto(file) {
     const blob = await prepareAvatar(file);
     const data = await uploadProfilePhoto(blob);
     if (version !== profileState.version) return;
-    renderProfilePhoto(data?.photoUrl ?? null); message("profileMessage", "Foto atualizada! 📸");
+    renderProfilePhoto(data?.photoUrl ?? null); message("profileMessage", "Foto atualizada! 📸"); loadPassportIdentity();
   } catch (error) {
     if (version !== profileState.version) return;
     message("profileMessage", error.status === 413 ? "Foto muito grande mesmo depois de reduzida. Tente outra."
@@ -2000,7 +2023,7 @@ async function removeProfilePhoto() {
     const token = await accessToken();
     await request(`${profilePath}/photo`, { method: "DELETE", token });
     if (version !== profileState.version) return;
-    renderProfilePhoto(null); message("profileMessage", "Foto removida.");
+    renderProfilePhoto(null); message("profileMessage", "Foto removida."); loadPassportIdentity();
   } catch { if (version === profileState.version) message("profileMessage", "Não foi possível remover a foto.", true); }
   finally { if (version === profileState.version) profileState.busy = false; }
 }

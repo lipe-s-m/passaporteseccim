@@ -835,3 +835,21 @@ test('envio de imagens: foto do palestrante e fotos do carrossel vão pelo backe
   assert.match(a.get('editorPhoto').value, /site-images\/speakers\//);
   assert.match(a.get('editorMessage').textContent, /Salve as informações/);
 });
+
+test('página inicial mostra foto e apelido do perfil no cartão do passaporte, e limpa ao sair', async () => {
+  let profile = { nickname: 'ana.dev', showNickname: true, headline: '', bio: '', course: '', period: '', links: {}, photoUrl: signedPhoto };
+  const a = app({ handle: (path, options, pub) => {
+    if (path.includes('/passport/profile')) return { name: 'Ana Oficial', profile };
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+  await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  await a.run('loadPassportIdentity()');
+  assert.equal(a.get('participantNickname').textContent, '@ana.dev'); assert.equal(a.get('participantNickname').hidden, false);
+  assert.equal(a.get('participantAvatar').children[0].children[0].src, signedPhoto);
+  profile = { ...profile, nickname: null, photoUrl: null }; await a.run('loadPassportIdentity()');
+  assert.equal(a.get('participantNickname').hidden, true);
+  assert.equal(a.get('participantAvatar').children[0].textContent, 'PT', 'sem foto mostra as iniciais do nome');
+  a.click('logoutButton');
+  assert.equal(a.get('participantAvatar').children.length, 0); assert.equal(a.get('participantNickname').textContent, '');
+});
