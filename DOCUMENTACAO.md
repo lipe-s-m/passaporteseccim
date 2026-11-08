@@ -490,3 +490,19 @@ Sem mudança para quem usa o site. Os certificados **não** serão emitidos pelo
 - **Verificação:** o estilo calculado de todos os elementos (1.581 elementos e pseudo-elementos, em 390 e 1280 px, incluindo listas do ranking, painel e sorteio) é idêntico ao da versão anterior, e a captura da página inicial é igual pixel a pixel. Os testes do frontend agora rodam cada arquivo de `js/` como script separado, como o navegador. O handler antigo e o novo foram comparados em 2.268 requisições (todas as rotas, métodos, corpos, respostas do banco e com e sem login): mesmo status, mesmo corpo e as mesmas chamadas ao banco e ao Storage. 80 testes Node e 9 Python passaram.
 - A Edge Function precisa ser reimplantada (`npx -y supabase functions deploy passport --remote --yes`); o comportamento é o mesmo, então a ordem entre o deploy da função e o push do site não importa desta vez.
 
+
+## Backup — 08/11/2026
+
+`scripts/backup.sh` faz o backup completo da produção em `dados-privados/backup-AAAA-MM-DD/` (pasta ignorada pelo Git):
+
+- `schema.sql` (tabelas, funções, RLS e grants), `dados.sql` (todos os registros) e `papeis.sql`;
+- `storage/avatars/` (fotos de perfil, privadas) e `storage/site-images/` (logos e fotos do site);
+- `SHA256SUMS` para conferir se nenhum arquivo foi corrompido numa cópia (`sha256sum -c SHA256SUMS`).
+
+Ao terminar, o script restaura o backup num Postgres descartável (Docker) e mostra as contagens, para provar que o arquivo serve. Ele só lê a produção. Exige `npx supabase login` e Docker.
+
+**Primeiro backup (08/11/2026, depois do evento):** 88 participantes, 513 presenças, 513 chances, 11 sorteios, 8 perfis, 2 perguntas, 2 patrocinadores e 8 arquivos do Storage. A restauração de teste trouxe todos os registros, as funções, a RLS nas 9 tabelas públicas e o ranking funcionando sobre os dados restaurados.
+
+**O backup contém dados pessoais** (nomes, e-mails e fotos). Guardar uma segunda cópia em local privado da organização, nunca no repositório nem em link público, e apagar as cópias quando os dados deixarem de ser necessários.
+
+**Restaurar num projeto Supabase novo:** criar o projeto, rodar `psql "<connection string>" -f papeis.sql`, depois `schema.sql` e `dados.sql`. Os erros nas tabelas `auth.*` são esperados (o login fica no Firebase, e essas tabelas estão vazias). Reenviar os arquivos de `storage/` com `npx supabase storage cp -r storage/avatars ss:///avatars --remote --experimental` (e o mesmo para `site-images`). Atualizar a URL e a chave pública em `js/config.js` e na Edge Function, e o ref do projeto nos padrões de imagem (`private.site_image_ok` e `site-images.mjs`).
