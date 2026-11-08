@@ -91,14 +91,15 @@ Sem framework e sem compilação: o que está no repositório é o que vai ao ar
 | `js/core.js` | Atalho `$`, estado da sessão, textos, `request`/`fetchJson`, datas, avatar, `loadScript`, `download` e validação de links |
 | `js/imagens.js` | Redução de imagens no aparelho e envio para `site-images` |
 | `js/auth.js` | Login, cadastro, verificação de e-mail e sessão |
-| `js/passaporte.js` | Progresso, selos, modal da palestra, link de inscrição, carga do passaporte |
+| `js/passaporte.js` | Progresso, selos (agrupados por dia), modal da palestra, link de inscrição, carga do passaporte |
+| `js/conquistas.js` | Gamificação: emblema por área, nível e XP, conquistas e aviso de selo novo |
 | `js/navegacao.js` | Abas da página |
 | `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js`, `js/avaliacoes.js`, `js/pessoas.js` | Telas do participante |
 | `js/patrocinadores.js` | Faixa de patrocinadores no rodapé |
 | `js/painel.js` | Painel da organização: atividades, busca e atualização |
 | `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-avaliacoes.js`, `js/painel-leitor-qr.js` | Seções do painel |
 | `js/main.js` | Atalhos de teclado e inicialização |
-| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, `pessoas`, nessa ordem |
+| `css/*.css` | `base`, `passaporte`, `selos`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, `pessoas`, `animacoes`, nessa ordem |
 
 Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` continuam autocontidas.
 
@@ -531,4 +532,14 @@ Participantes logados podem ver o perfil uns dos outros:
 - **Banco** (`20261108160000_public_profiles.sql`): coluna `participant_profiles.public_profile`, `manage_profile` com a chave opcional `publicProfile`, `get_badge_ranking` devolvendo o `id` só de perfis visíveis (e da própria pessoa), e as RPCs `search_people` e `person_profile` (`SECURITY DEFINER`, só para contas cadastradas). O teste `supabase/tests/ranking.sql` passou a aceitar o `id` no ranking e continua barrando e-mail e UID do Firebase.
 - **Rota:** `GET /passport/people?q=texto` (busca) e `GET /passport/people?id=<participante>` (perfil).
 - **Testes:** `supabase/tests/public_profiles.sql` e 90 testes Node (busca, perfil, links, escondido, ranking clicável, Escape, logout).
+
+## Visual gamificado e navegação no celular — 08/11/2026
+
+- **Selos como missões por dia:** a coleção é agrupada por dia do evento, com contador (`2 / 5`) e "✓ Dia completo". Cada selo vira um emblema com ícone e cor da área (`badgeThemes` em `js/conquistas.js`; área nova usa a estrela roxa). Conquistado tem brilho e ✓; bloqueado fica cinza, tracejado e com cadeado.
+- **Nível e XP** no cartão do passaporte: Visitante → Calouro(a) → Explorador(a) → Veterano(a) → Mestre → Lenda da SECCIM. Os limites são proporcionais ao total de selos (hoje 0, 1, 3, 6, 11 e 15). XP = 100 por selo + 50 por conquista. É só visual: nada é gravado no servidor.
+- **Conquistas:** Primeiro passo, Curiosidade em alta (3 áreas), Maratona (todas as atividades de um dia com 2 ou mais), Presença garantida (um selo em cada dia), Meio caminho e Lenda da SECCIM, com barra de progresso.
+- **Selo novo:** o aparelho guarda (em `localStorage`) os selos já vistos; o que aparecer depois ganha a faixa "NOVO", uma animação de desbloqueio e um aviso. Na primeira visita só registra, sem avisar.
+- **Celular:** as abas viraram uma barra fixa embaixo, com ícones, como em um app. No computador, pílulas com ícone.
+- **Interação:** botões sobem no hover e "afundam" ao tocar; abas, cartões, linhas do ranking e resultados da busca entram com animação curta; a linha do ranking é clicável inteira, com seta e sublinhado no nome. Movimento reduzido no sistema desliga as animações.
+- **Padronização:** cantos de 12 px nos botões, área de toque mínima de 44–48 px (o fechar do modal passou de 32 para 40 px), tokens `--ease`, `--radius` e `--tap` em `css/base.css`.
 

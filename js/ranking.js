@@ -24,7 +24,10 @@ async function loadRanking() {
       name.className = entry.id ? "ranking-name person-link" : "ranking-name"; name.textContent = entry.name + (entry.isMe ? " (você)" : "");
       if (entry.id) { name.type = "button"; name.setAttribute("aria-label", `Ver perfil de ${entry.name}`); name.addEventListener("click", () => openPerson(entry.id)); }
       const count = document.createElement("span"); count.className = "ranking-count"; count.textContent = `${entry.badgeCount} ${entry.badgeCount === 1 ? "selo" : "selos"}`;
-      row.append(position,avatarNode(entry.name,entry.photoUrl),name,count); $("rankingList").append(row);
+      row.append(position,avatarNode(entry.name,entry.photoUrl),name,count);
+      if (entry.id) { row.classList.add("clickable"); const chevron = document.createElement("span"); chevron.className = "ranking-chevron"; chevron.setAttribute("aria-hidden", "true"); chevron.textContent = "›"; row.append(chevron); }
+      row.style.animationDelay = `${Math.min($("rankingList").children.length, 12) * 35}ms`;
+      $("rankingList").append(row);
     }
     $("rankingSummary").textContent = data.mine?.position
       ? `Sua posição: ${data.mine.position}º · ${data.mine.badgeCount} ${data.mine.badgeCount === 1 ? "selo" : "selos"}`

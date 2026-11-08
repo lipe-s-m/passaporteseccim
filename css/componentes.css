@@ -6,8 +6,11 @@
 .auth-form{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin:24px 0 8px}
 .auth-form label{display:flex;min-width:0;flex-direction:column;gap:10px;font-size:16px;color:var(--ink);text-align:left}
 .auth-form input{width:100%;min-width:0;min-height:48px;padding:12px;border:1px solid #687780;border-radius:10px;background:#111a20;color:var(--ink);font:inherit;font-size:16px;line-height:1.4}
-.action-button{min-height:48px;padding:12px 16px;border:1px solid #b5a7ff;border-radius:10px;background:#5340b5;color:#fff;font:inherit;font-size:16px;line-height:1.4;text-align:center;cursor:pointer}
+.action-button{min-height:48px;padding:12px 16px;border:1px solid #b5a7ff;border-radius:var(--radius);background:#5340b5;color:#fff;font:inherit;font-size:16px;line-height:1.4;text-align:center;cursor:pointer;font-weight:600;transition:transform .15s var(--ease),box-shadow .2s,background-color .2s,border-color .2s,color .2s}
 .action-button:disabled{opacity:.55;cursor:wait}
+/* Resposta ao mouse e ao toque: sobe um pouco no hover e "afunda" ao pressionar. */
+.action-button:not(:disabled):hover{transform:translateY(-1px);background-color:#5f4bd0;box-shadow:0 10px 22px -10px rgba(121,100,245,.9)}
+.action-button:not(:disabled):active{transform:scale(.97);box-shadow:none}
 .action-button:focus-visible,.auth-form input:focus-visible{outline:2px solid var(--green);outline-offset:3px}
 #authSubmit{width:100%;min-height:52px;font-size:17px;font-weight:650}
 #resetPassword{justify-self:center;min-height:44px;border:0;background:transparent;color:#d7d2ff;text-decoration:underline;text-underline-offset:4px;padding:8px 12px}
@@ -16,15 +19,30 @@
 #verificationPanel .action-button{width:100%;min-height:48px}
 @media(min-width:640px){.auth-card{padding:36px}#verificationPanel .collection-actions{flex-direction:row}}
 .collection-actions{display:flex;gap:10px;margin-bottom:16px}
-.badge-foot{flex-direction:column;justify-content:center;gap:8px}
-.badge-foot span{overflow-wrap:anywhere}
 .participant{min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px}
 .participant-nickname{margin:-2px 0 0!important;color:#d7d2ff!important;font-size:17px!important;font-weight:650}
 .participant-avatar .avatar{width:84px;height:84px;font-size:30px;border:3px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 @media(min-width:768px){.participant{flex-direction:row;gap:18px}}
 .participant h2,.id-block strong{overflow-wrap:anywhere}
-.page-tabs{display:flex;justify-content:center;gap:12px;margin:24px 0;flex-wrap:wrap}.page-tabs .action-button{flex:1 1 160px;max-width:260px}
-.page-tabs [aria-pressed="false"]{background:transparent;border-color:#687780}
+/* Abas: pílulas no computador e barra fixa embaixo no celular, como em um app. */
+.page-tabs{display:flex;justify-content:center;gap:8px;margin:28px 0;flex-wrap:wrap}
+.page-tabs .action-button{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;padding:8px 18px;border-radius:99px}
+.page-tabs [aria-pressed="true"]{box-shadow:0 10px 24px -10px rgba(121,100,245,.95)}
+.page-tabs [aria-pressed="false"]{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:var(--muted)}
+.page-tabs .action-button[aria-pressed="false"]:not(:disabled):hover{background:rgba(121,100,245,.16);border-color:#b9aaff;color:var(--ink);box-shadow:none}
+.tab-icon{font-size:18px;line-height:1}
+@media(max-width:767px){
+  .page-tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;margin:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(13,20,25,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 30px rgba(0,0,0,.35)}
+  .page-tabs .action-button{flex-direction:column;justify-content:center;gap:3px;min-width:0;min-height:58px;padding:6px 2px;border:0;border-radius:14px;background:transparent;color:var(--muted);font-size:12px;box-shadow:none}
+  .page-tabs .action-button[aria-pressed="true"]{background:rgba(121,100,245,.24);color:#fff;box-shadow:none}
+  .page-tabs .action-button:not(:disabled):hover,.page-tabs .action-button[aria-pressed="false"]:not(:disabled):hover{transform:none;background-color:rgba(255,255,255,.06);box-shadow:none}
+  .page-tabs .action-button[aria-pressed="true"]:not(:disabled):hover{background-color:rgba(121,100,245,.24)}
+  .page-tabs .tab-icon{font-size:22px;transition:transform .25s var(--ease)}
+  .page-tabs [aria-pressed="true"] .tab-icon{transform:translateY(-2px) scale(1.12)}
+  .tab-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Espaço para a barra fixa não cobrir o fim da página. */
+  body:has(#pageTabs:not([hidden])){padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+}
 .faq-card{padding:20px;border:1px solid rgba(165,140,255,.25);border-radius:16px;background:#1b2932;margin:16px 0}
 .faq-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:14px 0}
 .faq-field{display:flex;flex-direction:column;gap:8px;margin:16px 0;font-size:14px}
@@ -38,4 +56,6 @@
 .account-switch:disabled{opacity:.55;cursor:wait}
 
 .action-button.secondary{background:transparent;border-color:#687780}
+.action-button.secondary:not(:disabled):hover{background-color:rgba(255,255,255,.07);border-color:#b9aaff;box-shadow:none}
 .action-button.danger{border-color:rgba(255,170,168,.55);color:#ffcfcd}
+.action-button.danger:not(:disabled):hover{background-color:rgba(255,120,120,.12);border-color:#ffaaa8}

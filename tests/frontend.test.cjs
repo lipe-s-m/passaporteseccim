@@ -333,7 +333,8 @@ test('catálogo vazio, falha temporária e modal continuam acessíveis', async (
   await a.start(); assert.equal(a.get('retryButton').hidden, false);
   failed = false; await a.click('retryButton');
   a.run('renderBadges(true)');
-  const card = a.get('badgeGrid').children[0].children[0]; card.focus(); card.listeners.click();
+  // Selos agrupados por dia: grupo > grade > cartão > botão.
+  const card = a.get('badgeGrid').children[0].children[1].children[0].children[0]; card.focus(); card.listeners.click();
   assert.equal(a.get('pageContent').inert, true); assert.equal(a.document.activeElement, a.get('modalClose'));
   let prevented = false;
   a.document.listeners.keydown({ key: 'Tab', shiftKey:true, preventDefault() { prevented = true; } }); assert(prevented);
@@ -1046,4 +1047,54 @@ test('pesquisa: a seção de avaliar começa fechada e mostra quantas palestras 
   assert.equal(a.get('feedbackPending').textContent, '1 para avaliar'); assert.equal(a.get('feedbackPending').hidden, false);
   a.get('feedbackCard').open = true; a.click('logoutButton');
   assert.equal(a.get('feedbackCard').open, false); assert.equal(a.get('feedbackPending').hidden, true);
+});
+
+test('selos gamificados: missões por dia, emblema por área, nível, XP e conquistas', async () => {
+  const activities = [
+    { id: 'a1', name: 'IA', description: '', category: 'Inteligência Artificial', event_date: '2026-11-03' },
+    { id: 'a2', name: 'Dados', description: '', category: 'Dados', event_date: '2026-11-03' },
+    { id: 'a3', name: 'Carreira', description: '', category: 'Carreira e experiências', event_date: '2026-11-04' },
+    { id: 'a4', name: '<b>Nova</b>', description: '', category: 'Área nova', event_date: null }];
+  const earnedPassport = { participant: { id: 'p1', full_name: 'Ana' }, earnedBadges: ['a1', 'a2', 'a3'] };
+  const a = app({ handle: (path, options, pub) => path.includes('/activities') ? activities
+    : path.includes('/functions/v1/passport') && !path.includes('/feedback') ? earnedPassport : pub(path) });
+  await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  const days = a.get('badgeGrid').children;
+  assert.deepEqual(days.map(d => d.children[0].children[0].textContent), ['terça-feira, 03/11', 'quarta-feira, 04/11', 'Outras atividades']);
+  assert.deepEqual(days.map(d => d.children[0].children[1].textContent), ['✓ Dia completo', '✓ Dia completo', '0 / 1']);
+  const card = i => days[i].children[1].children[0];
+  assert.equal(card(0).className, 'badge-card tone-purple earned');
+  assert.equal(card(2).className, 'badge-card tone-purple locked', 'área desconhecida usa o padrão');
+  assert.equal(card(0).children[0].children[0].children[0].textContent, '🤖');
+  assert.equal(card(0).children[0].children[0].children[1].textContent, '✓');
+  assert.equal(card(2).children[0].children[1].textContent, '<b>Nova</b>');
+  assert.equal(a.get('levelRow').hidden, false);
+  assert.equal(a.get('levelName').textContent, 'Nível 4 · Mestre');
+  assert.equal(a.get('levelNext').textContent, 'Falta 1 selo para Lenda da SECCIM');
+  const list = a.get('achievementList').children;
+  assert.deepEqual(list.map(i => [i.children[1].children[0].textContent, i.className]), [
+    ['Primeiro passo', 'achievement unlocked'], ['Curiosidade em alta', 'achievement unlocked'], ['Maratona', 'achievement unlocked'],
+    ['Presença garantida', 'achievement unlocked'], ['Meio caminho', 'achievement unlocked'], ['Lenda da SECCIM', 'achievement locked']]);
+  assert.equal(list[5].children[1].children[3].textContent, '3 / 4');
+  assert.equal(a.get('xpValue').textContent, '550 XP');
+  assert.equal(a.get('achievementsMeta').textContent, '5 / 6 DESBLOQUEADAS');
+  a.click('logoutButton');
+  assert.equal(a.get('levelRow').hidden, true); assert.equal(a.get('achievements').hidden, true);
+  assert.equal(a.get('achievementList').children.length, 0);
+});
+
+test('selo novo desde a última visita aparece destacado com aviso; a primeira visita só registra', async () => {
+  const a = app({ handle: (path, options, pub) => path.includes('/functions/v1/passport') && !path.includes('/feedback')
+    ? { participant: { id: 'p1', full_name: 'Ana' }, earnedBadges: ['mesa'] } : pub(path) });
+  // Armazenamento do navegador simulado dentro do contexto do teste.
+  a.run('globalThis.__store = new Map(); globalThis.localStorage = { getItem: k => __store.get(k) ?? null, setItem: (k, v) => __store.set(k, String(v)) }');
+  await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  assert.equal(a.get('toast').hidden, true, 'primeira visita não avisa');
+  assert.equal(a.run('__store.get("seccim-selos-p1")'), '["mesa"]');
+  a.run('__store.set("seccim-selos-p1", "[]")');
+  await a.run('loadPassport()');
+  assert.equal(a.get('toast').hidden, false);
+  assert.equal(a.get('toast').textContent, '🎉 Selo novo: <img src=x onerror=alert(1)>', 'nome como texto');
+  assert.match(a.get('badgeGrid').children[0].children[1].children[0].className, / fresh$/);
+  a.click('logoutButton'); assert.equal(a.get('toast').hidden, true);
 });

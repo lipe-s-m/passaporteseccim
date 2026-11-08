@@ -1,14 +1,14 @@
 /* Perfis de participantes: busca no ranking, nome clicável no ranking e janela do perfil. */
 .people-search{margin:0 0 20px}
 .people-search .faq-field{margin-top:0}
-.person-result{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(17,26,32,.6);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
-.person-result:hover{border-color:#b9aaff}
+.person-result{transition:transform .2s var(--ease),border-color .2s,box-shadow .2s;animation:card-in .35s var(--ease) backwards;display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(17,26,32,.6);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.person-result:hover{border-color:#b9aaff;transform:translateY(-2px);box-shadow:0 12px 26px -14px rgba(121,100,245,.9)}
+.person-result:active{transform:scale(.985)}
 .person-result:focus-visible,.person-link:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .person-result-info{flex:1;min-width:0;overflow-wrap:anywhere}
 .person-result-info strong{display:block;font-size:17px}
 .person-result-info small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
 .person-link{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px}
-.person-link:hover{text-decoration:underline}
 .person-modal{max-height:calc(100vh - 40px);overflow:auto;text-align:center}
 .person-avatar{display:flex;justify-content:center;margin:4px 0 12px}
 .person-modal h2{margin:0 36px 4px}

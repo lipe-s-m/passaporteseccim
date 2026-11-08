@@ -18,3 +18,14 @@
 .ranking-row.place-3{border:2px solid #d9935a;background:linear-gradient(135deg,rgba(217,147,90,.2),rgba(31,46,55,.85))}
 .ranking-row.place-2 .ranking-position,.ranking-row.place-3 .ranking-position{font-size:30px}
 .ranking-row.place-2 .avatar{width:52px;height:52px;border:2px solid #cfd8df}.ranking-row.place-3 .avatar{width:52px;height:52px;border:2px solid #d9935a}
+/* Linha clicável: o toque em qualquer parte abre o perfil; no computador, sobe, brilha e a seta anda. */
+.ranking-row{transition:transform .2s var(--ease),border-color .2s,box-shadow .2s;animation:card-in .35s var(--ease) backwards}
+.ranking-row.clickable{position:relative;cursor:pointer}
+.ranking-row.clickable:hover{transform:translateY(-2px);border-color:#b9aaff;box-shadow:0 14px 30px -14px rgba(121,100,245,.9)}
+.ranking-row.clickable:active{transform:scale(.985)}
+.ranking-row .person-link::before{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit}
+.ranking-row .person-link{text-decoration:underline 2px transparent;text-underline-offset:5px;transition:text-decoration-color .25s,color .2s}
+.ranking-row.clickable:hover .person-link{text-decoration-color:#b9aaff;color:#fff}
+.ranking-chevron{flex:0 0 auto;margin-left:2px;font-size:26px;line-height:1;color:#b9aaff;transition:transform .2s var(--ease)}
+.ranking-row.clickable:hover .ranking-chevron{transform:translateX(4px)}
+

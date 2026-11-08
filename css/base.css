@@ -3,6 +3,7 @@
   --bg:#111a20;--ink:#f4f3f8;--muted:#b1bdc5;
   --purple:#7964f5;--green:#22e39a;
   --cream:#d7d2ff;--dark:#20212a;--shadow:0 22px 60px rgba(0,0,0,.28);
+  --ease:cubic-bezier(.2,.8,.2,1);--radius:12px;--tap:48px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}

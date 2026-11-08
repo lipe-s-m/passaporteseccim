@@ -36,23 +36,6 @@
 .section-head p{margin:12px 0 0;color:var(--muted);font-size:16px;line-height:1.6}
 .collection-meta{font-size:14px;color:#c4baff;background:rgba(121,100,245,.12);border:1px solid rgba(121,100,245,.24);padding:8px 11px;border-radius:10px;white-space:nowrap}
 .badge-collection{margin-top:42px}
-.badge-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
-.badge-card{position:relative;text-align:center;min-width:0;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(31,46,55,.96),rgba(23,34,41,.96));border-radius:17px;padding:17px 16px 15px;color:var(--ink);transition:transform .22s,border-color .22s,box-shadow .22s;overflow:hidden}
-.badge-card:hover{transform:translateY(-4px);border-color:rgba(165,140,255,.65);box-shadow:0 14px 28px rgba(0,0,0,.2)}
-.badge-card-trigger{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:inherit;font:inherit;cursor:pointer}
-.badge-more{display:flex;justify-content:center;align-items:center;min-height:46px;margin-top:8px;border-top:1px solid rgba(255,255,255,.08);color:#c5bbff;font-size:15px;font-weight:700;text-decoration:none}
-.badge-more:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
-.badge-card-trigger:focus-visible,.badge-more:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:8px}
-.badge-card.earned{border-color:rgba(165,140,255,.3)}
-.badge-card.earned:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 22%,rgba(121,100,245,.13),transparent 52%);pointer-events:none}
-.badge-card.locked{filter:saturate(.35);opacity:.57}
-.badge-art{position:relative;width:62px;height:62px;border-radius:19px;margin:0 auto 15px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(121,100,245,.24),rgba(121,100,245,.08));border:1px solid rgba(165,140,255,.28);color:#b5a7ff}
-.badge-art svg{width:27px;height:27px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.earned .badge-art{background:linear-gradient(145deg,rgba(121,100,245,.3),rgba(121,100,245,.1));border-color:rgba(165,140,255,.48);color:#b9aaff;box-shadow:0 0 24px rgba(121,100,245,.15)}
-.badge-card h3{font-size:17px;line-height:1.45;margin:0 0 5px;letter-spacing:-.01em}
-.badge-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07);font-size:14px;line-height:1.5;color:#b1bdc5}
-.badge-foot strong{color:#b9aaff;font-weight:650}
-.locked .badge-foot strong{color:#9ca9af}
 
 .modal-backdrop{position:fixed;inset:0;z-index:10;background:rgba(5,10,14,.72);backdrop-filter:blur(9px);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop.open{display:flex;animation:fade .18s ease}
@@ -72,28 +55,14 @@
   position:absolute;
   right:16px;
   top:16px;
-  width:32px;
-  height:32px;
+  width:40px;
+  height:40px;
   border:1px solid rgba(255,255,255,.1);
   border-radius:10px;
   background:rgba(255,255,255,.08);
   color:#d8d0ff;
   cursor:pointer;
   font-size:20px;
-}
-
-.modal .badge-art{
-  width:76px;
-  height:76px;
-  margin-bottom:18px;
-  background:linear-gradient(145deg,rgba(121,100,245,.3),rgba(121,100,245,.1));
-  color:#b9aaff;
-  border-color:rgba(165,140,255,.48);
-}
-
-.modal .badge-art svg{
-  width:35px;
-  height:35px;
 }
 
 .modal h2{
@@ -149,12 +118,9 @@
 }
 @keyframes fade{from{opacity:0}to{opacity:1}}@keyframes rise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 
-.badge-art svg{width:27px;height:27px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.badge-card.locked .badge-art{color:#9aa7ae;background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12)}
-.badge-card.earned .badge-art{color:#b9aaff}
 .page-message{color:var(--muted);font-size:16px;line-height:1.6;margin:16px auto;text-align:center;max-width:60ch}
 .page-message.error{color:#ffaaa8}
-.badge-card:focus-visible,.modal-close:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.modal-close:focus-visible{outline:2px solid var(--green);outline-offset:3px}
 
 .badge-collection{margin-top:34px}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

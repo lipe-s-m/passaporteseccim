@@ -1,0 +1,10 @@
+/* Animações de entrada: abas, cartões e janelas. O bloco de movimento reduzido em passaporte.css desliga tudo. */
+@keyframes card-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes panel-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#passportPanel,#faqPanel,#rankingPanel,#profilePanel,#adminPanel{animation:panel-in .35s var(--ease) backwards}
+.qr-card,.feedback-card,.faq-card,.feedback-item{animation:card-in .4s var(--ease) backwards}
+.modal-backdrop.open .modal{animation:rise .28s var(--ease)}
+.faq-field input,.faq-field select,.faq-field textarea,.auth-form input{transition:border-color .2s,box-shadow .2s}
+.faq-field input:focus,.faq-field select:focus,.faq-field textarea:focus,.auth-form input:focus{border-color:#b9aaff;box-shadow:0 0 0 3px rgba(121,100,245,.25)}
+.editor-section summary{transition:color .2s}
+.editor-section summary:hover{color:#d7d2ff}

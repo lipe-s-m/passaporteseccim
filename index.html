@@ -13,6 +13,7 @@
 
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/passaporte.css">
+<link rel="stylesheet" href="css/selos.css">
 <link rel="stylesheet" href="css/componentes.css">
 <link rel="stylesheet" href="css/responsivo.css">
 <link rel="stylesheet" href="css/ranking.css">
@@ -23,6 +24,7 @@
 <link rel="stylesheet" href="css/rodape.css">
 <link rel="stylesheet" href="css/avaliacoes.css">
 <link rel="stylesheet" href="css/pessoas.css">
+<link rel="stylesheet" href="css/animacoes.css">
 </head>
 <body>
 <div id="pageContent">
@@ -61,11 +63,11 @@
     <p id="pageMessage" class="page-message" role="status" aria-live="polite">Carregando conteúdo...</p>
   <button id="retryButton" class="action-button" hidden data-copy="retry_label">Tentar novamente</button>
   <nav id="pageTabs" hidden class="page-tabs" aria-label="Seções do passaporte">
-    <button id="passportTab" class="action-button" type="button" aria-pressed="true" aria-controls="passportPanel">Meu passaporte</button>
-    <button id="faqTab" class="action-button" type="button" aria-pressed="false" aria-controls="faqPanel">FAQ · Perguntas</button>
-    <button id="rankingTab" class="action-button" type="button" aria-pressed="false" aria-controls="rankingPanel">Ranking</button>
-    <button id="profileTab" class="action-button" type="button" aria-pressed="false" aria-controls="profilePanel">Meu perfil</button>
-    <button id="adminTab" class="action-button" type="button" aria-pressed="false" aria-controls="adminPanel" hidden>Organização</button>
+    <button id="passportTab" class="action-button" type="button" aria-pressed="true" aria-controls="passportPanel"><span class="tab-icon" aria-hidden="true">🎫</span><span class="tab-label">Passaporte</span></button>
+    <button id="faqTab" class="action-button" type="button" aria-pressed="false" aria-controls="faqPanel"><span class="tab-icon" aria-hidden="true">💬</span><span class="tab-label">FAQ</span></button>
+    <button id="rankingTab" class="action-button" type="button" aria-pressed="false" aria-controls="rankingPanel"><span class="tab-icon" aria-hidden="true">🏆</span><span class="tab-label">Ranking</span></button>
+    <button id="profileTab" class="action-button" type="button" aria-pressed="false" aria-controls="profilePanel"><span class="tab-icon" aria-hidden="true">👤</span><span class="tab-label">Perfil</span></button>
+    <button id="adminTab" class="action-button" type="button" aria-pressed="false" aria-controls="adminPanel" hidden><span class="tab-icon" aria-hidden="true">🛠️</span><span class="tab-label">Organização</span></button>
   </nav>
   <div id="passportPanel" hidden>
   <section class="hero-grid" aria-label="Resumo do passaporte">
@@ -77,6 +79,11 @@
       <section class="progress-card" aria-label="Progresso">
         <div>
           <div class="progress-top"><small data-copy="progress_title">Seu progresso</small></div>
+          <div id="levelRow" class="level-row" hidden>
+            <span id="levelIcon" class="level-icon" aria-hidden="true"></span>
+            <div class="level-text"><strong id="levelName"></strong><small id="levelNext"></small></div>
+            <span id="xpValue" class="xp-chip"></span>
+          </div>
           <div class="progress-number"><strong id="progressPercent">—</strong><span data-copy="progress_unit"></span></div>
           <p data-copy="progress_description"></p>
           <div id="progressTrack" class="progress-track" role="progressbar" aria-label="Progresso da coleção" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar" style="width:0%"></span></div>
@@ -96,10 +103,14 @@
     <p id="feedbackMessage" class="page-message" role="status" aria-live="polite" hidden></p>
     <ul id="feedbackList" class="feedback-list" aria-label="Palestras que você assistiu"></ul>
   </details>
+  <section id="achievements" class="achievements" aria-labelledby="achievementsTitle" hidden>
+    <div class="section-head"><div><div class="eyebrow">Desafios da semana</div><h2 id="achievementsTitle">Conquistas</h2><p>Metas especiais que você desbloqueia colecionando selos.</p></div><span class="collection-meta" id="achievementsMeta"></span></div>
+    <ul id="achievementList" class="achievement-grid"></ul>
+  </section>
   <section id="colecao" class="badge-collection">
     <div class="section-head"><div><div class="eyebrow" data-copy="collection_eyebrow"></div><h2 data-copy="collection_title">Coleção de Selos</h2><p data-copy="collection_description"></p></div><span class="collection-meta" id="collectionMeta"></span></div>
     <div class="collection-actions"><button id="refreshButton" class="action-button" hidden data-copy="refresh_label">Atualizar presenças</button></div>
-    <div class="badge-grid" id="badgeGrid"></div>
+    <div class="badge-days" id="badgeGrid"></div>
   </section>
   </div>
   <section id="faqPanel" aria-labelledby="faqTitle" hidden>
@@ -321,6 +332,7 @@
   </section>
   <noscript>Ative o JavaScript para acessar seu passaporte.</noscript>
 </main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <footer class="shell site-footer">
   <section id="sponsorStrip" class="sponsor-strip" aria-labelledby="sponsorStripTitle" hidden>
     <p id="sponsorStripTitle">Patrocinadores da SECCIM 2026</p>
@@ -347,6 +359,7 @@
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
   <div class="modal">
     <button class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+    <div id="modalEmblem" class="badge-emblem modal-emblem" aria-hidden="true"></div>
     <div class="modal-status" id="modalStatus"></div>
     <h2 id="modalTitle"></h2>
     <p class="modal-desc" id="modalDescription"></p>
@@ -380,6 +393,7 @@
 <script src="js/imagens.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/passaporte.js"></script>
+<script src="js/conquistas.js"></script>
 <script src="js/navegacao.js"></script>
 <script src="js/faq.js"></script>
 <script src="js/ranking.js"></script>

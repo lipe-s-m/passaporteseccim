@@ -1,6 +1,4 @@
 // Passaporte: progresso, selos, modal da palestra, link de inscrição e carga dos dados públicos e privados.
-const lockClosedSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
-const lockOpenSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></svg>';
 
 function updateProgress(privateLoaded = false) {
   const total = state.badges.length;
@@ -17,37 +15,60 @@ function updateProgress(privateLoaded = false) {
     : text("catalog_count", "{total} ATIVIDADES", { total });
 }
 
+// Selos agrupados por dia, como missões: cada dia mostra quantos selos a pessoa já tem.
 function renderBadges(privateLoaded = false) {
-  $("badgeGrid").replaceChildren();
+  const days = new Map();
   state.badges.forEach((badge, index) => {
-    const card = document.createElement("article");
-    card.className = `badge-card ${badge.earned ? "earned" : "locked"}`;
-    const status = !privateLoaded ? text("status_login", "Entre para consultar")
-      : badge.earned ? text("status_earned", "CONQUISTADO") : text("status_locked", "BLOQUEADO");
-    const detailsButton=document.createElement("button");
-    detailsButton.type="button";detailsButton.className="badge-card-trigger";
-    detailsButton.setAttribute("aria-label", `${badge.name}. ${status}. Abrir resumo do selo.`);
-    // Apenas ícones locais entram em innerHTML. Todo conteúdo remoto usa textContent.
-    const art = document.createElement("div");
-    art.className = "badge-art";
-    art.innerHTML = badge.earned ? lockOpenSvg : lockClosedSvg;
-    const title = document.createElement("h3");
-    title.textContent = badge.name;
-    const foot = document.createElement("div");
-    foot.className = "badge-foot";
-    const category = document.createElement("span");
-    category.textContent = badge.category;
-    const label = document.createElement("strong");
-    label.textContent = status;
-    foot.append(category, label);
-    detailsButton.append(art, title, foot);
-    detailsButton.addEventListener("click", () => openBadge(index, privateLoaded));
-    const more=document.createElement("a");more.className="badge-more";more.href=`palestra.html?id=${encodeURIComponent(badge.id)}`;more.textContent="Saiba mais →";
-    more.setAttribute("aria-label",`Saiba mais sobre ${badge.name}`);
-    card.append(detailsButton,more);
-    $("badgeGrid").appendChild(card);
+    const key = badge.event_date ?? "";
+    days.set(key, [...(days.get(key) ?? []), [badge, index]]);
   });
+  let order = 0;
+  $("badgeGrid").replaceChildren(...[...days.entries()].sort(([a], [b]) => (a || "9999").localeCompare(b || "9999")).map(([date, list]) => {
+    const done = list.filter(([badge]) => badge.earned).length, complete = privateLoaded && done === list.length;
+    const section = document.createElement("section"); section.className = complete ? "badge-day complete" : "badge-day";
+    const head = document.createElement("header"); head.className = "badge-day-head";
+    const title = document.createElement("h3"); title.textContent = date ? dayLabel(date) : "Outras atividades";
+    const count = document.createElement("span"); count.className = "badge-day-count";
+    count.textContent = complete ? "✓ Dia completo" : privateLoaded ? `${done} / ${list.length}` : `${list.length} ${list.length === 1 ? "atividade" : "atividades"}`;
+    head.append(title, count);
+    const grid = document.createElement("div"); grid.className = "badge-grid";
+    grid.append(...list.map(([badge, index]) => badgeCard(badge, index, privateLoaded, order++)));
+    section.append(head, grid);
+    return section;
+  }));
   updateProgress(privateLoaded);
+  renderGame(privateLoaded);
+}
+function badgeCard(badge, index, privateLoaded, order) {
+  const theme = badgeTheme(badge.category), earned = privateLoaded && badge.earned;
+  const card = document.createElement("article");
+  card.className = `badge-card tone-${theme.tone} ${earned ? "earned" : "locked"}${earned && badge.fresh ? " fresh" : ""}`;
+  card.style.animationDelay = `${Math.min(order, 12) * 35}ms`;
+  const status = !privateLoaded ? text("status_login", "Entre para consultar")
+    : badge.earned ? text("status_earned", "CONQUISTADO") : text("status_locked", "BLOQUEADO");
+  const detailsButton = document.createElement("button");
+  detailsButton.type = "button"; detailsButton.className = "badge-card-trigger";
+  detailsButton.setAttribute("aria-label", `${badge.name}. ${status}. Abrir resumo do selo.`);
+  // Emblema com o ícone da área; conteúdo remoto sempre por textContent.
+  const art = document.createElement("div"); art.className = "badge-emblem"; art.setAttribute("aria-hidden", "true");
+  const icon = document.createElement("span"); icon.className = "badge-icon"; icon.textContent = theme.icon;
+  const mark = document.createElement("span"); mark.className = "badge-mark"; mark.textContent = earned ? "✓" : "🔒";
+  art.append(icon, mark);
+  const title = document.createElement("h3");
+  title.textContent = badge.name;
+  const foot = document.createElement("div");
+  foot.className = "badge-foot";
+  const category = document.createElement("span");
+  category.textContent = badge.category;
+  const label = document.createElement("strong");
+  label.textContent = status;
+  foot.append(category, label);
+  detailsButton.append(art, title, foot);
+  detailsButton.addEventListener("click", () => openBadge(index, privateLoaded));
+  const more = document.createElement("a"); more.className = "badge-more"; more.href = `palestra.html?id=${encodeURIComponent(badge.id)}`; more.textContent = "Saiba mais →";
+  more.setAttribute("aria-label", `Saiba mais sobre ${badge.name}`);
+  card.append(detailsButton, more);
+  return card;
 }
 
 // Formulário oficial de inscrição (Google Forms). O link abre com nome, e-mail e a palestra
@@ -100,6 +121,9 @@ function openBadge(index, privateLoaded) {
   $("modalStatus").textContent = !privateLoaded ? text("status_login", "Entre para consultar")
     : badge.earned ? text("status_earned", "CONQUISTADO") : text("status_locked", "BLOQUEADO");
   $("modalStatus").classList.toggle("locked-status", !badge.earned);
+  const theme = badgeTheme(badge.category);
+  $("modalEmblem").className = `badge-emblem modal-emblem tone-${theme.tone} ${privateLoaded && badge.earned ? "earned" : "locked"}`;
+  $("modalEmblem").textContent = theme.icon;
   const signedIn = !!(state.session && state.participantName);
   $("registrationLink").href = registrationUrl(badge.id);
   $("registrationLink").textContent = registrationOptions[badge.id] ? "Inscrever-se nesta palestra" : "Link para inscrição";
@@ -150,9 +174,10 @@ function clearPassport() {
   $("authModes").hidden = false;
   $("verificationPanel").hidden = true;
   setAuthMode(state.mode);
-  state.badges.forEach(b => { b.earned = false; });
+  state.badges.forEach(b => { b.earned = false; b.fresh = false; });
   $("badgeGrid").replaceChildren();
   updateProgress();
+  renderGame(false); hideToast();
 }
 
 async function loadPassport() {
@@ -168,6 +193,7 @@ async function loadPassport() {
     }
     const earned = new Set(data.earnedBadges);
     state.badges.forEach(b => { b.earned = earned.has(b.id); });
+    markNewBadges(data.participant.id);
     $("participantName").textContent = data.participant.full_name;
     state.participantName = data.participant.full_name;
     state.participantId = data.participant.id;

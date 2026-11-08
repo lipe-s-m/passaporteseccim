@@ -1,0 +1,85 @@
+/* Selos gamificados: missões por dia, emblema por área, nível e XP, conquistas e aviso de selo novo. */
+.tone-purple{--tone:#b39dff;--tone-2:#6d4ff0}.tone-orange{--tone:#ffb877;--tone-2:#f2702e}.tone-cyan{--tone:#7beaff;--tone-2:#1a9fd0}
+.tone-teal{--tone:#6ff5cf;--tone-2:#119f82}.tone-blue{--tone:#8cc2ff;--tone-2:#3a67e8}.tone-pink{--tone:#ff9fd0;--tone-2:#d93f8f}
+.tone-yellow{--tone:#ffe27a;--tone-2:#e09a00}.tone-green{--tone:#8dfcaa;--tone-2:#1fae55}.tone-red{--tone:#ff9b9b;--tone-2:#d63b40}
+.tone-magenta{--tone:#eaa6ff;--tone-2:#a63fdc}
+
+/* Missões por dia */
+.badge-days{display:grid;gap:30px}
+.badge-day-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px dashed rgba(165,140,255,.28)}
+.badge-day-head h3{margin:0;font-size:18px;line-height:1.3}
+.badge-day-head h3::first-letter{text-transform:uppercase}
+.badge-day-count{flex:0 0 auto;font-size:14px;font-weight:700;color:var(--cream);padding:4px 12px;border-radius:99px;background:rgba(121,100,245,.14);border:1px solid rgba(165,140,255,.3)}
+.badge-day.complete .badge-day-count{background:rgba(34,227,154,.15);border-color:rgba(34,227,154,.5);color:#86ffcb}
+
+/* Cartão do selo */
+.badge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.badge-card{position:relative;display:flex;flex-direction:column;min-width:0;text-align:center;overflow:hidden;padding:18px 12px 4px;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(31,46,55,.97),rgba(20,30,37,.97));color:var(--ink);transition:transform .25s var(--ease),border-color .25s,box-shadow .25s;animation:card-in .4s var(--ease) backwards}
+.badge-card:hover{transform:translateY(-4px)}
+.badge-card.earned{border-color:rgba(185,170,255,.45);border-color:color-mix(in srgb,var(--tone) 55%,transparent);box-shadow:0 12px 30px -16px var(--tone-2)}
+.badge-card.earned::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 0%,rgba(185,170,255,.18),transparent 62%);background:radial-gradient(circle at 50% 0%,color-mix(in srgb,var(--tone) 26%,transparent),transparent 62%)}
+.badge-card.earned:hover{box-shadow:0 18px 38px -14px var(--tone-2)}
+.badge-card.locked{border-style:dashed;border-color:rgba(255,255,255,.16);background:rgba(20,30,37,.72)}
+.badge-card-trigger{position:relative;display:flex;flex-direction:column;flex:1;width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:inherit;cursor:pointer}
+.badge-card h3{flex:1;margin:0 0 4px;font-size:15px;line-height:1.35;letter-spacing:-.01em;overflow-wrap:anywhere}
+.badge-card.locked h3{color:#c9d2d8}
+.badge-foot{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);font-size:13px;line-height:1.4;color:var(--muted)}
+.badge-foot span{overflow-wrap:anywhere}
+.badge-foot strong{font-size:12px;letter-spacing:.06em;color:var(--tone);font-weight:800}
+.badge-card.locked .badge-foot strong{color:#9ca9af}
+.badge-more{display:flex;justify-content:center;align-items:center;min-height:44px;margin-top:6px;border-top:1px solid rgba(255,255,255,.07);color:#c5bbff;font-size:14px;font-weight:700;text-decoration:none;transition:color .2s}
+.badge-more:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
+.badge-card-trigger:focus-visible,.badge-more:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:10px}
+
+/* Emblema: medalha com o ícone da área; o brilho passa ao tocar ou passar o mouse */
+.badge-emblem{position:relative;width:76px;margin:0 auto 12px}
+.badge-icon{position:relative;display:grid;place-items:center;width:76px;height:76px;border-radius:50%;overflow:hidden;font-size:36px;line-height:1;background:radial-gradient(circle at 35% 30%,var(--tone),var(--tone-2) 78%);box-shadow:0 0 0 4px rgba(255,255,255,.07),0 0 0 7px rgba(255,255,255,.05),0 12px 26px -10px var(--tone-2)}
+.badge-icon::after{content:"";position:absolute;inset:-30%;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.5) 50%,transparent 60%);transform:translateX(-110%)}
+.badge-card.earned:hover .badge-icon::after,.badge-card.fresh .badge-icon::after{animation:emblem-shine .9s ease}
+.badge-mark{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:14px;font-weight:900;background:var(--green);color:#05261a;border:3px solid #18242b}
+.badge-card.locked .badge-icon,.modal-emblem.locked .badge-icon{background:radial-gradient(circle at 35% 30%,#4a5a64,#26333b 78%);filter:grayscale(1);opacity:.6;box-shadow:0 0 0 4px rgba(255,255,255,.05)}
+.badge-card.locked .badge-mark{background:#2b3a44;font-size:12px}
+.modal-emblem{width:92px;margin:0 auto 16px}
+.modal-emblem .badge-icon{width:92px;height:92px;font-size:44px}
+@keyframes emblem-shine{to{transform:translateX(110%)}}
+
+/* Selo novo desde a última visita */
+.badge-card.fresh{animation:badge-unlock .9s var(--ease) backwards}
+.badge-card.fresh .badge-icon{animation:glow-pulse 1.4s ease-in-out 3}
+.badge-card.fresh::after{content:"NOVO";position:absolute;top:12px;left:-30px;transform:rotate(-40deg);padding:3px 34px;background:#ffd166;color:#3a2a00;font-size:11px;font-weight:900;letter-spacing:.08em}
+@keyframes badge-unlock{0%{opacity:0;transform:scale(.6) rotate(-6deg)}60%{opacity:1;transform:scale(1.06) rotate(2deg)}100%{transform:none}}
+@keyframes glow-pulse{50%{box-shadow:0 0 0 4px rgba(255,255,255,.1),0 0 0 10px rgba(255,209,102,.35),0 0 32px 6px var(--tone)}}
+
+/* Nível e XP no cartão do passaporte */
+.level-row{display:flex;align-items:center;gap:12px;margin:12px 0 6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);text-align:left}
+.level-icon{display:grid;place-items:center;flex:0 0 auto;width:46px;height:46px;border-radius:14px;font-size:24px;background:linear-gradient(145deg,#ffd166,#e09a00);box-shadow:0 8px 18px -8px #e09a00}
+.level-text{flex:1;min-width:0}
+.level-text strong{display:block;font-size:16px;line-height:1.3}
+.level-text small{display:block;margin-top:2px;font-size:13px;line-height:1.4;color:#ded8ff}
+.xp-chip{flex:0 0 auto;padding:4px 10px;border-radius:99px;background:#ffd166;color:#3a2a00;font-size:13px;font-weight:900;white-space:nowrap}
+.progress-track span{transition:width .9s var(--ease)}
+
+/* Conquistas */
+.achievements{margin-top:36px}
+.achievement-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.achievement{display:flex;align-items:center;gap:14px;padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(20,30,37,.78);animation:card-in .4s var(--ease) backwards;transition:transform .2s var(--ease),border-color .2s}
+.achievement:hover{transform:translateY(-2px)}
+.achievement-icon{display:grid;place-items:center;flex:0 0 auto;width:52px;height:52px;border-radius:14px;font-size:26px;background:rgba(255,255,255,.06)}
+.achievement.unlocked{border-color:rgba(255,209,102,.5);background:linear-gradient(135deg,rgba(255,209,102,.14),rgba(20,30,37,.88))}
+.achievement.unlocked .achievement-icon{background:linear-gradient(145deg,#ffd166,#e09a00);box-shadow:0 8px 18px -8px #e09a00}
+.achievement.locked .achievement-icon{opacity:.7}
+.achievement-info{flex:1;min-width:0}
+.achievement-info strong{display:block;font-size:16px;line-height:1.3}
+.achievement-info small{display:block;margin-top:2px;font-size:13px;line-height:1.4;color:var(--muted)}
+.achievement-bar{height:6px;margin-top:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.1)}
+.achievement-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b7a5ff,#7964f5);transition:width .9s var(--ease)}
+.achievement.unlocked .achievement-bar span{background:linear-gradient(90deg,#ffe27a,#e09a00)}
+.achievement-info .achievement-status{margin-top:6px;font-weight:800;color:var(--cream)}
+.achievement.unlocked .achievement-status{color:#ffd166}
+@media(min-width:640px){.achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.achievement-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Aviso de selo novo */
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));z-index:30;width:max-content;max-width:min(92vw,440px);padding:14px 20px;border-radius:16px;background:linear-gradient(135deg,#ffe27a,#f2a900);color:#2b1d00;font-size:16px;font-weight:800;line-height:1.4;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.45);transform:translateX(-50%);animation:toast-in .5s var(--ease) both}
+@keyframes toast-in{from{opacity:0;transform:translate(-50%,20px) scale(.95)}to{opacity:1;transform:translate(-50%,0)}}
+@media(min-width:768px){.toast{bottom:32px}}
