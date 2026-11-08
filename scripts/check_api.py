@@ -1,4 +1,4 @@
-"""Verifica a API pública configurada em index.html, sem gravar dados ou autenticar pessoas."""
+"""Verifica a API pública configurada em js/config.js, sem gravar dados ou autenticar pessoas."""
 import json
 from pathlib import Path
 import re
@@ -10,11 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    html = (ROOT / "js" / "config.js").read_text(encoding="utf-8")
     url = re.search(r'const SUPABASE_URL = "([^"]+)";', html)
     key = re.search(r'const SUPABASE_PUBLISHABLE_KEY = "(sb_publishable_[^"]+)";', html)
     if not url or not key:
-        print("Configure a URL e a chave publishable no index.html antes de verificar.", file=sys.stderr)
+        print("Configure a URL e a chave publishable em js/config.js antes de verificar.", file=sys.stderr)
         return 1
     for table, columns, private in [
         ("activities", "id,name", False), ("site_content", "key,value", False),

@@ -1,0 +1,20 @@
+/* Organização mobile first, escala de leitura e link de inscrição. */
+/* Organização mobile first e escala de leitura. */
+body{font-size:16px;line-height:1.5}
+.topbar{height:auto;min-height:76px;padding-block:16px;gap:16px}
+.top-right{gap:12px}.topbar>.event-tag{max-width:75%}
+main{padding:32px 0 64px}
+.section-head{flex-direction:column;align-items:center;text-align:center;gap:16px;margin-bottom:24px}
+.passport{padding:24px}
+.passport-content{flex-direction:column;align-items:center;text-align:center;margin-top:12px}
+.participant small{font-size:15px;letter-spacing:normal;text-transform:none}
+.chip{font-size:13px;padding:8px 12px}
+.faq-field{font-size:16px}.faq-field textarea,.faq-field select{font-size:16px}
+.modal h2{font-size:26px}.modal-desc{font-size:16px}.detail-row{font-size:15px}.modal-status{font-size:14px}
+@media(min-width:480px){.badge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:768px){.shell{width:min(1160px,calc(100% - 64px))}main{padding-top:48px}.topbar{min-height:88px}.passport-content{flex-direction:row;text-align:left}.section-head{flex-direction:row;justify-content:space-between;align-items:flex-end;text-align:left}}
+@media(min-width:900px){.badge-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1120px){.badge-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.registration-hint{margin:12px 0 0;color:#aeb9c0;font-size:14px;line-height:1.55;text-align:center}
+.registration-link{display:block;margin-top:24px;padding:14px 20px;border-radius:12px;background:var(--purple,#7964f5);color:#fff;text-align:center;font-size:17px;font-weight:650;text-decoration:none}
+.registration-link:focus-visible{outline:2px solid var(--green);outline-offset:4px}

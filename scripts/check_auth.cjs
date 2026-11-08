@@ -10,7 +10,7 @@ if (!cliRoot) throw new Error('Informe o diretório do pacote firebase-tools aut
 const { getGlobalDefaultAccount } = require(path.join(cliRoot, 'lib/auth.js'));
 const { requireAuth } = require(path.join(cliRoot, 'lib/requireAuth.js'));
 const { Client } = require(path.join(cliRoot, 'lib/apiv2.js'));
-const html = fs.readFileSync('index.html', 'utf8');
+const html = fs.readFileSync('js/config.js', 'utf8');
 const project = html.match(/const FIREBASE_PROJECT_ID = "([^"]+)"/)[1];
 const apiKey = html.match(/const FIREBASE_API_KEY = "([^"]+)"/)[1];
 const supabaseUrl = html.match(/const SUPABASE_URL = "([^"]+)"/)[1];

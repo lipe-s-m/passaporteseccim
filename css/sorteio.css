@@ -1,0 +1,25 @@
+/* Palco do sorteio: roleta, confete e modo telão. */
+.raffle-stage{position:relative;overflow:hidden;margin:36px 0 8px;padding:24px;border-radius:22px;border:1px solid rgba(165,140,255,.35);background:linear-gradient(145deg,#27234e,#1b2932 62%);box-shadow:var(--shadow)}
+.raffle-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.raffle-stage h3{margin:4px 0 0;font-size:24px}
+.raffle-controls{display:grid;gap:0 16px;margin-top:8px}
+.raffle-stats{color:var(--cream);font-size:15px;line-height:1.5;margin:0 0 16px;text-align:center}
+.raffle-reel{display:grid;place-items:center;align-content:center;gap:8px;min-height:160px;padding:20px;border-radius:18px;background:#0d1419;border:2px dashed rgba(165,140,255,.45);text-align:center;margin-bottom:16px}
+.raffle-reel span{font-family:"Geist Pixel",sans-serif;font-size:clamp(26px,7vw,48px);line-height:1.2;overflow-wrap:anywhere;color:#fff}
+.raffle-reel small{color:var(--green);font-size:17px;font-weight:650}
+.raffle-reel.spinning span{color:#b9aaff}
+.raffle-reel.winner{border-style:solid;border-color:var(--green);box-shadow:0 0 0 4px rgba(34,227,154,.15),0 0 48px rgba(34,227,154,.28);animation:pop .55s ease}
+.raffle-button{width:100%;min-height:60px;font-size:20px;font-weight:750;border-color:#d7d2ff;background:linear-gradient(90deg,#5340b5,#7964f5);transition:transform .2s,box-shadow .2s}
+.raffle-button:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(121,100,245,.4)}
+.raffle-button:disabled{cursor:not-allowed}
+.winner-row.absent .admin-person strong{text-decoration:line-through;opacity:.6}
+.winner-actions{margin:0;gap:8px}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;animation:fall linear forwards}
+@keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes fall{to{transform:translateY(1100px) rotate(720deg);opacity:.15}}
+.raffle-stage:fullscreen{display:flex;flex-direction:column;justify-content:center;padding:4vw 6vw;overflow:auto;border-radius:0}
+.raffle-stage:fullscreen .raffle-reel{min-height:42vh}
+.raffle-stage:fullscreen .raffle-reel span{font-size:clamp(40px,8vw,112px)}
+.raffle-stage:fullscreen .raffle-reel small{font-size:clamp(18px,2.5vw,32px)}
+@media(min-width:640px){.raffle-stage{padding:32px}.raffle-controls{grid-template-columns:1fr 1fr}}

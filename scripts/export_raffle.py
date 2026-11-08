@@ -35,7 +35,7 @@ def request_json(url, *, body=None, token=None, public_key=None):
 
 def export(date):
     root = pathlib.Path(__file__).resolve().parents[1]
-    html = (root / "index.html").read_text(encoding="utf-8")
+    html = (root / "js" / "config.js").read_text(encoding="utf-8")
     config = {key: re.search(r'const ' + key + r' = "([^"]+)";', html).group(1)
               for key in ("FIREBASE_API_KEY", "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY")}
     email = input("E-mail da conta administrativa: ").strip()

@@ -13,7 +13,8 @@ spec.loader.exec_module(exporter)
 
 class RaffleExportTests(unittest.TestCase):
     def fixture(self, root):
-        (root / "index.html").write_text('\n'.join(
+        (root / "js").mkdir()
+        (root / "js" / "config.js").write_text('\n'.join(
             f'const {key} = "{value}";' for key, value in (
                 ("FIREBASE_API_KEY", "public-test"), ("SUPABASE_URL", "https://test.invalid"),
                 ("SUPABASE_PUBLISHABLE_KEY", "public-key"))), encoding="utf-8")

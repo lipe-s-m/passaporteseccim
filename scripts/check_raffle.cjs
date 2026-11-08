@@ -11,7 +11,7 @@ if(!root) throw Error('Informe o diretório firebase-tools.');
 const {getGlobalDefaultAccount}=require(path.join(root,'lib/auth.js'));
 const {requireAuth}=require(path.join(root,'lib/requireAuth.js'));
 const {Client}=require(path.join(root,'lib/apiv2.js'));
-const html=fs.readFileSync('index.html','utf8');
+const html=fs.readFileSync('js/config.js','utf8');
 const value=key=>html.match(new RegExp(`const ${key} = "([^"]+)";`))[1];
 const project=value('FIREBASE_PROJECT_ID'), key=value('FIREBASE_API_KEY');
 const fixtures=[];

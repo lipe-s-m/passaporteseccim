@@ -11,9 +11,11 @@ FILES = {"/": ("index.html", "text/html; charset=utf-8"),
          "/palestra.html": ("palestra.html", "text/html; charset=utf-8"),
          "/patrocinadores.html": ("patrocinadores.html", "text/html; charset=utf-8"),
          "/favicon.png": ("favicon.png", "image/png")}
-# Fotos e bibliotecas de QR: nomes simples, sem subir de pasta.
+# Fotos, bibliotecas de QR, scripts e estilos da página: nomes simples, sem subir de pasta.
 PATTERNS = [(re.compile(r"^/fotos/(patrocinadores/)?[a-z0-9]+(-[a-z0-9]+)*\.(webp|png|jpg)$"), None),
-            (re.compile(r"^/vendor/[a-z0-9.-]+\.js$"), "text/javascript; charset=utf-8")]
+            (re.compile(r"^/vendor/[a-z0-9.-]+\.js$"), "text/javascript; charset=utf-8"),
+            (re.compile(r"^/js/[a-z0-9-]+\.js$"), "text/javascript; charset=utf-8"),
+            (re.compile(r"^/css/[a-z0-9-]+\.css$"), "text/css; charset=utf-8")]
 TYPES = {".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg"}
 
 

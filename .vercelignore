@@ -9,6 +9,10 @@
 !fotos/patrocinadores/*.webp
 !fotos/patrocinadores/*.png
 !fotos/patrocinadores/*.jpg
+!css
+!css/*.css
+!js
+!js/*.js
 !vendor
 !vendor/*.js
 !vercel.json

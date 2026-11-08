@@ -4,12 +4,15 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
-const source = html.match(/<script>([\s\S]*?)<\/script>/)[1]
+// Os scripts da página, na ordem do index.html. Cada um roda como script separado no mesmo contexto,
+// como no navegador: funções só existem depois que o arquivo delas carregou.
+const scriptFiles = [...html.matchAll(/<script src="(js\/[a-z0-9-]+\.js)"><\/script>/g)].map(m => m[1]);
+const scripts = scriptFiles.map(file => ({ file, code: fs.readFileSync(file, 'utf8')
   .replace(/const SUPABASE_URL = "[^"]*";/, 'const SUPABASE_URL = "";')
   .replace(/const SUPABASE_PUBLISHABLE_KEY = "[^"]*";/, 'const SUPABASE_PUBLISHABLE_KEY = "";')
   .replace(/const FIREBASE_PROJECT_ID = "[^"]*";/, 'const FIREBASE_PROJECT_ID = "";')
   .replace(/const FIREBASE_API_KEY = "[^"]*";/, 'const FIREBASE_API_KEY = "";')
-  .replace(/clearPassport\(\);\s*loadPublicContent\(\);\s*loadSponsorStrip\(\);\s*$/, '');
+  .replace(/clearPassport\(\);\s*loadPublicContent\(\);\s*loadSponsorStrip\(\);\s*$/, '') }));
 
 function app({ configured = true, authConfigured = true, handle, storage = new Map() } = {}) {
   const nodes = new Map();
@@ -55,13 +58,16 @@ function app({ configured = true, authConfigured = true, handle, storage = new M
       return { ok: true, status: 200, json: async () => result };
     }
   });
-  const configuredSource = configured ? source
-    .replace('const SUPABASE_URL = "";', 'const SUPABASE_URL = "https://example.supabase.co";')
-    .replace('const SUPABASE_PUBLISHABLE_KEY = "";', 'const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";') : source;
-  const readySource = authConfigured ? configuredSource
-    .replace('const FIREBASE_PROJECT_ID = "";', 'const FIREBASE_PROJECT_ID = "seccim-test";')
-    .replace('const FIREBASE_API_KEY = "";', 'const FIREBASE_API_KEY = "AIza_test_key";') : configuredSource;
-  vm.runInContext(readySource, context);
+  const setup = code => {
+    if (configured) code = code
+      .replace('const SUPABASE_URL = "";', 'const SUPABASE_URL = "https://example.supabase.co";')
+      .replace('const SUPABASE_PUBLISHABLE_KEY = "";', 'const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";');
+    if (authConfigured) code = code
+      .replace('const FIREBASE_PROJECT_ID = "";', 'const FIREBASE_PROJECT_ID = "seccim-test";')
+      .replace('const FIREBASE_API_KEY = "";', 'const FIREBASE_API_KEY = "AIza_test_key";');
+    return code;
+  };
+  for (const { file, code } of scripts) vm.runInContext(setup(code), context, { filename: file });
   const run = value => vm.runInContext(value, context);
   return { get, calls, run, document, blobs,
     submit: id => get(id).listeners.submit({ preventDefault() {} }),
@@ -865,4 +871,13 @@ test('ranking destaca o pódio: 1º com destaque principal, 2º e 3º com medalh
   assert.deepEqual(rows.map(r => r.className), ['ranking-row place-1', 'ranking-row place-2', 'ranking-row place-2', 'ranking-row place-3 mine']);
   assert.deepEqual(rows.map(r => r.children[0].textContent), ['🥇', '🥈', '🥈', '🥉'], 'depois de um empate em 2º, o próximo é 3º');
   assert.equal(rows[0].children[0].attributes['aria-label'], '1º lugar');
+});
+
+test('index.html carrega todos os scripts de js/, com config.js primeiro e main.js por último', () => {
+  const files = fs.readdirSync('js').filter(f => f.endsWith('.js')).map(f => `js/${f}`).sort();
+  assert.deepEqual([...scriptFiles].sort(), files);
+  assert.equal(scriptFiles[0], 'js/config.js'); assert.equal(scriptFiles.at(-1), 'js/main.js');
+  const styles = [...html.matchAll(/<link rel="stylesheet" href="(css\/[a-z0-9-]+\.css)">/g)].map(m => m[1]).sort();
+  assert.deepEqual(styles, fs.readdirSync('css').filter(f => f.endsWith('.css')).map(f => `css/${f}`).sort());
+  assert.doesNotMatch(html, /<script>|<style>/);
 });

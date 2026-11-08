@@ -1,0 +1,20 @@
+/* Ranking e pódio. */
+.ranking-list{list-style:none;padding:0;display:grid;gap:12px;margin:24px 0}
+.ranking-row{display:flex;align-items:center;gap:14px;padding:18px 16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(31,46,55,.8);font-size:17px}
+.ranking-row.mine{border-color:#b9aaff;background:rgba(121,100,245,.16)}
+.ranking-position{font-size:22px;font-weight:750;color:#b9aaff;min-width:42px;text-align:center}
+.ranking-name{flex:1;min-width:0;overflow-wrap:anywhere}.ranking-count{white-space:nowrap;font-weight:650}
+.ranking-summary{text-align:center;font-size:17px;line-height:1.6;color:var(--muted)}
+.ranking-row .avatar{width:40px;height:40px;font-size:15px}
+/* Pódio do ranking: 1º com destaque principal; 2º e 3º com medalhas. Empates dividem a medalha. */
+.ranking-row.place-1,.ranking-row.place-2,.ranking-row.place-3{position:relative;overflow:hidden}
+.ranking-row.place-1{padding:24px 18px;font-size:20px;border:2px solid #f5c542;background:linear-gradient(135deg,rgba(245,197,66,.3),rgba(121,100,245,.2));box-shadow:0 0 0 4px rgba(245,197,66,.12),0 16px 40px rgba(245,197,66,.2)}
+.ranking-row.place-1::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.16) 50%,transparent 65%);transform:translateX(-100%);animation:podium-shine 4s ease-in-out infinite}
+@keyframes podium-shine{55%,100%{transform:translateX(100%)}}
+.ranking-row.place-1 .ranking-position{font-size:38px}.ranking-row.place-1 .avatar{width:64px;height:64px;font-size:22px;border:3px solid #f5c542}
+.ranking-row.place-1 .ranking-name{font-weight:800}.ranking-row.place-1 .ranking-count{font-size:20px;color:#ffe08a}
+.ranking-row.place-1 .ranking-name::after{content:"👑 Líder do ranking";display:block;margin-top:4px;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#ffe08a}
+.ranking-row.place-2{border:2px solid #cfd8df;background:linear-gradient(135deg,rgba(207,216,223,.18),rgba(31,46,55,.85))}
+.ranking-row.place-3{border:2px solid #d9935a;background:linear-gradient(135deg,rgba(217,147,90,.2),rgba(31,46,55,.85))}
+.ranking-row.place-2 .ranking-position,.ranking-row.place-3 .ranking-position{font-size:30px}
+.ranking-row.place-2 .avatar{width:52px;height:52px;border:2px solid #cfd8df}.ranking-row.place-3 .avatar{width:52px;height:52px;border:2px solid #d9935a}

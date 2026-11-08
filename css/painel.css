@@ -1,0 +1,26 @@
+/* Painel da organização: listas, cadastro na hora, várias palestras, editores e envio de imagens. */
+.admin-list{list-style:none;padding:0;display:grid;gap:10px;margin:12px 0 24px}
+.admin-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(31,46,55,.8)}
+.admin-row.present{border-color:rgba(34,227,154,.45)}
+.admin-person{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:17px}
+.admin-person small{display:block;color:var(--muted);font-size:14px}
+.admin-row .action-button{flex:0 0 auto}
+.admin-status{color:var(--green);font-size:14px;font-weight:650}
+.admin-panel h3{font-size:20px;margin:28px 0 8px}.admin-panel .faq-card h3{margin-top:0}
+.walkin-card{border-color:rgba(34,227,154,.35)}
+.multi-card{border-color:rgba(185,170,255,.55)}
+.editor-grid{display:grid;gap:0 20px}.editor-fields{border:0;padding:0;margin:0;min-width:0}.editor-fields[disabled]{opacity:.65}.editor-photo{max-width:150px;aspect-ratio:1;object-fit:cover;border-radius:16px;margin:12px 0}.editor-preview{width:100%;height:720px;border:1px solid rgba(185,170,255,.4);border-radius:16px;background:#10171c;margin-top:20px}.editor-section summary{cursor:pointer;min-height:48px;font-size:20px;font-weight:700;padding:10px 0}.editor-section{margin:28px 0}.editor-status{font-size:15px;line-height:1.6;color:var(--muted)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(min-width:760px){.editor-grid{grid-template-columns:1fr 1fr}.editor-grid .faq-field:has(textarea){grid-column:1/-1}}
+.multi-day{margin:18px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
+.multi-day-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.multi-day-head strong{display:inline-block;font-size:17px}.multi-day-head strong::first-letter{text-transform:uppercase}
+.multi-option{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 4px;font-size:16px;line-height:1.4;cursor:pointer}
+.multi-option input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--green)}
+.multi-option.saved span:after{content:" · registrada";color:var(--muted);font-size:14px}
+/* Envio de imagens no painel */
+.image-field{display:flex;flex-direction:column;gap:10px;margin:16px 0;font-size:16px}.image-field .faq-controls{margin:0}
+.logo-preview{max-width:220px;max-height:110px;object-fit:contain;padding:12px;border-radius:14px;background:#f4f5f7}
+.photo-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:12px}
+.photo-item{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px 12px;align-items:center;padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(17,26,32,.6)}
+.photo-item img{width:96px;height:72px;object-fit:cover;border-radius:10px;grid-row:span 2}
+.photo-item input{width:100%;min-width:0;padding:10px;border:1px solid #687780;border-radius:10px;background:#111a20;color:var(--ink);font:inherit;font-size:16px}
+.photo-controls{display:flex;gap:8px;flex-wrap:wrap}.photo-controls .action-button{min-height:40px;padding:6px 12px}
