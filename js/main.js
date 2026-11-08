@@ -1,6 +1,7 @@
 // Atalhos de teclado e inicialização. Precisa ser o último script carregado.
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && !$("qrBackdrop").hidden) { closeMyQr(); return; }
+  if (event.key === "Escape" && $("personBackdrop").classList.contains("open")) { closePerson(); return; }
   if (!$("modalBackdrop").classList.contains("open")) return;
   if (event.key === "Escape") closeModal();
   if (event.key === "Tab") {

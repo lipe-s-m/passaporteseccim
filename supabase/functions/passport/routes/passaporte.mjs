@@ -32,6 +32,8 @@ export async function ranking({ user, fetcher, supabaseUrl, serviceKey, signPhot
     const photos = await signPhotos(data.entries.map(e => e.photoPath));
     return response(200,null,{
       entries:data.entries.map(e=>({position:e.position,name:e.name,badgeCount:e.badgeCount,isMe:e.isMe === true,
+        // Id só de quem deixou o perfil visível, para abrir o perfil pelo ranking.
+        id:typeof e.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(e.id) ? e.id : null,
         photoUrl:photos[e.photoPath] ?? null})),
       mine:{position:data.mine.position,badgeCount:data.mine.badgeCount}
     });

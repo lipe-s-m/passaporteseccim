@@ -20,7 +20,8 @@ begin
   result := public.get_badge_ranking(prefix||'-a');
   pos_a := (result->'mine'->>'position')::integer;
   if (result->'mine'->>'badgeCount')::integer <> 2 then raise exception 'Conta atividade inativa'; end if;
-  if result::text like '%@example.invalid%' or result::text like '%'||a::text||'%' then raise exception 'Dados privados expostos'; end if;
+  -- O id do participante aparece para abrir o perfil (20261108160000); e-mail e UID do Firebase nunca.
+  if result::text like '%@example.invalid%' or result::text like '%'||prefix||'%' then raise exception 'Dados privados expostos'; end if;
   result := public.get_badge_ranking(prefix||'-b'); pos_b := (result->'mine'->>'position')::integer;
   result := public.get_badge_ranking(prefix||'-c'); pos_c := (result->'mine'->>'position')::integer;
   -- Empate divide a posição e o próximo vem logo em seguida, sem pular (1, 1, 2).

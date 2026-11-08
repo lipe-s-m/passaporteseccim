@@ -4,7 +4,7 @@ export const profilePeriods = ['','1','2','3','4','5','6','7','8','9','10','form
 const linkHosts = { linkedin: 'linkedin.com', github: 'github.com' };
 export const MAX_PHOTO_BYTES = 300 * 1024;
 
-function officialLink(key, value) {
+export function officialLink(key, value) {
   if (typeof value !== 'string' || value.length > 2048 || !Object.hasOwn(linkHosts, key)) return false;
   try {
     const u = new URL(value);
@@ -14,8 +14,10 @@ function officialLink(key, value) {
 
 export function validProfile(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
-  const keys = Object.keys(data);
+  // publicProfile é opcional: o site anterior não envia, e a escolha já gravada continua valendo.
+  const keys = Object.keys(data).filter(k => k !== 'publicProfile');
   if (keys.length !== profileFields.length || !profileFields.every(k => keys.includes(k))) return false;
+  if ('publicProfile' in data && typeof data.publicProfile !== 'boolean') return false;
   if (data.nickname !== null && (typeof data.nickname !== 'string' ||
     (data.nickname.trim() && !/^[a-z0-9_.]{3,20}$/.test(data.nickname.trim().toLowerCase())))) return false;
   if (typeof data.showNickname !== 'boolean') return false;

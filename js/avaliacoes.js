@@ -6,7 +6,8 @@ const feedbackStars = n => "★".repeat(n) + "☆".repeat(5 - n);
 function resetFeedback() {
   feedbackState.version++;
   Object.assign(feedbackState, { items:[], open:null, rating:0, comment:"", busy:false, form:null });
-  $("feedbackCard").hidden = true; $("feedbackList").replaceChildren(); $("feedbackSummary").textContent = "";
+  $("feedbackCard").hidden = true; $("feedbackCard").open = false; $("feedbackList").replaceChildren(); $("feedbackSummary").textContent = "";
+  $("feedbackPending").textContent = ""; $("feedbackPending").hidden = true;
   message("feedbackMessage", "");
 }
 
@@ -25,6 +26,9 @@ async function loadFeedback() {
 function renderFeedback() {
   const items = feedbackState.items, done = items.filter(i => i.rating).length;
   $("feedbackCard").hidden = !items.length;
+  // A seção começa fechada; o selo no título lembra quantas palestras ainda faltam avaliar.
+  const pending = items.length - done;
+  $("feedbackPending").textContent = pending ? `${pending} para avaliar` : ""; $("feedbackPending").hidden = !pending;
   $("feedbackSummary").textContent = done === items.length
     ? (items.length === 1 ? "Você já avaliou a palestra que assistiu. Obrigado!" : `Você já avaliou as ${items.length} palestras que assistiu. Obrigado!`)
     : `Você assistiu ${items.length === 1 ? "1 palestra" : `${items.length} palestras`} e avaliou ${done}. Conte o que achou!`;

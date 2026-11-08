@@ -10,6 +10,7 @@ import { raffle, draws } from './routes/sorteio.mjs';
 import { activityContent, sponsors, siteImages } from './routes/conteudo.mjs';
 import { adminProfiles } from './routes/moderacao.mjs';
 import { feedback, adminFeedback } from './routes/avaliacoes.mjs';
+import { people } from './routes/pessoas.mjs';
 
 // Rota pelo final do caminho: métodos aceitos e função que responde. Sem correspondência, vale o passaporte (GET).
 const routes = [
@@ -19,6 +20,7 @@ const routes = [
   ['/passport/profile', ['GET','POST'], profile],
   ['/passport/profile/photo', ['PUT','DELETE'], profilePhoto],
   ['/passport/feedback', ['GET','POST'], feedback],
+  ['/passport/people', ['GET'], people],
   ['/passport/admin/attendance', ['GET','POST','DELETE'], attendance],
   ['/passport/admin/attendance/bulk', ['POST'], bulkAttendance],
   ['/passport/admin/attendance/qr', ['POST'], qrScan],

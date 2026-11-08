@@ -755,11 +755,12 @@ test('perfil: carrega, valida apelido e links, salva e limpa ao sair', async () 
   a.get('profileNickname').value = '@Ana.Dev'; a.get('profileLinkedin').value = 'linkedin.com.evil.test/in/ana';
   await a.submit('profileForm'); assert.match(a.get('profileMessage').textContent, /LinkedIn precisa ser/);
   a.get('profileLinkedin').value = 'br.linkedin.com/in/ana'; a.get('profileHeadline').value = ' Estagiária · Empresa X ';
-  a.get('profilePeriod').value = '5'; a.get('profileShowNickname').checked = false; a.get('profileBio').value = 'Oi!';
+  assert.equal(a.get('profilePublic').checked, true, 'perfil começa visível');
+  a.get('profilePeriod').value = '5'; a.get('profileShowNickname').checked = false; a.get('profileBio').value = 'Oi!'; a.get('profilePublic').checked = false;
   await a.submit('profileForm');
   const sent = JSON.parse(a.calls.filter(c => c.path === '/functions/v1/passport/profile' && c.options.method === 'POST').at(-1).options.body);
   assert.deepEqual(sent, { nickname: 'ana.dev', showNickname: false, headline: 'Estagiária · Empresa X', bio: 'Oi!', course: '', period: '5',
-    links: { linkedin: 'https://br.linkedin.com/in/ana' } });
+    links: { linkedin: 'https://br.linkedin.com/in/ana' }, publicProfile: false });
   assert.match(a.get('profileMessage').textContent, /Perfil salvo/);
   assert.equal(a.get('profileAvatar').children[0].textContent, 'A', 'sem foto mostra a inicial');
   a.click('logoutButton');
@@ -976,4 +977,73 @@ test('pesquisa no painel: resumo por palestra, filtro de comentários e CSV prot
   assert(csv.includes('"Oficina";"2026-11-05";"2";"Som ""ruim""";"2026-11-06"'));
   b.click('logoutButton');
   assert.equal(b.get('feedbackSummaryList').children.length, 0); assert.equal(b.get('feedbackExport').disabled, true);
+});
+
+const otherId = '22222222-2222-4222-8222-222222222222';
+function peopleApp({ person, personStatus } = {}) {
+  return app({ handle: (path, options, pub) => {
+    if (path.startsWith('/functions/v1/passport/people?q=')) return { people: [{ id: otherId, name: '<img src=x>Bia', nickname: 'bia', headline: 'Dev', badgeCount: 1, photoUrl: null }] };
+    if (path.startsWith('/functions/v1/passport/people?id=')) return personStatus ? { status: personStatus, code: 'PROFILE_NOT_FOUND' } : { person };
+    if (path === '/functions/v1/passport/ranking') return { entries: [
+      { position: 1, name: '@bia', badgeCount: 3, isMe: false, id: otherId, photoUrl: null },
+      { position: 2, name: 'Escondido', badgeCount: 2, isMe: false, id: null, photoUrl: null }], mine: { position: null, badgeCount: 0 } };
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+}
+const fullPerson = { id: otherId, name: 'Bia Oficial', isMe: false, nickname: 'bia', headline: 'Dev · Empresa', bio: '<script>x</script>', course: 'Ciência da Computação',
+  period: '5', links: { github: 'https://github.com/bia' }, photoUrl: null,
+  badges: [{ id: 'mesa', name: 'Mesa', category: 'Palestra', eventDate: '2026-11-04' }], prizes: [{ prize: '', date: '2026-11-04', sponsor: 'Empresa X' }] };
+
+test('perfis: busca no ranking, nome do ranking abre o perfil com selos e brindes, como texto seguro', async () => {
+  const a = peopleApp({ person: fullPerson }); await a.start();
+  a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
+  a.get('peopleSearch').value = 'b'; await a.run('searchPeople()');
+  assert.match(a.get('peopleMessage').textContent, /pelo menos 2 letras/);
+  a.get('peopleSearch').value = '@bi'; await a.run('searchPeople()');
+  const result = a.get('peopleResults').children[0].children[0];
+  assert.equal(result.children[1].children[0].textContent, '<img src=x>Bia');
+  assert.equal(result.children[1].children[1].textContent, '@bia · Dev · 1 selo');
+  assert(a.calls.some(c => c.path === '/functions/v1/passport/people?q=%40bi'));
+  await result.listeners.click();
+  assert.equal(a.get('personBackdrop').classList.contains('open'), true);
+  assert.equal(a.get('personName').textContent, 'Bia Oficial'); assert.equal(a.get('personNickname').textContent, '@bia');
+  assert.equal(a.get('personStudy').textContent, 'Ciência da Computação · 5º período');
+  assert.equal(a.get('personBio').textContent, '<script>x</script>');
+  assert.equal(a.get('personLinks').children[0].href, 'https://github.com/bia'); assert.equal(a.get('personLinks').children[0].rel, 'noopener noreferrer');
+  assert.equal(a.get('personBadgesTitle').textContent, 'Selos (1)');
+  assert.equal(a.get('personBadges').children[0].children[1].textContent, 'Palestra · 04/11');
+  assert.equal(a.get('personPrizes').children[0].textContent, '🎁 Brinde do sorteio · oferecido por Empresa X · sorteio de 04/11');
+  a.document.listeners.keydown({ key: 'Escape' });
+  assert.equal(a.get('personBackdrop').classList.contains('open'), false); assert.equal(a.get('pageContent').inert, false);
+  await a.run('loadRanking()');
+  const rows = a.get('rankingList').children;
+  assert.equal(rows[0].children[2].attributes['aria-label'], 'Ver perfil de @bia');
+  assert.equal(rows[1].children[2].listeners.click, undefined, 'perfil escondido não abre');
+  await rows[0].children[2].listeners.click();
+  assert(a.calls.some(c => c.path === `/functions/v1/passport/people?id=${otherId}`));
+  a.click('logoutButton');
+  assert.equal(a.get('personBackdrop').classList.contains('open'), false);
+  assert.equal(a.get('peopleResults').children.length, 0); assert.equal(a.get('peopleSearch').value, '');
+});
+
+test('perfis: perfil escondido avisa sem mostrar dados, e "ver como os outros me veem" abre o próprio perfil', async () => {
+  const hidden = peopleApp({ personStatus: 404 }); await hidden.start();
+  hidden.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await hidden.run('loadPassport()');
+  await hidden.run(`openPerson("${otherId}")`);
+  assert.match(hidden.get('personMessage').textContent, /não está disponível/); assert.equal(hidden.get('personDetails').hidden, true);
+  const me = peopleApp({ person: { ...fullPerson, isMe: true, prizes: [], badges: [] } }); await me.start();
+  me.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await me.run('loadPassport()');
+  await me.click('profilePreview');
+  assert(me.calls.some(c => c.path === `/functions/v1/passport/people?id=${passport.participant.id}`));
+  assert.equal(me.get('personNickname').textContent, '@bia · você');
+  assert.equal(me.get('personPrizes').children[0].textContent, 'Nenhum brinde ainda.');
+});
+
+test('pesquisa: a seção de avaliar começa fechada e mostra quantas palestras faltam', async () => {
+  const a = feedbackApp(); await feedbackLogin(a);
+  assert.notEqual(a.get('feedbackCard').open, true);
+  assert.equal(a.get('feedbackPending').textContent, '1 para avaliar'); assert.equal(a.get('feedbackPending').hidden, false);
+  a.get('feedbackCard').open = true; a.click('logoutButton');
+  assert.equal(a.get('feedbackCard').open, false); assert.equal(a.get('feedbackPending').hidden, true);
 });

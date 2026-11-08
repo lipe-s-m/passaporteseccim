@@ -131,6 +131,7 @@ function clearPassport() {
   closeMyQr();
   resetProfile();
   resetFeedback();
+  resetPeople();
   $("profilePanel").hidden = true;
   resetFaq();
   resetAdmin();
@@ -139,7 +140,7 @@ function clearPassport() {
   $("passportPanel").hidden = true;
   $("faqPanel").hidden = true;
   $("participantName").textContent = text("participant_guest", "Participante");
-  state.participantName = "";
+  state.participantName = ""; state.participantId = "";
   $("participantAvatar").replaceChildren(); $("participantNickname").hidden = true; $("participantNickname").textContent = "";
   $("connectionStatus").textContent = text("session_signed_out", "NÃO CONECTADO");
   $("logoutButton").hidden = true;
@@ -169,6 +170,7 @@ async function loadPassport() {
     state.badges.forEach(b => { b.earned = earned.has(b.id); });
     $("participantName").textContent = data.participant.full_name;
     state.participantName = data.participant.full_name;
+    state.participantId = data.participant.id;
     renderPassportIdentity(null);
     loadPassportIdentity();
     loadFeedback();

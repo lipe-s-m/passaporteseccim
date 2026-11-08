@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="css/sorteio.css">
 <link rel="stylesheet" href="css/rodape.css">
 <link rel="stylesheet" href="css/avaliacoes.css">
+<link rel="stylesheet" href="css/pessoas.css">
 </head>
 <body>
 <div id="pageContent">
@@ -88,14 +89,13 @@
     <div><h2 id="qrCardTitle">Meu QR de presença</h2><p>Mostre este código na entrada de cada palestra para a organização registrar sua presença na hora.</p></div>
     <button id="qrOpen" class="action-button qr-open" type="button">Mostrar meu QR</button>
   </section>
-  <section id="feedbackCard" class="faq-card feedback-card" aria-labelledby="feedbackTitle" hidden>
-    <div class="eyebrow">Sua opinião</div>
-    <h2 id="feedbackTitle">Avalie as palestras que você assistiu</h2>
+  <details id="feedbackCard" class="faq-card editor-section feedback-card" hidden>
+    <summary>⭐ Avalie as palestras que você assistiu <span id="feedbackPending" class="feedback-pending" hidden></span></summary>
     <p id="feedbackSummary" class="faq-meta"></p>
     <p class="faq-hint">Só a organização lê as respostas, e o painel mostra sem o seu nome. Dá para mudar a avaliação depois.</p>
     <p id="feedbackMessage" class="page-message" role="status" aria-live="polite" hidden></p>
     <ul id="feedbackList" class="feedback-list" aria-label="Palestras que você assistiu"></ul>
-  </section>
+  </details>
   <section id="colecao" class="badge-collection">
     <div class="section-head"><div><div class="eyebrow" data-copy="collection_eyebrow"></div><h2 data-copy="collection_title">Coleção de Selos</h2><p data-copy="collection_description"></p></div><span class="collection-meta" id="collectionMeta"></span></div>
     <div class="collection-actions"><button id="refreshButton" class="action-button" hidden data-copy="refresh_label">Atualizar presenças</button></div>
@@ -119,7 +119,7 @@
     <button id="faqMore" class="action-button" type="button" hidden>Carregar mais perguntas</button>
   </section>
   <section id="profilePanel" aria-labelledby="profileTitle" hidden>
-    <div class="section-head"><div><div class="eyebrow">Do seu jeito</div><h2 id="profileTitle">Meu perfil</h2><p>Escolha como aparecer para os outros participantes no ranking e no FAQ.</p></div></div>
+    <div class="section-head"><div><div class="eyebrow">Do seu jeito</div><h2 id="profileTitle">Meu perfil</h2><p>Escolha como aparecer para os outros participantes no ranking, no FAQ e no seu perfil.</p></div></div>
     <p id="profileMessage" class="page-message" role="status" aria-live="polite" hidden></p>
     <form id="profileForm" class="faq-card" hidden>
       <div class="profile-head">
@@ -146,12 +146,18 @@
       </div>
       <datalist id="profileCourses"><option value="Ciência da Computação"><option value="Sistemas de Informação"><option value="Matemática"><option value="Engenharia"><option value="Direito"><option value="Administração"></datalist>
       <label class="multi-option"><input id="profileShowNickname" type="checkbox" checked><span>Mostrar meu apelido no lugar do nome no ranking e no FAQ</span></label>
-      <div class="faq-controls"><button id="profileSave" class="action-button" type="submit">Salvar perfil</button></div>
+      <label class="multi-option"><input id="profilePublic" type="checkbox" checked><span>Deixar outros participantes verem meu perfil: nome, foto, apelido, cargo, bio, curso, período, links, selos e brindes</span></label>
+      <div class="faq-controls"><button id="profileSave" class="action-button" type="submit">Salvar perfil</button><button id="profilePreview" class="action-button secondary" type="button">Ver como os outros me veem</button></div>
     </form>
   </section>
   <section id="rankingPanel" aria-labelledby="rankingTitle" hidden>
     <div class="section-head"><div><div class="eyebrow">Cada presença conta</div><h2 id="rankingTitle">Ranking de selos</h2><p>Quem está colecionando mais experiências na SECCIM?</p></div></div>
     <p id="rankingSummary" class="ranking-summary"></p>
+    <div class="faq-card people-search">
+      <label class="faq-field" for="peopleSearch">Encontrar participante<input id="peopleSearch" type="search" autocomplete="off" maxlength="60" placeholder="Nome ou @apelido"></label>
+      <p id="peopleMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+      <ul id="peopleResults" class="admin-list" aria-label="Participantes encontrados"></ul>
+    </div>
     <div class="collection-actions"><button id="rankingRefresh" class="action-button" type="button">Atualizar ranking</button></div>
     <p id="rankingMessage" class="page-message" role="status" aria-live="polite"></p>
     <ol id="rankingList" class="ranking-list" aria-label="Participantes com mais selos"></ol>
@@ -349,6 +355,25 @@
     <p id="registrationHint" class="registration-hint"></p>
   </div>
 </div>
+<div class="modal-backdrop" id="personBackdrop" role="dialog" aria-modal="true" aria-labelledby="personName">
+  <div class="modal person-modal">
+    <button class="modal-close" id="personClose" type="button" aria-label="Fechar">×</button>
+    <div id="personAvatar" class="person-avatar"></div>
+    <h2 id="personName">Perfil</h2>
+    <p id="personMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+    <div id="personDetails" hidden>
+      <p id="personNickname" class="person-nickname" hidden></p>
+      <p id="personHeadline" class="person-headline" hidden></p>
+      <p id="personStudy" class="person-meta" hidden></p>
+      <p id="personBio" class="person-bio" hidden></p>
+      <div id="personLinks" class="person-links" hidden></div>
+      <h3 id="personBadgesTitle" class="person-section">Selos</h3>
+      <ul id="personBadges" class="person-badges" aria-labelledby="personBadgesTitle"></ul>
+      <h3 id="personPrizesTitle" class="person-section">Brindes</h3>
+      <ul id="personPrizes" class="person-prizes" aria-labelledby="personPrizesTitle"></ul>
+    </div>
+  </div>
+</div>
 <!-- Scripts clássicos, em ordem: cada arquivo usa o que os anteriores definiram; main.js inicia a página. -->
 <script src="js/config.js"></script>
 <script src="js/core.js"></script>
@@ -358,6 +383,7 @@
 <script src="js/navegacao.js"></script>
 <script src="js/faq.js"></script>
 <script src="js/ranking.js"></script>
+<script src="js/pessoas.js"></script>
 <script src="js/perfil.js"></script>
 <script src="js/meu-qr.js"></script>
 <script src="js/avaliacoes.js"></script>

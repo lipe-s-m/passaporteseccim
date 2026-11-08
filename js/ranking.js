@@ -19,7 +19,10 @@ async function loadRanking() {
       const position = document.createElement("span"); position.className = "ranking-position";
       position.textContent = ["🥇", "🥈", "🥉"][entry.position - 1] ?? `${entry.position}º`;
       position.setAttribute("aria-label", `${entry.position}º lugar`);
-      const name = document.createElement("span"); name.className = "ranking-name"; name.textContent = entry.name + (entry.isMe ? " (você)" : "");
+      // Com perfil visível, o nome abre o perfil da pessoa.
+      const name = document.createElement(entry.id ? "button" : "span");
+      name.className = entry.id ? "ranking-name person-link" : "ranking-name"; name.textContent = entry.name + (entry.isMe ? " (você)" : "");
+      if (entry.id) { name.type = "button"; name.setAttribute("aria-label", `Ver perfil de ${entry.name}`); name.addEventListener("click", () => openPerson(entry.id)); }
       const count = document.createElement("span"); count.className = "ranking-count"; count.textContent = `${entry.badgeCount} ${entry.badgeCount === 1 ? "selo" : "selos"}`;
       row.append(position,avatarNode(entry.name,entry.photoUrl),name,count); $("rankingList").append(row);
     }

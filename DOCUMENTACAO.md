@@ -93,12 +93,12 @@ Sem framework e sem compilação: o que está no repositório é o que vai ao ar
 | `js/auth.js` | Login, cadastro, verificação de e-mail e sessão |
 | `js/passaporte.js` | Progresso, selos, modal da palestra, link de inscrição, carga do passaporte |
 | `js/navegacao.js` | Abas da página |
-| `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js`, `js/avaliacoes.js` | Telas do participante |
+| `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js`, `js/avaliacoes.js`, `js/pessoas.js` | Telas do participante |
 | `js/patrocinadores.js` | Faixa de patrocinadores no rodapé |
 | `js/painel.js` | Painel da organização: atividades, busca e atualização |
 | `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-avaliacoes.js`, `js/painel-leitor-qr.js` | Seções do painel |
 | `js/main.js` | Atalhos de teclado e inicialização |
-| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, nessa ordem |
+| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, `pessoas`, nessa ordem |
 
 Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` continuam autocontidas.
 
@@ -117,6 +117,7 @@ Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/f
 | `routes/sorteio.mjs` | Exportação do sorteio e sorteio no painel |
 | `routes/conteudo.mjs` | Editor das palestras, patrocinadores e envio de imagens do site |
 | `routes/avaliacoes.mjs` | Pesquisa de satisfação (participante e resultado para a organização) |
+| `routes/pessoas.mjs` | Busca de participantes e perfil com selos e brindes |
 | `*-content.mjs`, `qr-token.mjs`, `site-images.mjs` | Validações compartilhadas com os testes |
 
 Para criar uma rota: escrever a função em `routes/` (recebe `{ request, url, user, ... }` e devolve `response(...)`) e acrescentar uma linha na tabela de `handler.mjs`. A identidade já chega verificada; a permissão de organização é sempre conferida no banco pela RPC.
@@ -510,7 +511,7 @@ Ao terminar, o script restaura o backup num Postgres descartável (Docker) e mos
 
 ## Pesquisa de satisfação — 08/11/2026
 
-Quem teve presença registrada vê, no passaporte, o cartão **"Avalie as palestras que você assistiu"**: uma lista das palestras com presença, nota de 1 a 5 estrelas e comentário opcional (até 1.000 caracteres). Dá para mudar a avaliação depois. Sem presença registrada, o cartão não aparece.
+Quem teve presença registrada vê, no passaporte, a seção recolhível **"Avalie as palestras que você assistiu"** (começa fechada e mostra quantas palestras faltam avaliar): uma lista das palestras com presença, nota de 1 a 5 estrelas e comentário opcional (até 1.000 caracteres). Dá para mudar a avaliação depois. Sem presença registrada, o cartão não aparece.
 
 - **Só quem assistiu avalia:** a tabela `public.activity_feedback` tem chave estrangeira para a presença (`attendances`), então o próprio banco recusa avaliação sem presença. Se a organização remover uma presença, a avaliação daquela palestra também é apagada.
 - **Só a organização lê:** em Organização → **Pesquisa de satisfação**: média, quantas pessoas avaliaram em relação às presentes e a distribuição das notas por palestra; comentários filtráveis por palestra; botão **Baixar CSV** (separado por ponto e vírgula e com BOM, para abrir certo no Excel; comentários que começam com `=`, `+`, `-` ou `@` recebem um apóstrofo para a planilha não executá-los como fórmula).
@@ -518,4 +519,16 @@ Quem teve presença registrada vê, no passaporte, o cartão **"Avalie as palest
 - **Banco** (`20261108140000_feedback.sql`): tabela sem acesso de clientes nem do `service_role`, RPCs `manage_feedback` (conta verificada) e `admin_feedback` (só `private.admins`), ambas `SECURITY DEFINER` com `search_path` vazio.
 - **Rotas:** `GET|POST /passport/feedback` e `GET /passport/admin/feedback`.
 - **Testes:** `supabase/tests/feedback.sql` (presença obrigatória, nota e tamanho do comentário, edição sem duplicar, remoção em cascata, anonimato e grants) e 85 testes Node.
+
+## Perfis de participantes — 08/11/2026
+
+Participantes logados podem ver o perfil uns dos outros:
+
+- **Busca** na aba Ranking, por nome ou `@apelido` (mínimo de 2 letras, até 20 resultados). Nunca busca nem mostra e-mail.
+- **Ranking:** o nome de quem tem perfil visível vira botão e abre o perfil.
+- **Perfil (janela):** nome oficial, foto, apelido, cargo/área/empresa, curso, período, bio, LinkedIn/GitHub, **selos** (palestras com presença) e **brindes recebidos** (sorteios em que a pessoa estava presente; ausentes não contam; patrocinador só aparece se estiver publicado). Os links são conferidos de novo na saída e só passam os do domínio oficial.
+- **Privacidade:** em Meu perfil, "Deixar outros participantes verem meu perfil" (ligado por padrão). Desligado, a pessoa some da busca, o nome dela no ranking não abre nada e o perfil responde 404 para os outros; só ela continua vendo, pelo botão "Ver como os outros me veem". A versão anterior do site, que não envia essa escolha, não a altera.
+- **Banco** (`20261108160000_public_profiles.sql`): coluna `participant_profiles.public_profile`, `manage_profile` com a chave opcional `publicProfile`, `get_badge_ranking` devolvendo o `id` só de perfis visíveis (e da própria pessoa), e as RPCs `search_people` e `person_profile` (`SECURITY DEFINER`, só para contas cadastradas). O teste `supabase/tests/ranking.sql` passou a aceitar o `id` no ranking e continua barrando e-mail e UID do Firebase.
+- **Rota:** `GET /passport/people?q=texto` (busca) e `GET /passport/people?id=<participante>` (perfil).
+- **Testes:** `supabase/tests/public_profiles.sql` e 90 testes Node (busca, perfil, links, escondido, ranking clicável, Escape, logout).
 

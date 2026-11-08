@@ -61,7 +61,7 @@ export function createServices({ supabaseUrl, serviceKey, fetcher, user }) {
   const publicProfile = async data => {
     const p = data?.profile ?? {}; const photos = await signPhotos([p.photoPath]);
     return { name:data?.name, profile:{ nickname:p.nickname ?? null, showNickname:p.showNickname !== false, headline:p.headline ?? '',
-      bio:p.bio ?? '', course:p.course ?? '', period:p.period ?? '', links:p.links ?? {}, photoUrl:photos[p.photoPath] ?? null } };
+      bio:p.bio ?? '', course:p.course ?? '', period:p.period ?? '', links:p.links ?? {}, photoUrl:photos[p.photoPath] ?? null, publicProfile:p.publicProfile !== false } };
   };
 
   // RPC em nome da conta verificada; a rota decide a resposta a partir do código de erro do banco.

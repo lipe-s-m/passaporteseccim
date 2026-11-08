@@ -295,13 +295,15 @@ test('leitor de QR: registra pela organização, informa repetição e recusa QR
 });
 
 test('ranking usa identidade validada, filtra campos privados e bloqueia escrita',async()=>{
-  const ranking={entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,email:'privado',id:'uuid'}],mine:{position:1,badgeCount:2,email:'privado'}};
+  const ranking={entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,email:'privado',id:'uuid'},
+    {position:2,name:'Outra',badgeCount:1,isMe:false,id:participantId,firebase_uid:'privado'}],mine:{position:1,badgeCount:2,email:'privado'}};
   const a=app({ranking}); const url='https://edge.test/passport/ranking?p_uid=outro';
   assert.equal((await a.send('',url)).status,401);
   assert.equal((await a.send(token(),url,'POST')).status,405);
   const response=await a.send(token(),url);
   assert.equal(response.status,200);
-  assert.deepEqual(await response.json(),{entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,photoUrl:null}],mine:{position:1,badgeCount:2}});
+  assert.deepEqual(await response.json(),{entries:[{position:1,name:'Pessoa',badgeCount:2,isMe:true,id:null,photoUrl:null},
+    {position:2,name:'Outra',badgeCount:1,isMe:false,id:participantId,photoUrl:null}],mine:{position:1,badgeCount:2}});
   assert.deepEqual(JSON.parse(a.calls.at(-1).options.body),{p_uid:'user-a'});
   assert.equal((await app({user:{...account,emailVerified:false},ranking}).send(token(),url)).status,403);
   assert.equal((await app({ranking:{entries:[],mine:{position:null,badgeCount:0}}}).send(token(),url)).status,200);
@@ -501,4 +503,39 @@ test('pesquisa de satisfação: só a organização lê o resultado, sem identif
   const denied = profileApp({ rpc:{ admin_feedback:{ code:'42501' } }, rpcStatus:{ admin_feedback:403 } });
   assert.equal((await denied.send('GET', '/admin/feedback')).status, 403);
   assert.equal((await a.send('POST', '/admin/feedback', {})).status, 405);
+});
+
+test('perfis de participantes: busca e perfil com selos e brindes, sem e-mail e com links conferidos', async () => {
+  const path = `${participantId}/0123456789abcdef.webp`;
+  const person = { participantId, name:'Ana Oficial', isMe:false, nickname:'ana.dev', headline:'Estagiária', bio:'Oi', course:'CC', period:'5',
+    links:{ github:'https://github.com/ana', linkedin:'javascript:alert(1)' }, photoPath:path, email:'privado',
+    badges:[{ id:'mesa', name:'Mesa', category:'Palestra', eventDate:'2026-11-04', extra:'x' }],
+    prizes:[{ prize:'Caneca', date:'2026-11-04', sponsor:'Empresa', drawnBy:'privado' }] };
+  const a = profileApp({ rpc:{ search_people:{ people:[{ participantId, name:'Ana Oficial', nickname:'ana.dev', headline:'', photoPath:path, badgeCount:2, email:'privado' }] },
+    person_profile:person } });
+  for (const bad of ['', '?q=a', '?q=@a', `?q=${'x'.repeat(61)}`, '?id=123', `?q=ana&id=${participantId}`])
+    assert.equal((await a.send('GET', '/people' + bad)).status, 400, bad);
+  const found = await (await a.send('GET', '/people?q=%20Ana%20')).json();
+  assert.deepEqual(Object.keys(found.people[0]).sort(), ['badgeCount','headline','id','name','nickname','photoUrl']);
+  assert.match(found.people[0].photoUrl, /sign\/avatars/);
+  assert.deepEqual(JSON.parse(a.calls.find(c => c.url.endsWith('/rpc/search_people')).options.body), { p_uid:account.localId, p_query:'Ana' });
+  const data = await (await a.send('GET', `/people?id=${participantId}`)).json();
+  assert.deepEqual(data.person.links, { github:'https://github.com/ana' }, 'link fora do domínio oficial é descartado');
+  assert.deepEqual(data.person.badges, [{ id:'mesa', name:'Mesa', category:'Palestra', eventDate:'2026-11-04' }]);
+  assert.deepEqual(data.person.prizes, [{ prize:'Caneca', date:'2026-11-04', sponsor:'Empresa' }]);
+  assert(!JSON.stringify(data).includes('privado') && !JSON.stringify(found).includes('privado'));
+  const hidden = profileApp({ rpc:{ person_profile:{ code:'P0002' } }, rpcStatus:{ person_profile:400 } });
+  assert.equal((await hidden.send('GET', `/people?id=${participantId}`)).status, 404);
+  assert.equal((await a.send('POST', '/people?q=ana')).status, 405);
+});
+
+test('perfil aceita a escolha de esconder o perfil e continua aceitando o formato anterior', async () => {
+  const saved = { name:'Ana', profile:{ nickname:null, showNickname:true, headline:'', bio:'', course:'', period:'', links:{}, publicProfile:false } };
+  const a = profileApp({ rpc:{ manage_profile:saved } });
+  const base = { nickname:'', showNickname:true, headline:'', bio:'', course:'', period:'', links:{} };
+  assert.equal((await a.send('POST', '/profile', { ...base, publicProfile:'não' })).status, 400);
+  const res = await a.send('POST', '/profile', { ...base, publicProfile:false });
+  assert.equal(res.status, 200); assert.equal((await res.json()).profile.publicProfile, false);
+  assert.equal(JSON.parse(a.calls.filter(c => c.url.endsWith('/rpc/manage_profile')).at(-1).options.body).p_profile.publicProfile, false);
+  assert.equal((await a.send('POST', '/profile', base)).status, 200, 'site anterior sem a chave continua funcionando');
 });

@@ -1,0 +1,27 @@
+/* Perfis de participantes: busca no ranking, nome clicável no ranking e janela do perfil. */
+.people-search{margin:0 0 20px}
+.people-search .faq-field{margin-top:0}
+.person-result{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(17,26,32,.6);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.person-result:hover{border-color:#b9aaff}
+.person-result:focus-visible,.person-link:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.person-result-info{flex:1;min-width:0;overflow-wrap:anywhere}
+.person-result-info strong{display:block;font-size:17px}
+.person-result-info small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.person-link{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px}
+.person-link:hover{text-decoration:underline}
+.person-modal{max-height:calc(100vh - 40px);overflow:auto;text-align:center}
+.person-avatar{display:flex;justify-content:center;margin:4px 0 12px}
+.person-modal h2{margin:0 36px 4px}
+.person-nickname{margin:0;color:var(--cream);font-size:16px}
+.person-headline{margin:8px 0 0;font-size:16px;font-weight:600}
+.person-meta{margin:4px 0 0;color:var(--muted);font-size:15px}
+.person-bio{margin:12px 0 0;font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.person-links{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0 0}
+.person-links .social-link{min-height:44px;padding:8px 16px}
+.person-section{margin:22px 0 8px;font-size:17px;text-align:left}
+.person-badges,.person-prizes{list-style:none;padding:0;margin:0;display:grid;gap:8px;text-align:left}
+.person-badge,.person-prize{padding:10px 12px;border-radius:12px;background:rgba(121,100,245,.12);border:1px solid rgba(165,140,255,.25);overflow-wrap:anywhere}
+.person-badge strong{display:block;font-size:15px}
+.person-badge small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.person-prize{background:rgba(255,209,102,.1);border-color:rgba(255,209,102,.3);font-size:15px}
+.person-empty{color:var(--muted);font-size:15px}
