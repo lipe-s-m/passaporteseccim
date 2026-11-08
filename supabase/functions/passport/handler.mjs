@@ -9,6 +9,7 @@ import { attendance, bulkAttendance, walkin, personAttendance, qrScan } from './
 import { raffle, draws } from './routes/sorteio.mjs';
 import { activityContent, sponsors, siteImages } from './routes/conteudo.mjs';
 import { adminProfiles } from './routes/moderacao.mjs';
+import { feedback, adminFeedback } from './routes/avaliacoes.mjs';
 
 // Rota pelo final do caminho: métodos aceitos e função que responde. Sem correspondência, vale o passaporte (GET).
 const routes = [
@@ -17,6 +18,7 @@ const routes = [
   ['/passport/qr', ['GET'], myQr],
   ['/passport/profile', ['GET','POST'], profile],
   ['/passport/profile/photo', ['PUT','DELETE'], profilePhoto],
+  ['/passport/feedback', ['GET','POST'], feedback],
   ['/passport/admin/attendance', ['GET','POST','DELETE'], attendance],
   ['/passport/admin/attendance/bulk', ['POST'], bulkAttendance],
   ['/passport/admin/attendance/qr', ['POST'], qrScan],
@@ -28,6 +30,7 @@ const routes = [
   ['/passport/admin/sponsors', ['GET','POST'], sponsors],
   ['/passport/admin/profiles', ['GET','POST'], adminProfiles],
   ['/passport/admin/images', ['PUT'], siteImages],
+  ['/passport/admin/feedback', ['GET'], adminFeedback],
 ];
 
 export function createHandler({ projectId, apiKey, supabaseUrl, serviceKey, qrSecret = '', fetcher = fetch, now = () => Date.now() }) {

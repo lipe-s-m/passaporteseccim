@@ -468,3 +468,37 @@ test('imagens do site: só a organização envia, tipo pelo conteúdo e link pú
   assert.equal((await denied.send('PUT', '/admin/images?kind=speakers', png, 'image/png')).status, 403);
   assert(!denied.calls.some(c => c.url.includes('/object/site-images/')));
 });
+
+test('pesquisa de satisfação: valida antes do banco, usa o UID verificado e só devolve campos permitidos', async () => {
+  const items = [{ activityId:'mesa', name:'Mesa', eventDate:'2026-11-04', rating:5, comment:'Boa', participantId:'privado' },
+    { activityId:'oficina', name:'Oficina', eventDate:null, rating:null, comment:'' }];
+  const a = profileApp({ rpc:{ manage_feedback:{ items } } });
+  const list = await (await a.send('GET', '/feedback')).json();
+  assert.deepEqual(list.items[1], { activityId:'oficina', name:'Oficina', eventDate:null, rating:null, comment:'' });
+  assert(!JSON.stringify(list).includes('privado'));
+  for (const bad of [{ activity:'mesa', rating:0, comment:'' }, { activity:'mesa', rating:6, comment:'' }, { activity:'mesa', rating:4.5, comment:'' },
+    { activity:'Mesa!', rating:5, comment:'' }, { activity:'mesa', rating:5, comment:'x'.repeat(1001) }, { activity:'mesa', rating:5 }]) {
+    assert.equal((await a.send('POST', '/feedback', bad)).status, 400, JSON.stringify(bad));
+  }
+  const before = a.calls.length;
+  assert.equal((await a.send('POST', '/feedback', { activity:'mesa', rating:4, comment:'  Gostei  ', uid:'outra-pessoa' })).status, 200);
+  const sent = JSON.parse(a.calls.slice(before).find(c => c.url.endsWith('/rpc/manage_feedback')).options.body);
+  assert.deepEqual(sent, { p_uid:account.localId, p_activity:'mesa', p_rating:4, p_comment:'Gostei' });
+  const absent = profileApp({ rpc:{ manage_feedback:{ code:'42501' } }, rpcStatus:{ manage_feedback:400 } });
+  assert.equal((await absent.send('POST', '/feedback', { activity:'mesa', rating:4, comment:'' })).status, 403);
+  assert.equal((await a.send('DELETE', '/feedback')).status, 405);
+});
+
+test('pesquisa de satisfação: só a organização lê o resultado, sem identificar quem respondeu', async () => {
+  const a = profileApp({ rpc:{ admin_feedback:{
+    activities:[{ id:'mesa', name:'Mesa', eventDate:'2026-11-04', attendances:10, responses:2, average:4.5, distribution:[0,0,0,1,1], extra:'x' }],
+    responses:[{ activityId:'mesa', rating:5, comment:'Ótima', date:'2026-11-07', name:'Ana Oficial', email:'ana@privado' }] } } });
+  const data = await (await a.send('GET', '/admin/feedback')).json();
+  assert.deepEqual(data.activities[0], { id:'mesa', name:'Mesa', eventDate:'2026-11-04', attendances:10, responses:2, average:4.5, distribution:[0,0,0,1,1] });
+  assert.deepEqual(data.responses[0], { activityId:'mesa', rating:5, comment:'Ótima', date:'2026-11-07' });
+  assert(!JSON.stringify(data).includes('Ana Oficial') && !JSON.stringify(data).includes('privado'));
+  assert.equal(JSON.parse(a.calls.find(c => c.url.endsWith('/rpc/admin_feedback')).options.body).p_uid, account.localId);
+  const denied = profileApp({ rpc:{ admin_feedback:{ code:'42501' } }, rpcStatus:{ admin_feedback:403 } });
+  assert.equal((await denied.send('GET', '/admin/feedback')).status, 403);
+  assert.equal((await a.send('POST', '/admin/feedback', {})).status, 405);
+});

@@ -382,8 +382,9 @@ const winner = { id: '22222222-2222-4222-8222-222222222222', name: '<i>Bia</i>',
 const sponsorsList = [{ id: 'empresa-x', name: 'Empresa X', tagline: 'Frase', about: '', contributions: ['Coffee break'],
   logo_url: '/fotos/patrocinadores/empresa-x.png', photos: [{ url: '/fotos/patrocinadores/empresa-x-1.webp', caption: 'Estande' }],
   links: { vagas: 'https://x.example/vagas' }, published: false, content_revision: 2 }];
-function adminApp({ denied = false, raffle, draws = drawState, personActivities = [] } = {}) {
+function adminApp({ denied = false, raffle, draws = drawState, personActivities = [], feedback } = {}) {
   return app({ handle: (path, options, pub) => {
+    if (path.includes('/passport/admin/feedback')) return feedback;
     if (path.includes('/passport/admin/raffle')) return raffle;
     if (path.includes('/passport/admin/person')) {
       if (options.method === 'POST') {
@@ -880,4 +881,99 @@ test('index.html carrega todos os scripts de js/, com config.js primeiro e main.
   const styles = [...html.matchAll(/<link rel="stylesheet" href="(css\/[a-z0-9-]+\.css)">/g)].map(m => m[1]).sort();
   assert.deepEqual(styles, fs.readdirSync('css').filter(f => f.endsWith('.css')).map(f => `css/${f}`).sort());
   assert.doesNotMatch(html, /<script>|<style>/);
+});
+
+function feedbackApp({ saveStatus, items = [{ activityId: 'mesa', name: '<b>Mesa</b>', eventDate: '2026-11-04', rating: null, comment: '' },
+  { activityId: 'oficina', name: 'Oficina', eventDate: '2026-11-05', rating: 4, comment: 'Boa' }] } = {}) {
+  return app({ handle: (path, options, pub) => {
+    if (path === '/functions/v1/passport/feedback') {
+      if (options.method === 'POST') {
+        if (saveStatus) return { status: saveStatus, code: 'FEEDBACK_NOT_ALLOWED' };
+        const input = JSON.parse(options.body);
+        items = items.map(i => i.activityId === input.activity ? { ...i, rating: input.rating, comment: input.comment } : i);
+      }
+      return { items };
+    }
+    if (path.includes('/functions/v1/passport')) return passport;
+    return pub(path);
+  } });
+}
+const feedbackLogin = async a => { await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()'); await a.run('loadFeedback()'); };
+const feedbackButton = (a, index) => a.get('feedbackList').children[index].children[0].children[1];
+
+test('pesquisa: quem teve presença avalia com estrelas e comentário, como texto seguro, e limpa ao sair', async () => {
+  const a = feedbackApp(); await feedbackLogin(a);
+  assert.equal(a.get('feedbackCard').hidden, false);
+  assert.equal(a.get('feedbackSummary').textContent, 'Você assistiu 2 palestras e avaliou 1. Conte o que achou!');
+  const first = a.get('feedbackList').children[0].children[0].children[0];
+  assert.equal(first.children[0].textContent, '<b>Mesa</b>'); assert.equal(first.children[1].textContent, 'Ainda não avaliada');
+  assert.equal(a.get('feedbackList').children[1].children[0].children[0].children[1].textContent, '★★★★☆');
+  assert.equal(feedbackButton(a, 0).textContent, 'Avaliar'); assert.equal(feedbackButton(a, 1).textContent, 'Editar');
+  feedbackButton(a, 0).listeners.click();
+  const form = a.run('feedbackState.form');
+  assert.equal(feedbackButton(a, 0).attributes['aria-expanded'], 'true');
+  await form.save.listeners.click();
+  assert.match(a.get('feedbackMessage').textContent, /Escolha uma nota/);
+  assert(!a.calls.some(c => c.path.endsWith('/feedback') && c.options.method === 'POST'), 'sem nota não envia');
+  form.stars[3].listeners.click();
+  assert.equal(form.stars[3].attributes['aria-pressed'], 'true'); assert.equal(form.stars[3].textContent, '★'); assert.equal(form.stars[4].textContent, '☆');
+  form.area.value = '  Ótima, mas o som falhou  '; form.area.listeners.input();
+  await form.save.listeners.click();
+  const sent = a.calls.filter(c => c.path === '/functions/v1/passport/feedback' && c.options.method === 'POST');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(JSON.parse(sent[0].options.body), { activity: 'mesa', rating: 4, comment: 'Ótima, mas o som falhou' });
+  assert.equal(sent[0].options.headers.Authorization, 'Bearer jwt');
+  assert.match(a.get('feedbackMessage').textContent, /Obrigado/);
+  assert.equal(a.get('feedbackSummary').textContent, 'Você já avaliou as 2 palestras que assistiu. Obrigado!');
+  assert.equal(a.run('feedbackState.open'), null);
+  feedbackButton(a, 1).listeners.click();
+  assert.equal(a.run('feedbackState.form').area.value, 'Boa', 'editar abre com o que já foi enviado');
+  a.click('logoutButton');
+  assert.equal(a.get('feedbackCard').hidden, true); assert.equal(a.get('feedbackList').children.length, 0);
+});
+
+test('pesquisa: sem presença o cartão não aparece, e recusa do servidor mantém o que foi digitado', async () => {
+  const empty = feedbackApp({ items: [] }); await feedbackLogin(empty);
+  assert.equal(empty.get('feedbackCard').hidden, true);
+  const a = feedbackApp({ saveStatus: 403 }); await feedbackLogin(a);
+  feedbackButton(a, 0).listeners.click();
+  const form = a.run('feedbackState.form');
+  form.stars[0].listeners.click(); form.area.value = 'Texto'; form.area.listeners.input();
+  await form.save.listeners.click();
+  assert.match(a.get('feedbackMessage').textContent, /Só quem teve a presença registrada/);
+  assert.equal(a.run('feedbackState.open'), 'mesa'); assert.equal(a.run('feedbackState.form').area.value, 'Texto');
+  assert.equal(a.run('feedbackState.form').save.disabled, false);
+});
+
+test('pesquisa no painel: resumo por palestra, filtro de comentários e CSV protegido contra fórmulas', async () => {
+  const feedback = {
+    activities: [{ id: 'mesa', name: 'Mesa', eventDate: '2026-11-04', attendances: 10, responses: 2, average: 4.5, distribution: [0, 0, 0, 1, 1] },
+      { id: 'oficina', name: 'Oficina', eventDate: '2026-11-05', attendances: 5, responses: 1, average: 2, distribution: [0, 1, 0, 0, 0] },
+      { id: 'vazia', name: 'Vazia', eventDate: '2026-11-06', attendances: 3, responses: 0, average: null, distribution: [0, 0, 0, 0, 0] }],
+    responses: [{ activityId: 'mesa', rating: 5, comment: '=HYPERLINK("x")', date: '2026-11-07' },
+      { activityId: 'mesa', rating: 4, comment: '', date: '2026-11-07' },
+      { activityId: 'oficina', rating: 2, comment: 'Som "ruim"', date: '2026-11-06' }] };
+  const b = adminApp({ feedback }); await login(b); await b.run('loadFeedbackAdmin()');
+  const summary = b.get('feedbackSummaryList').children;
+  assert.equal(summary[0].children[0].children[1].textContent, '★ 4,5 · 2 de 10 presentes avaliaram');
+  assert.equal(summary[0].children[0].children[2].textContent, '5★\u00a01 · 4★\u00a01 · 3★\u00a00 · 2★\u00a00 · 1★\u00a00');
+  assert.equal(summary[2].children[0].children.length, 2, 'sem avaliações não mostra distribuição');
+  assert.equal(summary[2].children[0].children[1].textContent, 'Sem avaliações · 3 presentes');
+  assert.deepEqual(b.get('feedbackActivity').children.map(o => o.textContent), ['Todas as palestras (3)', 'Mesa (2)', 'Oficina (1)']);
+  assert.equal(b.get('feedbackComments').children.length, 2);
+  assert.equal(b.get('feedbackComments').children[0].children[0].children[0].textContent, '★★★★★ · Mesa');
+  assert.equal(b.get('feedbackComments').children[0].children[0].children[1].textContent, '=HYPERLINK("x")');
+  assert.equal(b.get('feedbackCommentsHint').textContent, '2 com comentário e 1 só com nota.');
+  b.get('feedbackActivity').value = 'oficina'; b.get('feedbackActivity').listeners.change();
+  assert.equal(b.get('feedbackComments').children.length, 1); assert.equal(b.get('feedbackComments').children[0].children[0].children[0].textContent, '★★☆☆☆');
+  assert.equal(b.get('feedbackExport').disabled, false);
+  b.click('feedbackExport');
+  const bytes = new Uint8Array(await b.blobs.at(-1).arrayBuffer());
+  assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf], 'BOM para o Excel reconhecer UTF-8');
+  const csv = new TextDecoder().decode(bytes);
+  assert(csv.startsWith('"Palestra";"Dia da palestra";"Nota";"Comentário";"Dia da resposta"\r\n'));
+  assert(csv.includes('"Mesa";"2026-11-04";"5";"\'=HYPERLINK(""x"")";"2026-11-07"'));
+  assert(csv.includes('"Oficina";"2026-11-05";"2";"Som ""ruim""";"2026-11-06"'));
+  b.click('logoutButton');
+  assert.equal(b.get('feedbackSummaryList').children.length, 0); assert.equal(b.get('feedbackExport').disabled, true);
 });

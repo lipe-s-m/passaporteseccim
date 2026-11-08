@@ -64,5 +64,15 @@ export function createServices({ supabaseUrl, serviceKey, fetcher, user }) {
       bio:p.bio ?? '', course:p.course ?? '', period:p.period ?? '', links:p.links ?? {}, photoUrl:photos[p.photoPath] ?? null } };
   };
 
-  return { adminRpc, passportRpc, storage, signPhotos, deletePhoto, profileRpc, publicProfile };
+  // RPC em nome da conta verificada; a rota decide a resposta a partir do código de erro do banco.
+  const userRpc = async (name, params) => {
+    const result = await fetcher(`${supabaseUrl}/rest/v1/rpc/${name}`, { method:'POST', redirect:'error', signal:AbortSignal.timeout(8000),
+      headers:{'Content-Type':'application/json',apikey:serviceKey,Authorization:`Bearer ${serviceKey}`},
+      body:JSON.stringify({ p_uid:user.localId, ...params }) });
+    if (result.ok) return { data: await result.json() };
+    const error = await result.json().catch(()=>({}));
+    return { code: typeof error.code === 'string' ? error.code : '' };
+  };
+
+  return { adminRpc, passportRpc, storage, signPhotos, deletePhoto, profileRpc, publicProfile, userRpc };
 }

@@ -24,6 +24,7 @@ function resetAdmin() {
   $("raffleDraw").disabled = true;
   closeMulti();
   resetSponsors();
+  resetFeedbackAdmin();
   moderationState.version++; $("moderationSearch").value = ""; $("moderationResults").replaceChildren(); message("moderationMessage", "");
 }
 

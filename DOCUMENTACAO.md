@@ -93,12 +93,12 @@ Sem framework e sem compilação: o que está no repositório é o que vai ao ar
 | `js/auth.js` | Login, cadastro, verificação de e-mail e sessão |
 | `js/passaporte.js` | Progresso, selos, modal da palestra, link de inscrição, carga do passaporte |
 | `js/navegacao.js` | Abas da página |
-| `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js` | Telas do participante |
+| `js/faq.js`, `js/ranking.js`, `js/perfil.js`, `js/meu-qr.js`, `js/avaliacoes.js` | Telas do participante |
 | `js/patrocinadores.js` | Faixa de patrocinadores no rodapé |
 | `js/painel.js` | Painel da organização: atividades, busca e atualização |
-| `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-leitor-qr.js` | Seções do painel |
+| `js/painel-palestras.js`, `js/painel-presencas.js`, `js/painel-sorteio.js`, `js/painel-patrocinadores.js`, `js/painel-moderacao.js`, `js/painel-avaliacoes.js`, `js/painel-leitor-qr.js` | Seções do painel |
 | `js/main.js` | Atalhos de teclado e inicialização |
-| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, nessa ordem |
+| `css/*.css` | `base`, `passaporte`, `componentes`, `responsivo`, `ranking`, `perfil`, `qr`, `painel`, `sorteio`, `rodape`, `avaliacoes`, nessa ordem |
 
 Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/frontend.test.cjs` falha se algum ficar de fora. `palestra.html` e `patrocinadores.html` continuam autocontidas.
 
@@ -116,6 +116,7 @@ Arquivo novo em `js/` ou `css/` precisa entrar no `index.html`; o teste `tests/f
 | `routes/presencas.mjs` | Presenças por palestra, em lote, cadastro na hora, várias palestras e leitor de QR |
 | `routes/sorteio.mjs` | Exportação do sorteio e sorteio no painel |
 | `routes/conteudo.mjs` | Editor das palestras, patrocinadores e envio de imagens do site |
+| `routes/avaliacoes.mjs` | Pesquisa de satisfação (participante e resultado para a organização) |
 | `*-content.mjs`, `qr-token.mjs`, `site-images.mjs` | Validações compartilhadas com os testes |
 
 Para criar uma rota: escrever a função em `routes/` (recebe `{ request, url, user, ... }` e devolve `response(...)`) e acrescentar uma linha na tabela de `handler.mjs`. A identidade já chega verificada; a permissão de organização é sempre conferida no banco pela RPC.
@@ -506,3 +507,15 @@ Ao terminar, o script restaura o backup num Postgres descartável (Docker) e mos
 **O backup contém dados pessoais** (nomes, e-mails e fotos). Guardar uma segunda cópia em local privado da organização, nunca no repositório nem em link público, e apagar as cópias quando os dados deixarem de ser necessários.
 
 **Restaurar num projeto Supabase novo:** criar o projeto, rodar `psql "<connection string>" -f papeis.sql`, depois `schema.sql` e `dados.sql`. Os erros nas tabelas `auth.*` são esperados (o login fica no Firebase, e essas tabelas estão vazias). Reenviar os arquivos de `storage/` com `npx supabase storage cp -r storage/avatars ss:///avatars --remote --experimental` (e o mesmo para `site-images`). Atualizar a URL e a chave pública em `js/config.js` e na Edge Function, e o ref do projeto nos padrões de imagem (`private.site_image_ok` e `site-images.mjs`).
+
+## Pesquisa de satisfação — 08/11/2026
+
+Quem teve presença registrada vê, no passaporte, o cartão **"Avalie as palestras que você assistiu"**: uma lista das palestras com presença, nota de 1 a 5 estrelas e comentário opcional (até 1.000 caracteres). Dá para mudar a avaliação depois. Sem presença registrada, o cartão não aparece.
+
+- **Só quem assistiu avalia:** a tabela `public.activity_feedback` tem chave estrangeira para a presença (`attendances`), então o próprio banco recusa avaliação sem presença. Se a organização remover uma presença, a avaliação daquela palestra também é apagada.
+- **Só a organização lê:** em Organização → **Pesquisa de satisfação**: média, quantas pessoas avaliaram em relação às presentes e a distribuição das notas por palestra; comentários filtráveis por palestra; botão **Baixar CSV** (separado por ponto e vírgula e com BOM, para abrir certo no Excel; comentários que começam com `=`, `+`, `-` ou `@` recebem um apóstrofo para a planilha não executá-los como fórmula).
+- **Sem o nome de quem respondeu:** a resposta da organização não traz nome, e-mail nem ID, e a data vem sem horário, para não cruzar com o horário da presença. O vínculo com a pessoa existe no banco (para garantir uma avaliação por pessoa e permitir editar), mas não sai pela API.
+- **Banco** (`20261108140000_feedback.sql`): tabela sem acesso de clientes nem do `service_role`, RPCs `manage_feedback` (conta verificada) e `admin_feedback` (só `private.admins`), ambas `SECURITY DEFINER` com `search_path` vazio.
+- **Rotas:** `GET|POST /passport/feedback` e `GET /passport/admin/feedback`.
+- **Testes:** `supabase/tests/feedback.sql` (presença obrigatória, nota e tamanho do comentário, edição sem duplicar, remoção em cascata, anonimato e grants) e 85 testes Node.
+

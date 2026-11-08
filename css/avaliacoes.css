@@ -1,0 +1,15 @@
+/* Pesquisa de satisfação: cartão no passaporte com nota em estrelas e comentário. */
+.feedback-card{margin-top:20px}
+.feedback-card h2{margin:4px 0 6px;font-size:22px}
+.feedback-list{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.feedback-item{padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(17,26,32,.6)}
+.feedback-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.feedback-head strong{display:block;font-size:17px;overflow-wrap:anywhere}
+.feedback-status{display:block;margin-top:4px;color:#ffd166;font-size:17px;letter-spacing:.08em}
+.feedback-status.pending{color:var(--muted);font-size:15px;letter-spacing:normal}
+.feedback-form{margin-top:14px}
+.feedback-label{margin:0;font-size:16px}
+.feedback-stars{display:flex;gap:6px;margin:8px 0 0}
+.feedback-star{width:48px;height:48px;border:1px solid rgba(255,209,102,.35);border-radius:12px;background:transparent;color:#ffd166;font-size:26px;line-height:1;cursor:pointer}
+.feedback-star[aria-pressed="true"]{background:rgba(255,209,102,.16);border-color:#ffd166}
+.feedback-star:focus-visible{outline:2px solid var(--green);outline-offset:2px}

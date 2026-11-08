@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="css/painel.css">
 <link rel="stylesheet" href="css/sorteio.css">
 <link rel="stylesheet" href="css/rodape.css">
+<link rel="stylesheet" href="css/avaliacoes.css">
 </head>
 <body>
 <div id="pageContent">
@@ -86,6 +87,14 @@
   <section id="qrCard" class="qr-card" aria-labelledby="qrCardTitle">
     <div><h2 id="qrCardTitle">Meu QR de presença</h2><p>Mostre este código na entrada de cada palestra para a organização registrar sua presença na hora.</p></div>
     <button id="qrOpen" class="action-button qr-open" type="button">Mostrar meu QR</button>
+  </section>
+  <section id="feedbackCard" class="faq-card feedback-card" aria-labelledby="feedbackTitle" hidden>
+    <div class="eyebrow">Sua opinião</div>
+    <h2 id="feedbackTitle">Avalie as palestras que você assistiu</h2>
+    <p id="feedbackSummary" class="faq-meta"></p>
+    <p class="faq-hint">Só a organização lê as respostas, e o painel mostra sem o seu nome. Dá para mudar a avaliação depois.</p>
+    <p id="feedbackMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+    <ul id="feedbackList" class="feedback-list" aria-label="Palestras que você assistiu"></ul>
   </section>
   <section id="colecao" class="badge-collection">
     <div class="section-head"><div><div class="eyebrow" data-copy="collection_eyebrow"></div><h2 data-copy="collection_title">Coleção de Selos</h2><p data-copy="collection_description"></p></div><span class="collection-meta" id="collectionMeta"></span></div>
@@ -191,6 +200,16 @@
       <label class="faq-field" for="moderationSearch">Buscar perfil<input id="moderationSearch" type="search" autocomplete="off" maxlength="120"></label>
       <p id="moderationMessage" class="page-message" role="status" aria-live="polite" hidden></p>
       <ul id="moderationResults" class="admin-list" aria-label="Perfis encontrados"></ul>
+    </details>
+    <details class="faq-card editor-section" id="feedbackSection">
+      <summary>Pesquisa de satisfação</summary>
+      <p class="faq-hint">Notas e comentários de quem teve presença registrada. As respostas aparecem sem o nome de quem respondeu.</p>
+      <div class="collection-actions"><button id="feedbackRefresh" class="action-button secondary" type="button">Atualizar</button><button id="feedbackExport" class="action-button secondary" type="button" disabled>Baixar CSV</button></div>
+      <p id="feedbackAdminMessage" class="page-message" role="status" aria-live="polite" hidden></p>
+      <ul id="feedbackSummaryList" class="admin-list" aria-label="Resumo por palestra"></ul>
+      <label class="faq-field" for="feedbackActivity">Comentários<select id="feedbackActivity"></select></label>
+      <p id="feedbackCommentsHint" class="faq-hint"></p>
+      <ul id="feedbackComments" class="admin-list" aria-label="Comentários"></ul>
     </details>
     <details class="faq-card editor-section" id="sponsorSection">
       <summary>Patrocinadores</summary>
@@ -341,6 +360,7 @@
 <script src="js/ranking.js"></script>
 <script src="js/perfil.js"></script>
 <script src="js/meu-qr.js"></script>
+<script src="js/avaliacoes.js"></script>
 <script src="js/patrocinadores.js"></script>
 <script src="js/painel.js"></script>
 <script src="js/painel-palestras.js"></script>
@@ -348,6 +368,7 @@
 <script src="js/painel-sorteio.js"></script>
 <script src="js/painel-patrocinadores.js"></script>
 <script src="js/painel-moderacao.js"></script>
+<script src="js/painel-avaliacoes.js"></script>
 <script src="js/painel-leitor-qr.js"></script>
 <script src="js/main.js"></script>
 </body>

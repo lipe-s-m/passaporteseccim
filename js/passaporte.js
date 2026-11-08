@@ -130,6 +130,7 @@ function clearPassport() {
   message("rankingMessage", "");
   closeMyQr();
   resetProfile();
+  resetFeedback();
   $("profilePanel").hidden = true;
   resetFaq();
   resetAdmin();
@@ -170,6 +171,7 @@ async function loadPassport() {
     state.participantName = data.participant.full_name;
     renderPassportIdentity(null);
     loadPassportIdentity();
+    loadFeedback();
     $("connectionStatus").textContent = text("session_signed_in", "CONECTADO");
     $("authSection").hidden = true;
     $("logoutButton").hidden = false;
