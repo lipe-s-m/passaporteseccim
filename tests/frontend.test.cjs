@@ -856,13 +856,13 @@ test('página inicial mostra foto e apelido do perfil no cartão do passaporte, 
 
 test('ranking destaca o pódio: 1º com destaque principal, 2º e 3º com medalha e empates dividindo a posição', async () => {
   const entries = [{ position: 1, name: 'Ana', badgeCount: 9 }, { position: 2, name: 'Bia', badgeCount: 7 }, { position: 2, name: 'Caio', badgeCount: 7 },
-    { position: 4, name: 'Davi', badgeCount: 5, isMe: true }];
-  const a = app({ handle: (path, options, pub) => path.includes('/passport/ranking') ? { entries, mine: { position: 4, badgeCount: 5 } }
+    { position: 3, name: 'Davi', badgeCount: 5, isMe: true }];
+  const a = app({ handle: (path, options, pub) => path.includes('/passport/ranking') ? { entries, mine: { position: 3, badgeCount: 5 } }
     : path.includes('/functions/v1/passport') ? passport : pub(path) });
   await a.start(); a.run('saveSession({idToken:"jwt",refreshToken:"refresh",expiresIn:"3600"})'); await a.run('loadPassport()');
   await a.run('loadRanking()');
   const rows = a.get('rankingList').children;
-  assert.deepEqual(rows.map(r => r.className), ['ranking-row place-1', 'ranking-row place-2', 'ranking-row place-2', 'ranking-row mine']);
-  assert.deepEqual(rows.map(r => r.children[0].textContent), ['🥇', '🥈', '🥈', '4º']);
+  assert.deepEqual(rows.map(r => r.className), ['ranking-row place-1', 'ranking-row place-2', 'ranking-row place-2', 'ranking-row place-3 mine']);
+  assert.deepEqual(rows.map(r => r.children[0].textContent), ['🥇', '🥈', '🥈', '🥉'], 'depois de um empate em 2º, o próximo é 3º');
   assert.equal(rows[0].children[0].attributes['aria-label'], '1º lugar');
 });

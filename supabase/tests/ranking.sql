@@ -23,7 +23,8 @@ begin
   if result::text like '%@example.invalid%' or result::text like '%'||a::text||'%' then raise exception 'Dados privados expostos'; end if;
   result := public.get_badge_ranking(prefix||'-b'); pos_b := (result->'mine'->>'position')::integer;
   result := public.get_badge_ranking(prefix||'-c'); pos_c := (result->'mine'->>'position')::integer;
-  if pos_a <> pos_b or pos_c < pos_a + 2 then raise exception 'Empate incorreto'; end if;
+  -- Empate divide a posição e o próximo vem logo em seguida, sem pular (1, 1, 2).
+  if pos_a <> pos_b or pos_c <> pos_a + 1 then raise exception 'Empate incorreto: % % %', pos_a, pos_b, pos_c; end if;
   result := public.get_badge_ranking(prefix||'-z');
   if result->'mine'->'position' <> 'null'::jsonb or (result->'mine'->>'badgeCount')::integer <> 0 then raise exception 'Zero incorreto'; end if;
   begin

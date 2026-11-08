@@ -317,7 +317,7 @@ Validação: domínio público respondeu HTTP 200 sem autenticação Vercel e co
 
 # Ranking de selos e inscrições — 03/11/2026
 
-A aba Ranking fica disponível após o login com e-mail confirmado. Mostra os 20 participantes com mais selos de atividades ativas, em ordem decrescente, e destaca a própria conta. O resumo mostra a posição do participante mesmo fora dos 20 primeiros. Participantes sem selos ainda não recebem posição. Empates usam `rank()` (exemplo: 1, 1, 3); nomes e IDs internos servem somente para estabilizar a ordem de exibição, sem desempatar a pontuação.
+A aba Ranking fica disponível após o login com e-mail confirmado. Mostra os 20 participantes com mais selos de atividades ativas, em ordem decrescente, e destaca a própria conta. O resumo mostra a posição do participante mesmo fora dos 20 primeiros. Participantes sem selos ainda não recebem posição. Empates usam `dense_rank()`: quem empata divide a posição e o próximo vem logo em seguida, sem pular (exemplo: 1, 2, 2, 2, 3; migração `20261108120000_dense_ranking.sql`). Nomes e IDs internos servem somente para estabilizar a ordem de exibição, sem desempatar a pontuação.
 
 O frontend consulta `GET /functions/v1/passport/ranking` com o token Firebase. A Edge Function valida a conta no Google antes de chamar `get_badge_ranking(p_uid)`, disponível exclusivamente para `service_role`, com `SECURITY INVOKER` e `search_path` vazio. A resposta contém nome, posição, quantidade de selos e indicação da própria conta. E-mails, UUIDs e UIDs não fazem parte da resposta do ranking. As tabelas privadas continuam sem acesso direto pelo navegador; o ranking é somente leitura e não concede presenças. A lista e os pedidos pendentes são invalidados ao sair da conta.
 
@@ -434,3 +434,7 @@ A foto do palestrante, o logo e as fotos dos patrocinadores são **enviados como
 - A redução acontece no aparelho. O backend (`PUT /passport/admin/images?kind=speakers|sponsors`) confere a organização (`admin_check`), o tipo pelos bytes (WebP, JPEG ou PNG; até 1,5 MB) e grava com nome aleatório no bucket **público** `site-images`, porque são imagens do site público. O link é salvo no editor e só vai ao ar quando a palestra ou o patrocinador é salvo.
 - Imagens antigas (`/fotos/...` e Cloudinary) continuam aceitas. Imagens substituídas ficam no bucket, já que não são apagadas automaticamente para não quebrar páginas.
 - Migração `20261105100000_site_images.sql`: bucket `site-images`, `private.site_image_ok` (o padrão do link inclui o ref do projeto `mqparqbuhstkdpcgbbsa`; trocar de projeto exige atualizar esse padrão e o de `site-images.mjs`), constraints de `activities.speaker_photo_url` e `sponsors.logo_url`, `private.sponsor_photo_ok`, `admin_activity_content` e `admin_check`. Testes: `supabase/tests/site_images.sql` e 77 testes Node.
+
+## Testes SQL locais
+
+`scripts/test_sql.sh` aplica todas as migrações e roda `supabase/tests/*.sql` num Postgres 17 descartável (Docker), com papéis equivalentes aos do Supabase. Não toca no banco de produção.
